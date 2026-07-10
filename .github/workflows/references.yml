@@ -1,0 +1,24 @@
+name: references
+on:
+  push:
+    paths:
+      - references.bib
+      - docs/09_fuentes_por_experimento.md
+      - scripts/verify_references.py
+      - .github/workflows/references.yml
+  pull_request:
+    paths:
+      - references.bib
+      - docs/09_fuentes_por_experimento.md
+      - scripts/verify_references.py
+      - .github/workflows/references.yml
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: python scripts/verify_references.py
