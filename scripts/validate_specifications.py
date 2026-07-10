@@ -7,8 +7,6 @@ import sys
 
 import yaml
 
-from scripts.verify_references import parse_bibtex
-
 ROOT = Path(__file__).resolve().parents[1]
 SPEC_PATH = ROOT / "experiments" / "specifications.yaml"
 BIB_PATH = ROOT / "references.bib"
@@ -28,6 +26,10 @@ REQUIRED_FIELDS = {
     "escalation_criteria",
     "references",
 }
+
+
+def bibtex_keys(text: str) -> set[str]:
+    return set(re.findall(r"^@\w+\s*\{\s*([^,\s]+)\s*,", text, flags=re.MULTILINE))
 
 
 def validate_specifications(document: dict, reference_keys: set[str]) -> list[str]:
@@ -110,8 +112,8 @@ def validate_specifications(document: dict, reference_keys: set[str]) -> list[st
 def main() -> int:
     try:
         document = yaml.safe_load(SPEC_PATH.read_text(encoding="utf-8"))
-        references = set(parse_bibtex(BIB_PATH.read_text(encoding="utf-8")))
-    except (OSError, ValueError, yaml.YAMLError) as exc:
+        references = bibtex_keys(BIB_PATH.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError) as exc:
         print(f"Specification validation could not start: {exc}", file=sys.stderr)
         return 1
 
