@@ -12,5 +12,7 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install -e .[dev]
+      - run: ruff check .
+      - run: python scripts/validate_catalog.py
       - run: pytest -q
       - run: python scripts/run_suite.py --trials 50000 --seed 7
