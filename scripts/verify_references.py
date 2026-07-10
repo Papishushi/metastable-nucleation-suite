@@ -98,9 +98,8 @@ def fetch_crossref(doi: str, retries: int = 3) -> dict:
 def cited_keys(text: str) -> set[str]:
     keys: set[str] = set()
     for line in text.splitlines():
-        if not line.startswith("| E"):
-            continue
-        keys.update(re.findall(r"`([A-Za-z0-9_:-]+)`", line))
+        if line.startswith("| E"):
+            keys.update(re.findall(r"`([A-Za-z0-9_:-]+)`", line))
     return keys
 
 
@@ -135,22 +134,40 @@ def validate_metadata(key: str, fields: dict[str, str], metadata: dict) -> list[
     bib_pages = fields.get("pages")
     registered_pages = metadata.get("page") or metadata.get("article-number")
     if bib_pages and registered_pages:
-        normalized_bib_pages = normalize_text(bib_pages)
-        normalized_registered_pages = normalize_text(str(registered_pages))
-        if normalized_bib_pages != normalized_registered_pages:
+        if normalize_text(bib_pages) != normalize_text(str(registered_pages)):
             errors.append(f"{key}: pages mismatch: bib={bib_pages!r}, Crossref={registered_pages!r}")
 
     return errors
 
 
+def write_report(path: Path, results: list[dict], errors: list[str], entries: int, cited: int) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(
+            {
+                "entries": entries,
+                "cited_keys": cited,
+                "passed": not errors,
+                "errors": errors,
+                "results": results,
+            },
+            indent=2,
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Verify BibTeX references against Crossref")
     parser.add_argument("--no-network", action="store_true", help="only validate local keys and DOI syntax")
+    parser.add_argument("--report", type=Path, help="write a machine-readable verification report")
     args = parser.parse_args()
 
     entries = parse_bibtex(BIB_PATH.read_text(encoding="utf-8"))
     used_keys = cited_keys(SOURCES_PATH.read_text(encoding="utf-8"))
     errors: list[str] = []
+    results: list[dict] = []
 
     missing_keys = used_keys - entries.keys()
     uncited_keys = entries.keys() - used_keys
@@ -162,23 +179,44 @@ def main() -> int:
     doi_pattern = re.compile(r"^10\.\d{4,9}/\S+$", re.IGNORECASE)
     for key, fields in sorted(entries.items()):
         doi = fields.get("doi")
+        result = {"key": key, "bib": fields, "crossref": None, "errors": []}
+        results.append(result)
         if not doi:
-            errors.append(f"{key}: missing DOI")
+            message = f"{key}: missing DOI"
+            errors.append(message)
+            result["errors"].append(message)
             continue
         if not doi_pattern.fullmatch(doi):
-            errors.append(f"{key}: malformed DOI {doi!r}")
+            message = f"{key}: malformed DOI {doi!r}"
+            errors.append(message)
+            result["errors"].append(message)
             continue
         if args.no_network:
             continue
         try:
             metadata = fetch_crossref(doi)
         except RuntimeError as exc:
-            errors.append(f"{key}: {exc}")
+            message = f"{key}: {exc}"
+            errors.append(message)
+            result["errors"].append(message)
             continue
+        result["crossref"] = {
+            "doi": metadata.get("DOI"),
+            "title": (metadata.get("title") or [None])[0],
+            "year": crossref_year(metadata),
+            "volume": metadata.get("volume"),
+            "page": metadata.get("page") or metadata.get("article-number"),
+            "container_title": (metadata.get("container-title") or [None])[0],
+            "url": metadata.get("URL"),
+        }
         entry_errors = validate_metadata(key, fields, metadata)
         errors.extend(entry_errors)
+        result["errors"].extend(entry_errors)
         if not entry_errors:
             print(f"OK {key}: {doi} — {(metadata.get('title') or [''])[0]}")
+
+    if args.report:
+        write_report(args.report, results, errors, len(entries), len(used_keys))
 
     if errors:
         print("Reference verification failed:", file=sys.stderr)
