@@ -15,4 +15,15 @@ jobs:
       - run: ruff check .
       - run: python scripts/validate_catalog.py
       - run: pytest -q
-      - run: python scripts/run_suite.py --trials 50000 --seed 7
+      - name: Generate reference report
+        run: python scripts/run_suite.py --trials 50000 --seed 7
+      - name: Validate reference report
+        run: python scripts/validate_reference_report.py artifacts/reference_report.json
+      - name: Upload reference report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: reference-report-${{ github.run_id }}
+          path: artifacts/reference_report.json
+          if-no-files-found: error
+          retention-days: 30
