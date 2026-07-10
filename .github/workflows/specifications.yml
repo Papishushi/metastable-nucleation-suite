@@ -24,4 +24,20 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install PyYAML
-      - run: python scripts/validate_specifications.py
+      - name: Validate specifications
+        shell: bash
+        run: |
+          mkdir -p artifacts
+          set +e
+          python scripts/validate_specifications.py > artifacts/specification-validation.txt 2>&1
+          status=$?
+          cat artifacts/specification-validation.txt
+          exit $status
+      - name: Upload validation report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: specification-validation-${{ github.run_id }}
+          path: artifacts/specification-validation.txt
+          if-no-files-found: error
+          retention-days: 30
