@@ -21,4 +21,13 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
-      - run: python scripts/verify_references.py
+      - name: Verify references
+        run: python scripts/verify_references.py --report artifacts/reference-verification.json
+      - name: Upload verification report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: reference-verification-${{ github.run_id }}
+          path: artifacts/reference-verification.json
+          if-no-files-found: error
+          retention-days: 30
