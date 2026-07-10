@@ -1,0 +1,47 @@
+name: Propuesta de experimento
+description: Propón un protocolo nuevo o una extensión falsable de uno existente.
+title: "[EXPERIMENTO] "
+labels: ["experiment"]
+body:
+  - type: input
+    id: hypothesis
+    attributes:
+      label: Hipótesis
+      description: Formula una afirmación concreta y falsable.
+    validations:
+      required: true
+  - type: textarea
+    id: null
+    attributes:
+      label: Predicción nula según la ciencia conocida
+      description: Explica qué debería observarse si no hay nueva física.
+    validations:
+      required: true
+  - type: textarea
+    id: design
+    attributes:
+      label: Diseño experimental
+      description: Sistema, controles, variables, cronología y número de ensayos.
+    validations:
+      required: true
+  - type: textarea
+    id: confounders
+    attributes:
+      label: Confundidores y falsos positivos
+      description: Incluye contaminación, reloj común, drift, memoria, postselección y retroacción cuando proceda.
+    validations:
+      required: true
+  - type: textarea
+    id: escalation
+    attributes:
+      label: Criterio de escalado
+      description: Qué resultado justificaría replicación independiente o un test más exigente.
+    validations:
+      required: true
+  - type: textarea
+    id: sources
+    attributes:
+      label: Fuentes primarias
+      description: DOI, arXiv o referencia bibliográfica de soporte.
+    validations:
+      required: true

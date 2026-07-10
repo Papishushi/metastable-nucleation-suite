@@ -1,6 +1,6 @@
-import math
 import numpy as np
-from metastable_suite.bell import simulate_local_chsh, simulate_quantum_chsh, chsh_value, no_signalling_deltas
+
+from metastable_suite.bell import chsh_value, no_signalling_deltas, simulate_local_chsh, simulate_quantum_chsh
 
 
 def test_local_model_does_not_violate_chsh():

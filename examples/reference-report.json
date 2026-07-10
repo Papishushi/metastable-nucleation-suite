@@ -1,0 +1,35 @@
+{
+  "trials": 80000,
+  "seed": 7,
+  "known_science_expectations": {
+    "seed_odds_ratio_gt_1": 2.685379081757233,
+    "classical_common_cause_correlation": 0.25239211993354427,
+    "independent_optical_nodes_correlation_near_0": -0.002099902474227245,
+    "local_chsh_le_2": {
+      "S": 2.01328491293165,
+      "E": {
+        "E00": -0.5130139381525703,
+        "E01": -0.49989921386817177,
+        "E10": -0.5000501856870421,
+        "E11": 0.5003215752238658
+      }
+    },
+    "quantum_entangled_chsh_near_2sqrt2V": {
+      "S": 2.7561916292929767,
+      "E": {
+        "E00": -0.6877755511022045,
+        "E01": -0.6895620875824835,
+        "E10": -0.6889469190980766,
+        "E11": 0.6899070715102122
+      }
+    },
+    "quantum_no_signalling_deltas_near_0": {
+      "A_x0": 0.0020002612703912126,
+      "A_x1": 0.0014142397029822673,
+      "B_y0": 0.0005329697208910633,
+      "B_y1": 0.0035770935560937023
+    },
+    "optical_metastate_positive_fraction": 0.4974625,
+    "optical_mean_commit_step": 47.49545
+  }
+}

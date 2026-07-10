@@ -1,0 +1,37 @@
+name: Error de software o protocolo
+description: Informa de un fallo reproducible en simulación, análisis o documentación.
+title: "[BUG] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: observed
+    attributes:
+      label: Resultado observado
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Resultado esperado
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Pasos mínimos para reproducirlo
+      description: Incluye comando, semilla aleatoria, versión de Python y plataforma.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Registro o salida relevante
+      render: shell
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Comprobaciones
+      options:
+        - label: He fijado la semilla aleatoria.
+        - label: He comprobado que no es una fluctuación esperable de muestra finita.
+        - label: No incluyo datos sensibles ni credenciales.
