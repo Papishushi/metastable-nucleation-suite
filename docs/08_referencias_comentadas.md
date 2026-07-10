@@ -1,33 +1,39 @@
 # 8. Referencias comentadas
 
-Las referencias completas están en `references.bib`. Selección por función:
+La bibliografía completa se encuentra en `references.bib`. Este documento explica por qué cada grupo de trabajos es relevante para la suite y qué afirmaciones permite sostener. Las referencias no se presentan como una lista de autoridad, sino como el fundamento de las predicciones nulas, las plataformas propuestas y los límites de interpretación.
 
 ## Polimorfismo y nucleación
 
-- **Bučar, Lancaster y Bernstein (2015):** revisión crítica del concepto de polimorfos desaparecidos; distingue observación, inferencia y narrativa de siembra.
-- **Bauer et al. (2001):** caso de ritonavir, estructura, estabilidad y solubilidad de formas cristalinas.
-- **Morissette et al. (2003):** cribado de alta capacidad de diversidad de formas de ritonavir.
-- **Sosso et al. (2016):** límites de la comprensión molecular de nucleación y retos de simulación.
-- **Menon et al. (2021):** precursores estructurados y selección temprana de polimorfo.
+Bučar, Lancaster y Bernstein revisan críticamente el concepto de «polimorfos desaparecidos». Su trabajo es importante porque separa los hechos experimentales de las narrativas construidas alrededor de la siembra accidental. La revisión muestra que la pérdida de reproducibilidad puede ser real y significativa sin implicar que un estado haya desaparecido de forma fundamental.
 
-## No localidad y Bell
+Bauer y colaboradores describen el caso de ritonavir, incluyendo las diferencias estructurales, de estabilidad y de solubilidad entre formas cristalinas. Morissette y colaboradores amplían ese caso mediante un cribado de alta capacidad que revela una diversidad de formas mayor de la que sugería el proceso original. Ambos trabajos justifican los experimentos de siembra, contaminación y recuperación de polimorfos.
 
-- **Brunner et al. (2014):** revisión de no localidad de Bell.
-- **Hensen et al. (2015):** Bell sin lagunas principales con espines electrónicos remotos.
-- **Giustina et al. y Shalm et al. (2015):** pruebas fotónicas sin lagunas principales.
-- **Schlosshauer (2005):** decoherencia y transición cuántico-clásica.
+La revisión de Sosso y colaboradores resume las limitaciones de la comprensión molecular de la nucleación y los retos que afrontan las simulaciones. Menon y colaboradores aportan evidencia sobre precursores estructurados y selección temprana de polimorfo. Estos trabajos respaldan la decisión de no reducir toda nucleación a una barrera clásica única y de medir rutas intermedias siempre que sea posible.
+
+## Bell, no localidad y decoherencia
+
+La revisión de Brunner y colaboradores proporciona el marco teórico general para interpretar desigualdades de Bell, causalidad local y no localidad. Los experimentos de Hensen, Giustina y Shalm muestran cómo se diseñan pruebas que cierran simultáneamente las lagunas principales en distintas plataformas.
+
+Estos trabajos no demuestran no localidad espontánea en nucleación. Su función dentro de la suite es definir el estándar experimental que tendría que alcanzarse antes de utilizar una salida metaestable como variable de Bell. También muestran por qué una correlación temporal ordinaria no puede equipararse a una violación de una desigualdad.
+
+La revisión de Schlosshauer sobre decoherencia proporciona el marco para analizar cómo una correlación cuántica preparada puede perderse al acoplarse a un amplificador macroscópico. Esta referencia resulta especialmente importante para E10 y E11, donde la cuestión central es cuánto de la visibilidad inicial sobrevive a la bifurcación y a la lectura.
 
 ## Plataformas ópticas y de materia
 
-- **Firstenberg et al. (2013):** fotones atractivos en medio no lineal Rydberg.
-- **Peyronel et al. (2012):** óptica cuántica no lineal a nivel de fotón único con átomos Rydberg.
-- **Bernien et al. (2017):** simulador cuántico programable con átomos Rydberg y fases ordenadas.
-- **Zhang et al. (2023):** transición cuántica lineal–zigzag en iones atrapados.
-- **Baas et al. (2004):** biestabilidad óptica en microcavidades semiconductoras.
+Peyronel y colaboradores demostraron óptica cuántica no lineal a nivel de fotón único mediante átomos de Rydberg. Firstenberg y colaboradores observaron estados ligados y atracción efectiva entre fotones en un medio fuertemente interactuante. Estos trabajos justifican la consideración de polaritones de Rydberg como plataforma alternativa para acoplar entradas cuánticas a una dinámica no lineal.
+
+Bernien y colaboradores desarrollaron un simulador cuántico programable basado en átomos de Rydberg y observaron fases ordenadas. Zhang y colaboradores estudiaron una transición cuántica lineal–zigzag en iones atrapados. Ambas plataformas son relevantes para la replicación cruzada porque ofrecen mecanismos físicos distintos para seleccionar estados colectivos.
+
+Baas y colaboradores estudiaron biestabilidad óptica en microcavidades semiconductoras. Este trabajo proporciona una base directa para el diseño del nodo polaritónico inicial y para la definición de dos atractores que puedan actuar como salida metaestable.
 
 ## Redes distribuidas
 
-- **Afach et al. / GNOME:** redes de magnetómetros sincronizados para buscar perturbaciones globales transitorias.
-- **Roberts et al.:** relojes atómicos como red de búsqueda de defectos topológicos o variación de constantes.
+La red GNOME utiliza magnetómetros sincronizados para buscar perturbaciones globales transitorias. Su valor para esta suite reside en la arquitectura distribuida, la sincronización, el control de falsos positivos y la necesidad de distinguir señales locales de una estructura coherente entre nodos.
 
-La bibliografía no avala la hipótesis de no localidad espontánea en nucleación. Avala las piezas experimentales y define la predicción estándar que la suite intenta poner a prueba.
+Roberts y colaboradores analizaron redes de relojes atómicos como instrumentos para buscar defectos topológicos u otras perturbaciones transitorias. Estos trabajos muestran cómo una hipótesis propagante debe producir retardos, geometría y respuestas diferenciales predichas antes de observar los datos.
+
+## Lectura responsable
+
+La bibliografía respalda las piezas del diseño experimental: nucleación sensible a interfaces, polimorfismo, biestabilidad óptica, interacciones Rydberg, Bell, decoherencia y redes sincronizadas. No respalda por sí sola la hipótesis de que la nucleación genere no localidad espontánea.
+
+El propósito del repositorio es precisamente mantener esa distinción. Las fuentes permiten construir una predicción estándar exigente y diseñar controles capaces de refutar explicaciones ordinarias antes de considerar una interpretación extraordinaria.

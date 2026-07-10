@@ -1,92 +1,81 @@
 # 1. Marco científico
 
+Este documento establece el vocabulario y los límites conceptuales de la suite. Su función no es defender una interpretación concreta de la mecánica cuántica ni presentar una explicación definitiva de la nucleación. Pretende separar con claridad los fenómenos ya establecidos, las hipótesis físicamente plausibles y las afirmaciones extraordinarias que requerirían evidencia nueva.
+
 ## 1.1 Nucleación y metaestabilidad
 
-Una fase metaestable es un mínimo local de energía libre separado de estados más estables por una barrera. En la descripción clásica simplificada, la tasa de nucleación puede escribirse como
+Una fase metaestable es un estado que puede persistir durante un tiempo largo aunque no sea el mínimo global de energía libre. El sistema queda retenido porque existe una barrera que separa ese estado de una configuración más estable. En una descripción clásica simplificada, la tasa de nucleación puede expresarse como
 
 \[
 J = A\exp\left(-\frac{\Delta G^*}{k_B T}\right),
 \]
 
-con prefactor cinético `A` y barrera efectiva `ΔG*`. La dependencia exponencial hace que variaciones pequeñas de temperatura, interfaz, composición, campo o impurezas produzcan cambios enormes de tasa. Eso convierte la nucleación en un amplificador sensible, pero también en un detector plagado de confundidores.
+donde `A` representa un prefactor cinético y `ΔG*` la barrera efectiva asociada a la formación de un núcleo crítico. La dependencia exponencial implica que pequeñas variaciones en temperatura, composición, interfaz, campo externo o concentración de impurezas pueden producir cambios muy grandes en la tasa observada.
 
-La teoría clásica de nucleación es útil como línea base, no como explicación microscópica completa. Núcleos pequeños no tienen por qué poseer propiedades de fase macroscópica; pueden existir precursores estructurados, rutas en varios pasos y selección temprana de polimorfo.
+Esta sensibilidad extrema convierte la nucleación en un buen amplificador de perturbaciones microscópicas, pero también en un sistema especialmente vulnerable a confundidores. Una variación aparentemente dramática no implica necesariamente una causa exótica: puede proceder de una modificación muy pequeña de una superficie, de una impureza no registrada o de una diferencia de historial entre lotes.
 
-## 1.2 Polimorfismo y “polimorfos desaparecidos”
+La teoría clásica de nucleación proporciona una línea base útil, pero no constituye una descripción microscópica universal. Los núcleos pequeños no tienen por qué presentar todas las propiedades de la fase macroscópica. Pueden existir precursores estructurados, rutas de nucleación en varios pasos, agregados intermedios y mecanismos de selección de polimorfo que comienzan antes de la aparición de un núcleo claramente cristalino.
 
-Un compuesto puede adoptar varias redes cristalinas. Una forma metaestable puede obtenerse repetidamente hasta que una forma más estable o cinéticamente favorecida aparece y pasa a dominar. Entre las explicaciones ordinarias están:
+## 1.2 Polimorfismo y formas que dejan de reproducirse
 
-- siembra deliberada o accidental;
-- nucleación heterogénea en superficies;
-- impurezas, solvatos o hidratos;
-- cambios de proceso o proveedor;
-- precursores líquidos distintos;
-- transformación posterior del cristal ya nucleado;
-- estadística insuficiente y sesgo de publicación.
+Un mismo compuesto puede cristalizar en varias estructuras distintas. Cada polimorfo posee propiedades propias de estabilidad, solubilidad, densidad, morfología y cinética de formación. Una forma metaestable puede obtenerse repetidamente durante un periodo y dejar de aparecer cuando surge una forma más estable, cuando cambian las condiciones del proceso o cuando el entorno queda contaminado por semillas de otra estructura.
 
-“Desaparecido” describe una pérdida práctica de reproducibilidad, no la eliminación ontológica de un estado permitido. El caso de ritonavir demuestra impacto industrial real, pero no prueba contaminación planetaria ni un cambio de leyes físicas.
+El fenómeno denominado «polimorfo desaparecido» describe una pérdida práctica de reproducibilidad. No significa que el estado haya sido eliminado del espacio de configuraciones permitidas. Entre las explicaciones ordinarias se encuentran la siembra deliberada o accidental, la nucleación heterogénea en superficies, la aparición de impurezas o solvatos, los cambios de proveedor, la modificación de las rutas de proceso, la existencia de precursores líquidos distintos y la transformación del cristal después de la nucleación inicial.
 
-## 1.3 Azar: operacional frente a ontológico
+También deben considerarse causas metodológicas. Una forma rara puede parecer establemente reproducible cuando el número de ensayos es pequeño, y puede parecer «desaparecida» cuando se modifica el criterio de clasificación o cuando solo se publican los resultados positivos. El caso de ritonavir demuestra que un cambio de forma cristalina puede tener consecuencias industriales enormes, pero no demuestra que una semilla se haya propagado globalmente ni que las leyes físicas hayan cambiado.
 
-En esta suite, “estocástico” significa que el resultado se modela mediante distribuciones condicionadas a las variables observadas. No implica por sí solo ausencia de causa. La aleatoriedad observada puede provenir de:
+## 1.3 Qué significa llamar aleatorio a un resultado
 
-- microestados clásicos no controlados;
-- ruido térmico o cuántico;
-- dinámica caótica;
-- variables omitidas;
-- azar cuántico irreducible, según la teoría e interpretación empleadas.
+En esta suite, un proceso se denomina estocástico cuando sus resultados se describen mediante distribuciones de probabilidad condicionadas a las variables observadas. Esta definición es operacional. No afirma que el proceso carezca de causa ni que la aleatoriedad sea necesariamente fundamental.
 
-La distinción se prueba mediante predicciones estadísticas, no mediante intuiciones sobre lo que “debería” ser azar.
+La dispersión observada puede proceder de microestados clásicos no controlados, ruido térmico, ruido cuántico, dinámica caótica, variables omitidas o una combinación de todos ellos. También puede reflejar azar cuántico irreducible dentro del marco teórico utilizado. Estas posibilidades no se distinguen mediante intuiciones filosóficas, sino mediante predicciones estadísticas y experimentos que comparen modelos concretos.
 
-## 1.4 Correlación local, causa común y no localidad
+Por ello, el repositorio evita identificar «impredecible» con «no causado». Un modelo puede ser incapaz de predecir cada ensayo individual y, aun así, describir correctamente las distribuciones, dependencias temporales y respuestas a perturbaciones del sistema.
 
-Dos laboratorios pueden correlacionarse por una causa común ordinaria: red eléctrica, reloj, firmware, lote, vibración, campo electromagnético, radiación, presión atmosférica o actividad solar. Incluso una perturbación no registrada sigue siendo local si puede representarse mediante una variable compartida `λ` en el pasado causal:
+## 1.4 Correlación, causa común y localidad
+
+Dos laboratorios separados pueden producir resultados correlacionados sin que exista influencia instantánea entre ellos. Una red eléctrica compartida, un reloj común, una versión de firmware, un lote de material, una perturbación geomagnética, una variación atmosférica o una señal de radio pueden actuar como causas comunes.
+
+Incluso una perturbación que no haya sido medida sigue siendo compatible con una explicación local si puede representarse mediante una variable `λ` situada en el pasado causal de ambos resultados:
 
 \[
 P(a,b|x,y)=\int d\lambda\,\rho(\lambda)P(a|x,\lambda)P(b|y,\lambda).
 \]
 
-Una prueba de Bell exige configuraciones locales `x,y`, resultados `a,b`, alta eficiencia de detección y separación espacio-temporal de los eventos relevantes. En CHSH:
+Una correlación temporal, por intensa que sea, no constituye por sí sola una prueba de no localidad. Para realizar una prueba de Bell es necesario definir ajustes locales `x` e `y`, resultados `a` y `b`, una regla de ensayo válida, una eficiencia de detección suficiente y una separación espacio-temporal adecuada entre los eventos relevantes.
+
+En el escenario CHSH, el parámetro se construye a partir de cuatro correlaciones:
 
 \[
 S=E_{00}+E_{01}+E_{10}-E_{11}.
 \]
 
-Los modelos locales satisfacen `|S| ≤ 2`. La mecánica cuántica alcanza `2√2` para estados y bases ideales. Una correlación simultánea sin elecciones de base no es una prueba de Bell.
+Los modelos locales satisfacen `|S| ≤ 2`, mientras que la mecánica cuántica puede alcanzar `2√2` en condiciones ideales. Sin embargo, una correlación simultánea entre dos secuencias, sin elecciones de base válidas y sin control de las lagunas experimentales, no es una prueba de Bell.
 
 ## 1.5 No señalización
 
-La mecánica cuántica estándar permite correlaciones no locales, pero no controlarlas para transmitir información superlumínica. Debe cumplirse:
+La mecánica cuántica permite correlaciones que no pueden reproducirse mediante ciertos modelos locales, pero no permite utilizarlas como un canal controlable de comunicación superlumínica. En términos estadísticos, la distribución local de A no debe depender de la elección realizada en B:
 
 \[
-P(a|x,y)=P(a|x)
+P(a|x,y)=P(a|x).
 \]
 
-para toda elección remota `y`, y análogamente en el otro nodo. Una dependencia reproducible de los marginales locales respecto a la elección remota sería más radical que una violación de Bell y exigiría revisar causalidad relativista, o encontrar un fallo experimental monumental.
+La misma condición se aplica de forma simétrica al otro nodo. Esto significa que las correlaciones conjuntas pueden cambiar con los ajustes, mientras que los marginales locales permanecen invariantes.
+
+Una dependencia reproducible de los marginales respecto a la elección remota sería más radical que una violación ordinaria de Bell. Antes de atribuirla a una modificación de la causalidad relativista habría que excluir errores de emparejamiento, ventanas de coincidencia, deriva temporal, pérdidas dependientes del ajuste, filtrado de datos y comunicación instrumental no registrada.
 
 ## 1.6 Medición y retroacción
 
-Medir requiere interacción. En sistemas ópticos la sonda puede introducir pérdidas, calentamiento, selección de fase, bloqueo por inyección o efecto Zeno. Por eso la retroacción no se trata como misterio filosófico, sino como parámetro experimental:
+Toda medición requiere una interacción física. En un sistema óptico, la sonda puede introducir pérdidas, calentamiento, fotones adicionales, selección de fase, presión de radiación, bloqueo por inyección o una modificación del tiempo de vida. Por tanto, la observación no se trata aquí como un acto abstracto, sino como una intervención experimental cuantificable.
 
-- intensidad y duración de sonda;
-- fotones extraídos;
-- calentamiento estimado;
-- modificación del tiempo de vida;
-- cambio en tasa de transición;
-- cambio en distribución de metaestados.
+Cada protocolo que emplee una sonda debe registrar su intensidad, duración, frecuencia, polarización, fase y momento de aplicación. También debe estimar la energía depositada o extraída, el calentamiento inducido, la modificación de las pérdidas y cualquier cambio en la tasa de transición o en la distribución de metaestados.
 
-Los ensayos incluyen brazos sin sonda, sonda débil, lectura tardía y lectura destructiva.
+Los ensayos de retroacción compararán condiciones sin sonda, con sonda débil, con sonda intensa, con detector activado pero sin iluminación y con lectura realizada únicamente después de la transición. De este modo puede separarse el efecto de la medición del efecto del dispositivo de lectura.
 
-## 1.7 Qué demostraría realmente nueva física
+## 1.7 Qué sería necesario para hablar de nueva física
 
-No basta con un valor `p < 0.05`. Harían falta, como mínimo:
+Un valor aislado de `p < 0.05` no constituye evidencia suficiente para una afirmación extraordinaria. El resultado debe proceder de un análisis preregistrado, sobrevivir a controles ciegos, mantenerse al intercambiar hardware y replicarse en un laboratorio independiente.
 
-1. efecto preregistrado;
-2. replicación independiente;
-3. controles ciegos y hardware intercambiado;
-4. cierre de localidad y detección cuando corresponda;
-5. análisis resistente a memoria y selección adaptativa;
-6. independencia respecto a lote, software y reloj;
-7. predicción cuantitativa nueva confirmada fuera de muestra.
+Cuando el experimento implique Bell, será necesario demostrar que las elecciones y los resultados relevantes cumplen la separación temporal exigida, que la eficiencia de detección es adecuada y que el análisis es resistente a memoria, parada adaptativa y postselección. También deberá mostrarse que el efecto no depende de un lote, una versión de software, un reloj compartido o una regla de emparejamiento concreta.
 
-La suite está diseñada para producir antes una lista convincente de explicaciones aburridas. Esa lista es un activo, no un fracaso.
+La señal más convincente no sería una anomalía estadística aislada, sino una predicción cuantitativa nueva confirmada fuera de muestra. La suite está diseñada para producir primero una explicación detallada de las causas ordinarias. Encontrar que el supuesto fenómeno procede de contaminación, deriva o instrumentación no representa un fracaso: significa que el experimento ha cumplido su función científica.

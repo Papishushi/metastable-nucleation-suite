@@ -1,56 +1,47 @@
 # 6. Hoja de ruta
 
+La implementación debe avanzar por etapas. Cada fase existe para eliminar una familia concreta de errores antes de aumentar la complejidad experimental. Saltarse una etapa produciría un sistema más espectacular, pero menos interpretable.
+
 ## Etapa 0 — Software y datos sintéticos
 
-- validar esquemas y simuladores;
-- reproducir Poisson, mezcla de riesgos, causa común, Bell local y benchmark cuántico;
-- auditoría independiente del emparejamiento de eventos.
+La primera etapa valida los esquemas de datos, los simuladores y la canalización estadística. El software debe reproducir correctamente procesos de Poisson, mezclas de riesgos, causas comunes clásicas, modelos locales de Bell y benchmarks cuánticos. También debe someterse a una auditoría independiente del emparejamiento de eventos y de los signos utilizados en CHSH.
 
-**Go:** pruebas pasan y el análisis recupera parámetros conocidos.
+La etapa se considera superada cuando las pruebas automatizadas pasan, los análisis recuperan parámetros conocidos y los resultados de referencia se mantienen dentro de tolerancias estadísticas justificadas. El objetivo no es demostrar física nueva, sino demostrar que el sistema de análisis no fabrica anomalías.
 
 ## Etapa 1 — Un dispositivo óptico
 
-- fabricar/adquirir cavidad;
-- demostrar dos estados y reinicio;
-- medir mapa de sesgos y memoria;
-- localizar instante de compromiso.
+La segunda fase construye o adquiere una cavidad y demuestra que puede producir dos estados distinguibles de forma repetida. Deben medirse el sesgo, la memoria, la deriva y la eficiencia de clasificación. También es necesario estimar el instante físico de compromiso mediante medidas temporales y perturbaciones controladas.
 
-**Go:** más de `10^6` ciclos con estabilidad por bloques y resultado binario de alta eficiencia.
+El criterio de avance exige una campaña extensa, idealmente superior a un millón de ciclos, con estabilidad evaluada por bloques y una salida binaria de alta eficiencia. Si el dispositivo no puede reiniciarse de forma fiable o presenta memoria no modelada, todavía no está preparado para operar como nodo independiente.
 
-## Etapa 2 — Dos nodos
+## Etapa 2 — Dos nodos independientes
 
-- independencia de láser, control y reloj;
-- E05, E06, E09;
-- inyección deliberada de causas comunes para comprobar que el análisis las detecta.
+La tercera fase replica el dispositivo y separa láseres, controladores, relojes y alimentación. En ella se ejecutan los experimentos sobre variables locales, retroacción de medida y bifurcación independiente.
 
-**Go:** correlación residual compatible con cero y sensibilidad demostrada a señales artificiales conocidas.
+El análisis debe demostrar sensibilidad a causas comunes artificiales introducidas deliberadamente. Por ejemplo, una modulación compartida o una perturbación electromagnética conocida debe aparecer en los datos con la estructura prevista. Solo después puede interpretarse una correlación residual cercana a cero como evidencia de que el sistema de control funciona.
+
+La etapa se supera cuando la correlación entre nodos independientes es compatible con cero dentro de la incertidumbre y el análisis detecta correctamente señales comunes de amplitud conocida.
 
 ## Etapa 3 — Entrelazamiento preparado
 
-- fuente event-ready o fotónica de alta eficiencia;
-- E10 y comparación de Bell antes/después del metaestado;
-- cierre progresivo de lagunas.
+La cuarta fase incorpora una fuente entrelazada fotónica o event-ready y ejecuta el experimento de amplificación. El objetivo es medir cuánto de la correlación cuántica sobrevive al acoplamiento con el metaestado.
 
-**Go:** transferencia de correlación con visibilidad suficiente y no señalización satisfecha.
+La comparación debe realizarse antes y después de la bifurcación. También se examinan progresivamente las lagunas de detección, localidad y memoria. La etapa se considera superada cuando la transferencia conserva suficiente visibilidad para superar el límite local y los marginales siguen siendo compatibles con no señalización.
 
-## Etapa 4 — Bell macroscópico
+## Etapa 4 — Bell con salida macroscópica
 
-- separación física final;
-- elecciones locales rápidas;
-- resultado fijado dentro de la ventana;
-- análisis robusto a memoria.
+En esta fase se utiliza el metaestado como resultado directo de una prueba de Bell. La distancia física, la rapidez de las elecciones locales y la definición del instante de compromiso deben garantizar que los eventos relevantes estén correctamente separados.
 
-**Go:** violación replicada con fuente entrelazada. Esto valida el instrumento, no nueva física.
+El análisis debe ser robusto frente a memoria y postselección. Una violación replicada con una fuente entrelazada valida el instrumento y demuestra que una salida metaestable puede conservar correlaciones cuánticas. No constituye evidencia de no localidad espontánea.
 
-## Etapa 5 — Exploración de independencia
+## Etapa 5 — Exploración con nodos independientes
 
-- retirar fuente común;
-- cambiar fabricantes, nodos y software;
-- preregistrar E12 y E13;
-- equipo rojo intentando fabricar falsos positivos.
+Solo después de validar el instrumento se retira la fuente común. Se cambian fabricantes, componentes y, cuando sea posible, parte del software. Los experimentos de no localidad espontánea y no señalización se preregistran y un equipo independiente intenta producir falsos positivos mediante fallos de reloj, selección, memoria y pérdidas.
 
-**Resultado esperado:** nulo.
+El resultado esperado es nulo. Esta expectativa debe declararse de forma explícita para evitar que la ausencia de anomalía se trate como un fracaso o que una desviación pequeña reciba una interpretación exagerada.
 
-## Etapa 6 — Red multinodo y espacio
+## Etapa 6 — Red multinodo y plataformas espaciales
 
-Solo justificable si una anomalía terrestre sobrevive a replicación, auditoría y cambio de plataforma. Lanzar hardware al espacio antes de eso sería convertir un error de laboratorio en un error orbital mucho más caro.
+Una red terrestre amplia o una extensión orbital solo se justifican si una anomalía sobrevive a replicación, auditoría y cambio de plataforma. Antes de ese punto, aumentar la distancia no resuelve los problemas de laboratorio y puede hacerlos más difíciles de diagnosticar.
+
+La fase espacial requeriría un presupuesto, una ingeniería y una calibración ambiental propios. Lanzar hardware sin una señal terrestre sólida convertiría un error experimental barato en un error orbital mucho más costoso.
