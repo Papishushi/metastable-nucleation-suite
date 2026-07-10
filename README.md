@@ -1,5 +1,9 @@
 # Metastable Nucleation Suite
 
+[![CI](https://github.com/Papishushi/metastable-nucleation-suite/actions/workflows/ci.yml/badge.svg)](https://github.com/Papishushi/metastable-nucleation-suite/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/code-MIT-blue.svg)](LICENSE)
+[![Docs: CC BY 4.0](https://img.shields.io/badge/docs-CC%20BY%204.0-lightgrey.svg)](LICENSE-DOCS)
+
 Suite abierta de protocolos, modelos de referencia y diseño experimental para estudiar **nucleación, metaestabilidad, selección de polimorfos, contaminación por semillas, variables ambientales latentes, retroacción de medida y posibles correlaciones no locales**.
 
 El repositorio separa explícitamente tres cosas que suelen mezclarse:
@@ -20,8 +24,12 @@ El repositorio separa explícitamente tres cosas que suelen mezclarse:
 - `docs/06_hoja_de_ruta.md`: fases de implementación y criterios go/no-go.
 - `docs/07_seguridad_y_limites.md`: seguridad láser, criogenia, vacío y límites epistemológicos.
 - `docs/09_fuentes_por_experimento.md`: trazabilidad de cada protocolo a literatura primaria.
+- `docs/10_plantilla_preregistro.md`: preregistro para análisis confirmatorios.
+- `docs/11_contrato_de_datos.md`: formato común de eventos, tiempos, flags y metrología.
 - `references.bib`: bibliografía primaria y revisiones.
 - `experiments/catalog.yaml`: catálogo estructurado legible por máquina.
+- `experiments/catalog.schema.json`: contrato formal del catálogo.
+- `examples/reference-report.json`: salida reproducible de referencia.
 - `src/metastable_suite/`: simuladores de resultados nulos y benchmarks cuánticos.
 - `scripts/run_suite.py`: ejecuta los modelos de referencia y genera un informe JSON.
 - `tests/`: pruebas de consistencia matemática y estadística.
@@ -33,7 +41,9 @@ python -m venv .venv
 source .venv/bin/activate        # Windows: .venv\\Scripts\\activate
 pip install -e .[dev]
 python scripts/run_suite.py --trials 200000 --seed 7
+python scripts/validate_catalog.py
 pytest
+ruff check .
 ```
 
 El simulador no pretende modelar un dispositivo concreto con precisión microscópica. Sirve para comprobar que la canalización estadística distingue correctamente:
@@ -70,3 +80,7 @@ Diseño conceptual y software de referencia. **No afirma que exista no localidad
 ## Licencia
 
 Código bajo MIT. Documentación bajo CC BY 4.0; véase `LICENSE` y `LICENSE-DOCS`.
+
+## Contribuciones experimentales
+
+Las propuestas nuevas deben declarar hipótesis, predicción nula, controles, confundidores, criterio de escalado y fuentes primarias. GitHub incluye plantillas específicas para propuestas experimentales y fallos reproducibles.
