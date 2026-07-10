@@ -1,0 +1,93 @@
+version: 1
+suite: metastable-nucleation-suite
+experiments:
+  - id: E01
+    name: baseline_hazard
+    class: established
+    observable: [transition_time, final_state]
+    null_prediction: local stochastic process with batch and drift effects
+    escalation: reproducible synchronized change with out-of-sample prediction
+  - id: E02
+    name: controlled_seeding
+    class: established
+    observable: [hazard_ratio, state_probability]
+    null_prediction: seed-compatible dose response
+    escalation: effect without physical transfer after exhaustive controls
+  - id: E03
+    name: material_contamination_network
+    class: established
+    observable: [transfer_graph, surface_load, state_probability]
+    null_prediction: correlation follows material routes
+    escalation: blinded transfer without route or shared environment
+  - id: E04
+    name: recover_disappeared_form
+    class: established
+    observable: [phase_identity, process_region]
+    null_prediction: recovery may occur through alternate kinetic route
+    escalation: none; non-recovery is domain-limited
+  - id: E05
+    name: local_multichannel_environment
+    class: established
+    observable: [predictive_likelihood, calibration]
+    null_prediction: partial prediction by local variables and interactions
+    escalation: stable residual signal across hardware and sites
+  - id: E06
+    name: measurement_backaction
+    class: established
+    observable: [hazard_ratio, state_bias]
+    null_prediction: local dependence on probe power and losses
+    escalation: effect without measurable local coupling
+  - id: E07
+    name: terrestrial_network
+    class: exploratory
+    observable: [lagged_correlation, spectral_coherence]
+    null_prediction: residuals vanish or shrink after shared-cause controls
+    escalation: preregistered predictive spacetime pattern
+  - id: E08
+    name: earth_orbit_deep_space
+    class: future
+    observable: [arrival_time, amplitude_geometry]
+    null_prediction: environment-specific local differences dominate
+    escalation: repeated propagation law not attributable to known channels
+  - id: E09
+    name: independent_optical_bifurcation
+    class: platform_validation
+    observable: [binary_metastate, commit_time]
+    null_prediction: zero cross-node correlation after local conditioning
+    escalation: replicated nonzero correlation with independent hardware
+  - id: E10
+    name: entanglement_amplification
+    class: standard_quantum
+    observable: [input_output_fidelity, CHSH]
+    null_prediction: Bell violation only if prepared entanglement survives amplification
+    escalation: output correlations exceed calibrated input capability
+  - id: E11
+    name: bell_metastate_readout
+    class: standard_quantum
+    observable: [CHSH, detection_efficiency, signalling_tests]
+    null_prediction: separable inputs S<=2; entangled inputs may reach 2sqrt2
+    escalation: none unless source independence is established
+  - id: E12
+    name: spontaneous_nonlocality
+    class: extraordinary
+    observable: [CHSH]
+    null_prediction: S<=2
+    escalation: loophole-resistant replicated violation without common source
+  - id: E13
+    name: no_signalling
+    class: extraordinary
+    observable: [local_marginal_difference]
+    null_prediction: remote setting does not change local marginal
+    escalation: blinded replicated marginal dependence
+  - id: E14
+    name: cross_platform_replication
+    class: validation
+    observable: [dimensionless_effect_signature]
+    null_prediction: no universal anomaly across independent systems
+    escalation: same predictive signature across distinct couplings
+  - id: E15
+    name: gravitational_quantum_channel
+    class: future
+    observable: [entanglement_witness]
+    null_prediction: platform-dependent; no trapped graviton crystal
+    escalation: witness robust to electromagnetic and classical channels

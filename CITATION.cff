@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+title: Metastable Nucleation Suite
+message: Please cite this repository and the primary literature listed in references.bib.
+type: software
+authors:
+  - family-names: Molinero Lucas
+    given-names: Daniel
+version: 0.1.0
+date-released: 2026-07-10
+license: MIT
