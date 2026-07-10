@@ -18,7 +18,7 @@ El repositorio separa explícitamente tres cosas que suelen mezclarse:
 
 - `docs/01_marco_cientifico.md`: términos, supuestos y límites.
 - `docs/02_matriz_hipotesis.md`: hipótesis ordenadas desde química ordinaria hasta nueva física.
-- `docs/03_suite_experimentos.md`: 15 experimentos con controles, métricas y resultado esperado.
+- `docs/03_suite_experimentos.md`: desarrollo científico de los 15 experimentos.
 - `docs/04_laboratorio_metaestados_opticos.md`: diseño conceptual del laboratorio óptico distribuido.
 - `docs/05_estadistica_y_falsacion.md`: análisis preregistrado, Bell, no señalización y control de multiplicidad.
 - `docs/06_hoja_de_ruta.md`: fases de implementación y criterios go/no-go.
@@ -26,39 +26,54 @@ El repositorio separa explícitamente tres cosas que suelen mezclarse:
 - `docs/09_fuentes_por_experimento.md`: trazabilidad de cada protocolo a literatura primaria.
 - `docs/10_plantilla_preregistro.md`: preregistro para análisis confirmatorios.
 - `docs/11_contrato_de_datos.md`: formato común de eventos, tiempos, flags y metrología.
-- `references.bib`: bibliografía primaria y revisiones.
-- `experiments/catalog.yaml`: catálogo estructurado legible por máquina.
-- `experiments/catalog.schema.json`: contrato formal del catálogo.
-- `examples/reference-report.json`: salida reproducible de referencia.
-- `src/metastable_suite/`: simuladores de resultados nulos y benchmarks cuánticos.
-- `scripts/run_suite.py`: ejecuta los modelos de referencia y genera un informe JSON.
-- `tests/`: pruebas de consistencia matemática y estadística.
+- `docs/12_matriz_de_fallos_y_lagunas.md`: amenazas experimentales, falsos positivos y mitigaciones.
+- `references.bib`: bibliografía primaria y revisiones verificables por DOI.
+- `experiments/catalog.yaml`: índice resumido legible por máquina.
+- `experiments/specifications.yaml`: especificaciones ejecutables de E01–E15, con hipótesis nula, controles, exclusiones, parada y análisis.
+- `experiments/specifications.schema.json`: contrato formal de las especificaciones.
+- `examples/reference-report.json`: salida estadística de referencia.
+- `src/metastable_suite/`: simuladores de resultados nulos, benchmarks cuánticos y mecanismos adversariales.
+- `scripts/plan_experiment.py`: planificación aproximada de potencia y tamaño muestral.
+- `scripts/run_suite.py`: ejecución de modelos de referencia con proveniencia reproducible.
+- `tests/`: pruebas matemáticas, estadísticas, bibliográficas y de falsos positivos.
 
 ## Inicio rápido
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\\Scripts\\activate
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -e .[dev]
-python scripts/run_suite.py --trials 200000 --seed 7
-python scripts/validate_catalog.py
-pytest
-ruff check .
+make check
 ```
 
-El simulador no pretende modelar un dispositivo concreto con precisión microscópica. Sirve para comprobar que la canalización estadística distingue correctamente:
+La comprobación completa valida el catálogo, las especificaciones de los 15 protocolos, la estructura bibliográfica, los tests, el planificador de potencia y el informe de simulación.
 
-- nucleación Poisson local;
-- sesgo por semillas;
-- causa común clásica;
-- modelo local de Bell, con `|S| <= 2` salvo fluctuación finita;
-- benchmark cuántico ideal, con `S ≈ 2√2`;
-- ausencia de señalización en los marginales;
-- bifurcación óptica metaestable con ruido local.
+Para ejecutar únicamente la simulación de referencia:
+
+```bash
+python scripts/run_suite.py --trials 200000 --seed 7
+python scripts/validate_reference_report.py artifacts/reference_report.json
+```
+
+Para estimar un tamaño muestral aproximado:
+
+```bash
+python scripts/plan_experiment.py --experiment correlation --rho 0.02 --alpha 0.001 --power 0.90
+python scripts/plan_experiment.py --experiment chsh --target-s 2.4 --alpha 0.001 --power 0.90
+python scripts/plan_experiment.py --experiment no-signalling --delta 0.005 --alpha 0.001 --power 0.90
+```
+
+Estas estimaciones utilizan aproximaciones normales conservadoras. Sirven para diseñar pilotos y comparar órdenes de magnitud, no sustituyen una simulación Monte Carlo específica del dispositivo, sus pérdidas, su memoria y su regla de parada.
+
+## Qué comprueba el software
+
+El simulador no pretende modelar un dispositivo concreto con precisión microscópica. Sirve para comprobar que la canalización estadística distingue correctamente nucleación Poisson local, sesgo por semillas, causa común clásica, modelos locales de Bell, benchmarks cuánticos, no señalización y bifurcaciones ópticas con ruido local.
+
+La suite adversarial añade mecanismos que pueden fabricar descubrimientos aparentes: deriva compartida, modulación de reloj, memoria entre ensayos y pérdidas dependientes del ajuste. Los tests deben demostrar que esos mecanismos son detectables y que los controles reducen la señal espuria.
+
+Los informes generados incluyen commit de Git, versión de Python, NumPy, algoritmo del generador pseudoaleatorio, plataforma, semilla y versiones del catálogo y de las especificaciones.
 
 ## Principio de diseño
-
-La suite aplica una escalera de evidencia:
 
 ```mermaid
 flowchart LR
