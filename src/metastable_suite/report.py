@@ -1,12 +1,54 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
+import importlib.metadata
 import json
 from pathlib import Path
+import platform
+import subprocess
+
 import numpy as np
 
-from .bell import simulate_local_chsh, simulate_quantum_chsh, chsh_value, no_signalling_deltas
-from .nucleation import hazard_ratio_from_seed, common_field_nodes
+from .bell import chsh_value, no_signalling_deltas, simulate_local_chsh, simulate_quantum_chsh
+from .nucleation import common_field_nodes, hazard_ratio_from_seed
 from .optical import independent_nodes_correlation, simulate_double_well
+
+
+def _package_version(name: str) -> str:
+    try:
+        return importlib.metadata.version(name)
+    except importlib.metadata.PackageNotFoundError:
+        return "not-installed"
+
+
+def _git_commit() -> str:
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "HEAD"],
+            text=True,
+            stderr=subprocess.DEVNULL,
+            timeout=2,
+        ).strip()
+    except (OSError, subprocess.SubprocessError):
+        return "unavailable"
+
+
+def build_provenance(seed: int) -> dict:
+    rng = np.random.default_rng(seed)
+    return {
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "git_commit": _git_commit(),
+        "python_version": platform.python_version(),
+        "platform": platform.platform(),
+        "numpy_version": np.__version__,
+        "package_version": _package_version("metastable-nucleation-suite"),
+        "rng_algorithm": rng.bit_generator.__class__.__name__,
+        "configuration": {
+            "seed": seed,
+            "catalog_version": 1,
+            "specification_version": 1,
+        },
+    }
 
 
 def build_report(trials: int, seed: int) -> dict:
@@ -23,6 +65,7 @@ def build_report(trials: int, seed: int) -> dict:
     return {
         "trials": trials,
         "seed": seed,
+        "provenance": build_provenance(seed),
         "known_science_expectations": {
             "seed_odds_ratio_gt_1": hazard_ratio_from_seed(min(trials, 100_000), 1.0, rng),
             "classical_common_cause_correlation": float(np.corrcoef(a, b)[0, 1]),
