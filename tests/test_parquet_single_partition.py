@@ -18,7 +18,7 @@ def test_single_partition_parquet_uses_requested_path(tmp_path):
         "timestamp_utc": "2026-07-11T02:10:00Z",
         "backend_id": "reference-simulator",
         "settings": {},
-        "outcome": {},
+        "outcome": {"metastate": 0},
         "diagnostics": {},
         "valid": True,
         "exclusion_reasons": [],
