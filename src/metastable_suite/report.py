@@ -13,6 +13,8 @@ from .bell import chsh_value, no_signalling_deltas, simulate_local_chsh, simulat
 from .nucleation import common_field_nodes, hazard_ratio_from_seed
 from .optical import independent_nodes_correlation, simulate_double_well
 
+ROOT = Path(__file__).resolve().parents[2]
+
 
 def _package_version(name: str) -> str:
     try:
@@ -22,9 +24,12 @@ def _package_version(name: str) -> str:
 
 
 def _git_commit() -> str:
+    if not (ROOT / ".git").exists():
+        return "unavailable"
     try:
         return subprocess.check_output(
             ["git", "rev-parse", "HEAD"],
+            cwd=ROOT,
             text=True,
             stderr=subprocess.DEVNULL,
             timeout=2,
@@ -33,10 +38,12 @@ def _git_commit() -> str:
         return "unavailable"
 
 
-def build_provenance(seed: int) -> dict:
+def build_provenance(seed: int, started_at: datetime, ended_at: datetime) -> dict:
     rng = np.random.default_rng(seed)
     return {
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "execution_started_at_utc": started_at.isoformat(),
+        "execution_ended_at_utc": ended_at.isoformat(),
         "git_commit": _git_commit(),
         "python_version": platform.python_version(),
         "platform": platform.platform(),
@@ -52,6 +59,7 @@ def build_provenance(seed: int) -> dict:
 
 
 def build_report(trials: int, seed: int) -> dict:
+    started_at = datetime.now(timezone.utc)
     rng = np.random.default_rng(seed)
 
     local = simulate_local_chsh(trials, rng)
@@ -61,11 +69,12 @@ def build_report(trials: int, seed: int) -> dict:
 
     a, b, _ = common_field_nodes(trials, rng=rng)
     optical = simulate_double_well(min(trials, 100_000), rng=rng)
+    ended_at = datetime.now(timezone.utc)
 
     return {
         "trials": trials,
         "seed": seed,
-        "provenance": build_provenance(seed),
+        "provenance": build_provenance(seed, started_at, ended_at),
         "known_science_expectations": {
             "seed_odds_ratio_gt_1": hazard_ratio_from_seed(min(trials, 100_000), 1.0, rng),
             "classical_common_cause_correlation": float(np.corrcoef(a, b)[0, 1]),
