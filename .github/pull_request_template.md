@@ -1,17 +1,38 @@
-## Qué cambia
+## Trabajo vinculado
+
+Closes #
+
+Épica principal: #
+
+## Resultado entregado
+
+Describe el resultado científico, operativo o visible para el usuario. No enumeres únicamente archivos modificados.
 
 ## Hipótesis o problema que aborda
 
-## Predicción nula
+## Predicción nula o comportamiento esperado
+
+## Cambios principales
+
+- 
 
 ## Validación ejecutada
 
-- [ ] `pytest -q`
-- [ ] `ruff check .`
-- [ ] `python scripts/validate_catalog.py`
-- [ ] Se añadieron o actualizaron fuentes primarias.
+- [ ] `make check`
+- [ ] Los cálculos críticos nuevos o modificados tienen pruebas de regresión.
+- [ ] Los cambios semánticos pasan JSON Schema y SHACL.
+- [ ] Los cambios de hardware conservan ensayos fallidos, exclusiones y diagnósticos.
+- [ ] Se añadieron o actualizaron fuentes primarias cuando procede.
 - [ ] Los análisis exploratorios están identificados como tales.
+- [ ] La documentación y los ejemplos describen el comportamiento implementado.
 
-## Riesgos de interpretación
+## Riesgos científicos y operativos
 
-Explica posibles confundidores, postselección, memoria, drift o límites de causalidad relevantes.
+Explica confundidores, postselección, memoria, drift, límites de causalidad, compatibilidad, migraciones de datos y riesgos de seguridad de hardware.
+
+## Checklist de revisión
+
+- [ ] Los criterios de aceptación del PBI están satisfechos.
+- [ ] No quedan hilos de revisión sin resolver.
+- [ ] La CI pasa sobre el commit actual.
+- [ ] Los artifacts y datasets no contienen secretos ni datos personales no controlados.

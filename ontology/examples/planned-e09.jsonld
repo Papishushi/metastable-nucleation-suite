@@ -1,0 +1,45 @@
+{
+  "@context": {
+    "mns": "https://w3id.org/metastable-nucleation-suite/ontology#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#"
+  },
+  "@graph": [
+    {
+      "@id": "https://w3id.org/metastable-nucleation-suite/resource/specification/E09",
+      "@type": ["mns:ExperimentSpecification", "mns:SimulationSpecification"],
+      "mns:identifier": "E09"
+    },
+    {
+      "@id": "https://w3id.org/metastable-nucleation-suite/resource/backend/reference-simulator",
+      "@type": ["mns:Agent", "mns:HardwareBackend", "mns:SimulatorBackend"],
+      "mns:identifier": "reference-simulator",
+      "mns:supportsSpecification": {"@id": "https://w3id.org/metastable-nucleation-suite/resource/specification/E09"}
+    },
+    {
+      "@id": "https://w3id.org/metastable-nucleation-suite/resource/parameter/e09-noise",
+      "@type": "mns:Parameter",
+      "mns:parameterName": "noise",
+      "mns:numericValue": {"@value": 0.45, "@type": "xsd:double"}
+    },
+    {
+      "@id": "https://w3id.org/metastable-nucleation-suite/resource/parameter/e09-steps",
+      "@type": "mns:Parameter",
+      "mns:parameterName": "steps",
+      "mns:numericValue": {"@value": 100, "@type": "xsd:double"}
+    },
+    {
+      "@id": "https://w3id.org/metastable-nucleation-suite/resource/run/planned-e09-demo",
+      "@type": ["mns:Execution", "mns:SimulationRun"],
+      "mns:identifier": "planned-e09-demo",
+      "mns:executesSpecification": {"@id": "https://w3id.org/metastable-nucleation-suite/resource/specification/E09"},
+      "mns:usesBackend": {"@id": "https://w3id.org/metastable-nucleation-suite/resource/backend/reference-simulator"},
+      "mns:hasExecutionStatus": {"@id": "mns:Planned"},
+      "mns:trialCount": {"@value": 25, "@type": "xsd:positiveInteger"},
+      "mns:randomSeed": {"@value": 7, "@type": "xsd:nonNegativeInteger"},
+      "mns:hasParameter": [
+        {"@id": "https://w3id.org/metastable-nucleation-suite/resource/parameter/e09-noise"},
+        {"@id": "https://w3id.org/metastable-nucleation-suite/resource/parameter/e09-steps"}
+      ]
+    }
+  ]
+}

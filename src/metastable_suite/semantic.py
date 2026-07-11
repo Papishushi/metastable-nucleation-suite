@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import json
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Sequence
 
 from jsonschema import Draft202012Validator, FormatChecker
 from pyshacl import validate
@@ -51,20 +51,28 @@ def load_abox(path: str | Path, schema_path: str | Path | None = None) -> Graph:
     return graph
 
 
-def load_tbox(path: str | Path) -> Graph:
+def _paths(value: str | Path | Sequence[str | Path]) -> list[Path]:
+    if isinstance(value, (str, Path)):
+        return [Path(value)]
+    return [Path(item) for item in value]
+
+
+def load_tbox(path: str | Path | Sequence[str | Path]) -> Graph:
     graph = Graph()
-    graph.parse(Path(path).as_posix(), format="turtle")
+    for source in _paths(path):
+        graph.parse(source.as_posix(), format="turtle")
     return graph
 
 
 def validate_abox(
     abox: Graph,
-    shapes_path: str | Path,
+    shapes_path: str | Path | Sequence[str | Path],
     tbox: Graph | None = None,
     inference: str = "rdfs",
 ) -> ValidationOutcome:
     shapes = Graph()
-    shapes.parse(Path(shapes_path).as_posix(), format="turtle")
+    for source in _paths(shapes_path):
+        shapes.parse(source.as_posix(), format="turtle")
     conforms, report_graph, report_text = validate(
         data_graph=abox,
         shacl_graph=shapes,

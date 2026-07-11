@@ -21,9 +21,18 @@ jobs:
         run: python scripts/semantic_graph.py validate ontology/examples/reference-run.jsonld
       - name: Smoke-test semantic query
         run: python scripts/semantic_graph.py query ontology/examples/reference-run.jsonld ontology/queries/completed-runs.rq > artifacts/completed-runs.json
-      - name: Smoke-test power planner
+      - name: Smoke-test analytical power planner
         run: python scripts/plan_experiment.py --experiment chsh --target-s 2.4 --output artifacts/chsh-plan.json
-      - run: pytest -q
+      - name: Smoke-test Monte Carlo power planner
+        run: python scripts/monte_carlo_power.py --design correlation --sample-size 500 --rho 0.15 --alpha 0.05 --repetitions 200 --output artifacts/correlation-power.json
+      - name: Execute semantic plan
+        run: python scripts/semantic_execute.py ontology/examples/planned-e09.jsonld artifacts/execution
+      - name: Run tests
+        shell: bash
+        run: |
+          mkdir -p artifacts
+          set -o pipefail
+          pytest -q | tee artifacts/pytest.txt
       - name: Generate reference report
         run: python scripts/run_suite.py --trials 50000 --seed 7
       - name: Validate reference report

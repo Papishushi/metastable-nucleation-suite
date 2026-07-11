@@ -1,0 +1,65 @@
+@prefix mns: <https://w3id.org/metastable-nucleation-suite/ontology#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+
+mns:PlannedExecutionShape
+    a sh:NodeShape ;
+    sh:target [
+        a sh:SPARQLTarget ;
+        sh:select """
+            PREFIX mns: <https://w3id.org/metastable-nucleation-suite/ontology#>
+            SELECT ?this WHERE {
+              ?this a mns:Execution ; mns:hasExecutionStatus mns:Planned .
+            }
+        """
+    ] ;
+    sh:property [
+        sh:path mns:identifier ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:pattern "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+    ] ;
+    sh:property [ sh:path mns:executesSpecification ; sh:minCount 1 ; sh:maxCount 1 ; sh:class mns:ExperimentSpecification ] ;
+    sh:property [ sh:path mns:usesBackend ; sh:minCount 1 ; sh:maxCount 1 ; sh:class mns:HardwareBackend ] ;
+    sh:property [ sh:path mns:trialCount ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:positiveInteger ] ;
+    sh:property [ sh:path mns:startedAt ; sh:maxCount 0 ] ;
+    sh:property [ sh:path mns:endedAt ; sh:maxCount 0 ] ;
+    sh:property [ sh:path mns:hasResult ; sh:maxCount 0 ] ;
+    sh:property [ sh:path mns:randomSeed ; sh:maxCount 1 ; sh:datatype xsd:nonNegativeInteger ] .
+
+mns:CompletedExecutionProvenanceShape
+    a sh:NodeShape ;
+    sh:target [
+        a sh:SPARQLTarget ;
+        sh:select """
+            PREFIX mns: <https://w3id.org/metastable-nucleation-suite/ontology#>
+            SELECT ?this WHERE {
+              ?this a mns:Execution ; mns:hasExecutionStatus mns:Completed .
+            }
+        """
+    ] ;
+    sh:property [ sh:path mns:usesBackend ; sh:minCount 1 ; sh:maxCount 1 ; sh:class mns:HardwareBackend ] ;
+    sh:property [ sh:path mns:usesDataset ; sh:minCount 1 ; sh:class mns:Dataset ] .
+
+mns:EventDatasetShape
+    a sh:NodeShape ;
+    sh:targetClass mns:Dataset ;
+    sh:property [ sh:path mns:datasetPath ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path mns:mediaType ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:hasValue "application/x-ndjson" ] ;
+    sh:property [ sh:path mns:schemaVersion ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path mns:eventCount ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:nonNegativeInteger ] ;
+    sh:property [ sh:path mns:sha256 ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:pattern "^[0-9a-f]{64}$" ] .
+
+mns:SuiteRunShape
+    a sh:NodeShape ;
+    sh:targetClass mns:SuiteRun ;
+    sh:property [ sh:path mns:identifier ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path mns:hasSubExecution ; sh:minCount 1 ; sh:class mns:Execution ] .
+
+mns:PowerAnalysisShape
+    a sh:NodeShape ;
+    sh:targetClass mns:PowerAnalysis ;
+    sh:property [ sh:path mns:estimatedPower ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:double ; sh:minInclusive 0.0 ; sh:maxInclusive 1.0 ] ;
+    sh:property [ sh:path mns:monteCarloRepetitions ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:positiveInteger ] .
