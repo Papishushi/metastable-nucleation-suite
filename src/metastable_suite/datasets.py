@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 from typing import Iterable, Iterator, Mapping
 
-from jsonschema import Draft202012Validator
+from jsonschema import Draft202012Validator, FormatChecker
 
 
 @dataclass(frozen=True)
@@ -51,7 +51,11 @@ class EventDatasetWriter:
         self.path = Path(path)
         self.dataset_id = dataset_id
         self.schema_version = schema_version
-        self._validator = Draft202012Validator(dict(schema)) if schema is not None else None
+        self._validator = (
+            Draft202012Validator(dict(schema), format_checker=FormatChecker())
+            if schema is not None
+            else None
+        )
         self._stream = None
         self._count = 0
 
