@@ -29,6 +29,7 @@ El repositorio separa explícitamente tres cosas que suelen mezclarse:
 - `docs/12_matriz_de_fallos_y_lagunas.md`: amenazas experimentales, falsos positivos y mitigaciones.
 - `docs/13_ontologia_semantica.md`: arquitectura TBox/ABox, validación SHACL y uso por agentes.
 - `docs/14_motor_ejecucion_hardware_y_potencia.md`: ejecución semántica, adaptadores y potencia Monte Carlo.
+- `docs/15_adaptadores_hardware.md`: protocolo y configuración de Serial, TCP y VISA.
 - `references.bib`: bibliografía primaria y revisiones verificables por DOI.
 - `experiments/catalog.yaml`: índice resumido legible por máquina.
 - `experiments/specifications.yaml`: especificaciones ejecutables de E01–E15, con hipótesis nula, controles, exclusiones, parada y análisis.
@@ -42,6 +43,8 @@ El repositorio separa explícitamente tres cosas que suelen mezclarse:
 - `ontology/queries/`: biblioteca de consultas SPARQL para humanos y agentes.
 - `schemas/event.schema.json`: contrato de datos evento a evento.
 - `src/metastable_suite/hardware.py`: interfaz común de backends físicos y simulados.
+- `src/metastable_suite/transports.py`: transportes JSON Serial, TCP y VISA.
+- `src/metastable_suite/hardware_adapters.py`: backends concretos sobre cada transporte.
 - `src/metastable_suite/execution.py`: motor de ejecución semántico.
 - `src/metastable_suite/monte_carlo_power.py`: potencia empírica mediante simulación.
 - `scripts/semantic_execute.py`: ejecución de ABoxes `Planned`.
@@ -56,6 +59,14 @@ source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -e .[dev]
 make check
 ```
+
+Para conectar hardware Serial o VISA:
+
+```bash
+pip install -e .[hardware]
+```
+
+TCP no requiere dependencias adicionales.
 
 La comprobación completa valida catálogo, especificaciones, bibliografía, ontología, ABoxes, backends, datasets, potencia y ejecución de referencia.
 
@@ -109,6 +120,8 @@ El simulador no pretende modelar un dispositivo concreto con precisión microsc�
 La suite adversarial añade mecanismos que pueden fabricar descubrimientos aparentes: deriva compartida, modulación de reloj, memoria entre ensayos y pérdidas dependientes del ajuste. Los tests deben demostrar que esos mecanismos son detectables y que los controles reducen la señal espuria.
 
 Los backends físicos y simulados comparten el mismo ciclo de vida. Los fallos no se descartan silenciosamente: se conservan como ensayos inválidos con motivos de exclusión auditables. RDF representa significado y procedencia; NDJSON conserva el volumen de eventos; el manifiesto enlaza ambos mediante hash criptográfico.
+
+Los transportes físicos distinguen timeout, desconexión y error de protocolo. Los fallos agotados durante un ensayo se convierten en un evento inválido con `transport_failure`; los fallos de preparación y calibración siguen siendo errores de ejecución explícitos.
 
 ## Principio de diseño
 
