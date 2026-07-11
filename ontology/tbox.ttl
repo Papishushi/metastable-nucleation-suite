@@ -1,0 +1,255 @@
+@prefix mns: <https://w3id.org/metastable-nucleation-suite/ontology#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+<https://w3id.org/metastable-nucleation-suite/ontology>
+    a owl:Ontology ;
+    dcterms:title "Metastable Nucleation Suite Ontology"@en ;
+    dcterms:description "OWL TBox for experiment specifications, simulation executions, observations, controls, hypotheses, provenance and validation evidence."@en ;
+    owl:versionInfo "1.0.0" .
+
+### Core classes
+
+mns:ScientificEntity a owl:Class .
+mns:Plan a owl:Class ; rdfs:subClassOf mns:ScientificEntity, prov:Plan .
+mns:Activity a owl:Class ; rdfs:subClassOf mns:ScientificEntity, prov:Activity .
+mns:Entity a owl:Class ; rdfs:subClassOf mns:ScientificEntity, prov:Entity .
+
+mns:ExperimentSpecification a owl:Class ;
+    rdfs:subClassOf mns:Plan ;
+    rdfs:label "Experiment specification"@en .
+
+mns:SimulationSpecification a owl:Class ;
+    rdfs:subClassOf mns:ExperimentSpecification ;
+    rdfs:label "Simulation specification"@en .
+
+mns:PhysicalExperimentSpecification a owl:Class ;
+    rdfs:subClassOf mns:ExperimentSpecification ;
+    rdfs:label "Physical experiment specification"@en .
+
+mns:Execution a owl:Class ;
+    rdfs:subClassOf mns:Activity ;
+    rdfs:label "Execution"@en .
+
+mns:SimulationRun a owl:Class ;
+    rdfs:subClassOf mns:Execution ;
+    rdfs:label "Simulation run"@en .
+
+mns:ExperimentRun a owl:Class ;
+    rdfs:subClassOf mns:Execution ;
+    rdfs:label "Experiment run"@en .
+
+mns:Trial a owl:Class ;
+    rdfs:subClassOf mns:Activity ;
+    rdfs:label "Trial"@en .
+
+mns:Observation a owl:Class ;
+    rdfs:subClassOf mns:Entity ;
+    rdfs:label "Observation"@en .
+
+mns:Measurement a owl:Class ;
+    rdfs:subClassOf mns:Observation ;
+    rdfs:label "Measurement"@en .
+
+mns:Result a owl:Class ;
+    rdfs:subClassOf mns:Entity ;
+    rdfs:label "Result"@en .
+
+mns:StatisticalResult a owl:Class ;
+    rdfs:subClassOf mns:Result ;
+    rdfs:label "Statistical result"@en .
+
+mns:ValidationResult a owl:Class ;
+    rdfs:subClassOf mns:Result ;
+    rdfs:label "Validation result"@en .
+
+mns:Hypothesis a owl:Class ; rdfs:subClassOf mns:ScientificEntity .
+mns:NullHypothesis a owl:Class ; rdfs:subClassOf mns:Hypothesis .
+mns:AlternativeHypothesis a owl:Class ; rdfs:subClassOf mns:Hypothesis .
+mns:Control a owl:Class ; rdfs:subClassOf mns:ScientificEntity .
+mns:PositiveControl a owl:Class ; rdfs:subClassOf mns:Control .
+mns:NegativeControl a owl:Class ; rdfs:subClassOf mns:Control .
+mns:Observable a owl:Class ; rdfs:subClassOf mns:ScientificEntity .
+mns:Parameter a owl:Class ; rdfs:subClassOf mns:ScientificEntity .
+mns:StoppingRule a owl:Class ; rdfs:subClassOf mns:Plan .
+mns:AnalysisPlan a owl:Class ; rdfs:subClassOf mns:Plan .
+mns:ExclusionRule a owl:Class ; rdfs:subClassOf mns:Plan .
+mns:Threat a owl:Class ; rdfs:subClassOf mns:ScientificEntity .
+mns:Agent a owl:Class ; rdfs:subClassOf prov:Agent .
+mns:SoftwareAgent a owl:Class ; rdfs:subClassOf mns:Agent, prov:SoftwareAgent .
+mns:HumanAgent a owl:Class ; rdfs:subClassOf mns:Agent, prov:Person .
+mns:Dataset a owl:Class ; rdfs:subClassOf mns:Entity .
+mns:Artifact a owl:Class ; rdfs:subClassOf mns:Entity .
+
+### Enumerated status classes
+
+mns:ExecutionStatus a owl:Class ;
+    owl:oneOf (mns:Planned mns:Running mns:Completed mns:Failed mns:Invalidated) .
+
+mns:ValidationStatus a owl:Class ;
+    owl:oneOf (mns:Conforms mns:Violates) .
+
+mns:Planned a mns:ExecutionStatus .
+mns:Running a mns:ExecutionStatus .
+mns:Completed a mns:ExecutionStatus .
+mns:Failed a mns:ExecutionStatus .
+mns:Invalidated a mns:ExecutionStatus .
+mns:Conforms a mns:ValidationStatus .
+mns:Violates a mns:ValidationStatus .
+
+### Object properties
+
+mns:executesSpecification a owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain mns:Execution ;
+    rdfs:range mns:ExperimentSpecification ;
+    rdfs:subPropertyOf prov:hadPlan .
+
+mns:hasTrial a owl:ObjectProperty ;
+    rdfs:domain mns:Execution ;
+    rdfs:range mns:Trial ;
+    owl:inverseOf mns:trialOf .
+
+mns:trialOf a owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain mns:Trial ;
+    rdfs:range mns:Execution .
+
+mns:hasObservation a owl:ObjectProperty ;
+    rdfs:domain [ a owl:Class ; owl:unionOf (mns:Execution mns:Trial) ] ;
+    rdfs:range mns:Observation ;
+    owl:inverseOf mns:observationOf .
+
+mns:observationOf a owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain mns:Observation ;
+    rdfs:range [ a owl:Class ; owl:unionOf (mns:Execution mns:Trial) ] .
+
+mns:hasResult a owl:ObjectProperty ;
+    rdfs:domain mns:Execution ;
+    rdfs:range mns:Result ;
+    rdfs:subPropertyOf prov:generated .
+
+mns:testsHypothesis a owl:ObjectProperty ;
+    rdfs:domain mns:ExperimentSpecification ;
+    rdfs:range mns:Hypothesis .
+
+mns:hasNullHypothesis a owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:subPropertyOf mns:testsHypothesis ;
+    rdfs:domain mns:ExperimentSpecification ;
+    rdfs:range mns:NullHypothesis .
+
+mns:hasAlternativeHypothesis a owl:ObjectProperty ;
+    rdfs:subPropertyOf mns:testsHypothesis ;
+    rdfs:domain mns:ExperimentSpecification ;
+    rdfs:range mns:AlternativeHypothesis .
+
+mns:hasControl a owl:ObjectProperty ;
+    rdfs:domain mns:ExperimentSpecification ;
+    rdfs:range mns:Control .
+
+mns:hasPrimaryObservable a owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain mns:ExperimentSpecification ;
+    rdfs:range mns:Observable .
+
+mns:hasSecondaryObservable a owl:ObjectProperty ;
+    rdfs:domain mns:ExperimentSpecification ;
+    rdfs:range mns:Observable .
+
+mns:hasParameter a owl:ObjectProperty ;
+    rdfs:domain [ a owl:Class ; owl:unionOf (mns:ExperimentSpecification mns:Execution) ] ;
+    rdfs:range mns:Parameter .
+
+mns:hasStoppingRule a owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain mns:ExperimentSpecification ;
+    rdfs:range mns:StoppingRule .
+
+mns:hasAnalysisPlan a owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain mns:ExperimentSpecification ;
+    rdfs:range mns:AnalysisPlan .
+
+mns:hasExclusionRule a owl:ObjectProperty ;
+    rdfs:domain mns:ExperimentSpecification ;
+    rdfs:range mns:ExclusionRule .
+
+mns:mitigatesThreat a owl:ObjectProperty ;
+    rdfs:domain [ a owl:Class ; owl:unionOf (mns:Control mns:AnalysisPlan) ] ;
+    rdfs:range mns:Threat .
+
+mns:usesDataset a owl:ObjectProperty ;
+    rdfs:domain mns:Execution ;
+    rdfs:range mns:Dataset ;
+    rdfs:subPropertyOf prov:used .
+
+mns:wasExecutedBy a owl:ObjectProperty ;
+    rdfs:domain mns:Execution ;
+    rdfs:range mns:Agent ;
+    rdfs:subPropertyOf prov:wasAssociatedWith .
+
+mns:hasExecutionStatus a owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain mns:Execution ;
+    rdfs:range mns:ExecutionStatus .
+
+mns:hasValidationStatus a owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain mns:ValidationResult ;
+    rdfs:range mns:ValidationStatus .
+
+mns:validatesGraph a owl:ObjectProperty ;
+    rdfs:domain mns:ValidationResult ;
+    rdfs:range mns:Dataset .
+
+mns:derivedFromExecution a owl:ObjectProperty ;
+    rdfs:domain mns:Result ;
+    rdfs:range mns:Execution ;
+    rdfs:subPropertyOf prov:wasGeneratedBy .
+
+### Datatype properties
+
+mns:identifier a owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:range xsd:string .
+
+mns:title a owl:DatatypeProperty ; rdfs:range xsd:string .
+mns:description a owl:DatatypeProperty ; rdfs:range xsd:string .
+mns:randomSeed a owl:DatatypeProperty, owl:FunctionalProperty ; rdfs:domain mns:SimulationRun ; rdfs:range xsd:nonNegativeInteger .
+mns:trialCount a owl:DatatypeProperty, owl:FunctionalProperty ; rdfs:domain mns:Execution ; rdfs:range xsd:positiveInteger .
+mns:startedAt a owl:DatatypeProperty, owl:FunctionalProperty ; rdfs:domain mns:Execution ; rdfs:range xsd:dateTime .
+mns:endedAt a owl:DatatypeProperty, owl:FunctionalProperty ; rdfs:domain mns:Execution ; rdfs:range xsd:dateTime .
+mns:softwareVersion a owl:DatatypeProperty ; rdfs:range xsd:string .
+mns:gitCommit a owl:DatatypeProperty ; rdfs:range xsd:string .
+mns:parameterName a owl:DatatypeProperty, owl:FunctionalProperty ; rdfs:domain mns:Parameter ; rdfs:range xsd:string .
+mns:numericValue a owl:DatatypeProperty, owl:FunctionalProperty ; rdfs:range xsd:double .
+mns:stringValue a owl:DatatypeProperty, owl:FunctionalProperty ; rdfs:range xsd:string .
+mns:unit a owl:DatatypeProperty ; rdfs:range xsd:string .
+mns:observableName a owl:DatatypeProperty, owl:FunctionalProperty ; rdfs:domain mns:Observable ; rdfs:range xsd:string .
+mns:measurementValue a owl:DatatypeProperty, owl:FunctionalProperty ; rdfs:domain mns:Measurement ; rdfs:range xsd:double .
+mns:measurementUnit a owl:DatatypeProperty ; rdfs:domain mns:Measurement ; rdfs:range xsd:string .
+mns:resultName a owl:DatatypeProperty, owl:FunctionalProperty ; rdfs:domain mns:Result ; rdfs:range xsd:string .
+mns:resultValue a owl:DatatypeProperty ; rdfs:domain mns:Result ; rdfs:range xsd:double .
+mns:resultJson a owl:DatatypeProperty ; rdfs:domain mns:Result ; rdfs:range rdf:JSON .
+mns:conforms a owl:DatatypeProperty, owl:FunctionalProperty ; rdfs:domain mns:ValidationResult ; rdfs:range xsd:boolean .
+mns:validationReport a owl:DatatypeProperty ; rdfs:domain mns:ValidationResult ; rdfs:range xsd:string .
+
+### Logical axioms
+
+mns:SimulationRun owl:disjointWith mns:ExperimentRun .
+mns:PositiveControl owl:disjointWith mns:NegativeControl .
+mns:NullHypothesis owl:disjointWith mns:AlternativeHypothesis .
+
+mns:CompletedExecution a owl:Class ;
+    owl:equivalentClass [
+        a owl:Class ;
+        owl:intersectionOf (
+            mns:Execution
+            [ a owl:Restriction ; owl:onProperty mns:hasExecutionStatus ; owl:hasValue mns:Completed ]
+        )
+    ] .
+
+mns:ValidatedExecution a owl:Class ;
+    owl:equivalentClass [
+        a owl:Class ;
+        owl:intersectionOf (
+            mns:Execution
+            [ a owl:Restriction ; owl:onProperty mns:hasResult ; owl:someValuesFrom mns:ValidationResult ]
+        )
+    ] .

@@ -1,0 +1,88 @@
+{
+  "@context": {
+    "mns": "https://w3id.org/metastable-nucleation-suite/ontology#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "identifier": "mns:identifier",
+    "title": "mns:title",
+    "executesSpecification": {"@id": "mns:executesSpecification", "@type": "@id"},
+    "hasExecutionStatus": {"@id": "mns:hasExecutionStatus", "@type": "@id"},
+    "hasParameter": {"@id": "mns:hasParameter", "@type": "@id", "@container": "@set"},
+    "hasResult": {"@id": "mns:hasResult", "@type": "@id", "@container": "@set"},
+    "wasExecutedBy": {"@id": "mns:wasExecutedBy", "@type": "@id", "@container": "@set"},
+    "trialCount": {"@id": "mns:trialCount", "@type": "xsd:positiveInteger"},
+    "randomSeed": {"@id": "mns:randomSeed", "@type": "xsd:nonNegativeInteger"},
+    "startedAt": {"@id": "mns:startedAt", "@type": "xsd:dateTime"},
+    "endedAt": {"@id": "mns:endedAt", "@type": "xsd:dateTime"},
+    "gitCommit": "mns:gitCommit",
+    "softwareVersion": "mns:softwareVersion",
+    "parameterName": "mns:parameterName",
+    "numericValue": {"@id": "mns:numericValue", "@type": "xsd:double"},
+    "unit": "mns:unit",
+    "resultName": "mns:resultName",
+    "resultValue": {"@id": "mns:resultValue", "@type": "xsd:double"},
+    "resultJson": {"@id": "mns:resultJson", "@type": "@json"},
+    "derivedFromExecution": {"@id": "mns:derivedFromExecution", "@type": "@id"},
+    "conforms": {"@id": "mns:conforms", "@type": "xsd:boolean"},
+    "hasValidationStatus": {"@id": "mns:hasValidationStatus", "@type": "@id"},
+    "validationReport": "mns:validationReport"
+  },
+  "@graph": [
+    {
+      "@id": "https://w3id.org/metastable-nucleation-suite/resource/specification/E11",
+      "@type": ["mns:ExperimentSpecification", "mns:SimulationSpecification"],
+      "identifier": "E11",
+      "title": "Bell metastate readout"
+    },
+    {
+      "@id": "https://w3id.org/metastable-nucleation-suite/resource/agent/metastable-suite-0.1.0",
+      "@type": ["mns:Agent", "mns:SoftwareAgent"],
+      "identifier": "metastable-suite-0.1.0",
+      "softwareVersion": "0.1.0"
+    },
+    {
+      "@id": "https://w3id.org/metastable-nucleation-suite/resource/run/reference-seed-7",
+      "@type": ["mns:Execution", "mns:SimulationRun"],
+      "identifier": "reference-seed-7",
+      "executesSpecification": "https://w3id.org/metastable-nucleation-suite/resource/specification/E11",
+      "hasExecutionStatus": "mns:Completed",
+      "trialCount": 50000,
+      "randomSeed": 7,
+      "startedAt": "2026-07-11T00:00:00Z",
+      "endedAt": "2026-07-11T00:00:05Z",
+      "gitCommit": "c158a6bd67d03eb08c08cd471194ae31b88f80f4",
+      "softwareVersion": "0.1.0",
+      "wasExecutedBy": ["https://w3id.org/metastable-nucleation-suite/resource/agent/metastable-suite-0.1.0"],
+      "hasParameter": ["https://w3id.org/metastable-nucleation-suite/resource/parameter/reference-visibility"],
+      "hasResult": [
+        "https://w3id.org/metastable-nucleation-suite/resource/result/reference-quantum-chsh",
+        "https://w3id.org/metastable-nucleation-suite/resource/result/reference-validation"
+      ]
+    },
+    {
+      "@id": "https://w3id.org/metastable-nucleation-suite/resource/parameter/reference-visibility",
+      "@type": "mns:Parameter",
+      "parameterName": "visibility",
+      "numericValue": 0.98,
+      "unit": "1"
+    },
+    {
+      "@id": "https://w3id.org/metastable-nucleation-suite/resource/result/reference-quantum-chsh",
+      "@type": ["mns:Result", "mns:StatisticalResult"],
+      "identifier": "reference-quantum-chsh",
+      "resultName": "quantum_entangled_chsh",
+      "resultValue": 2.7718,
+      "derivedFromExecution": "https://w3id.org/metastable-nucleation-suite/resource/run/reference-seed-7"
+    },
+    {
+      "@id": "https://w3id.org/metastable-nucleation-suite/resource/result/reference-validation",
+      "@type": ["mns:Result", "mns:ValidationResult"],
+      "identifier": "reference-validation",
+      "resultName": "shacl_validation",
+      "resultJson": {"@value": {"conforms": true}, "@type": "@json"},
+      "derivedFromExecution": "https://w3id.org/metastable-nucleation-suite/resource/run/reference-seed-7",
+      "conforms": true,
+      "hasValidationStatus": "mns:Conforms",
+      "validationReport": "ABox conforms to ontology/abox-shapes.ttl"
+    }
+  ]
+}

@@ -27,15 +27,22 @@ El repositorio separa explícitamente tres cosas que suelen mezclarse:
 - `docs/10_plantilla_preregistro.md`: preregistro para análisis confirmatorios.
 - `docs/11_contrato_de_datos.md`: formato común de eventos, tiempos, flags y metrología.
 - `docs/12_matriz_de_fallos_y_lagunas.md`: amenazas experimentales, falsos positivos y mitigaciones.
+- `docs/13_ontologia_semantica.md`: arquitectura TBox/ABox, validación SHACL y uso por agentes.
 - `references.bib`: bibliografía primaria y revisiones verificables por DOI.
 - `experiments/catalog.yaml`: índice resumido legible por máquina.
 - `experiments/specifications.yaml`: especificaciones ejecutables de E01–E15, con hipótesis nula, controles, exclusiones, parada y análisis.
 - `experiments/specifications.schema.json`: contrato formal de las especificaciones.
+- `ontology/tbox.ttl`: ontología OWL del dominio científico.
+- `ontology/abox-shapes.ttl`: contrato SHACL para ABoxes de simulaciones y experimentos.
+- `ontology/abox.schema.json`: JSON Schema para documentos ABox en JSON-LD.
+- `ontology/context.jsonld`: contexto JSON-LD reutilizable.
+- `ontology/queries/`: biblioteca de consultas SPARQL para humanos y agentes.
 - `examples/reference-report.json`: salida estadística de referencia.
-- `src/metastable_suite/`: simuladores de resultados nulos, benchmarks cuánticos y mecanismos adversariales.
+- `src/metastable_suite/`: simuladores, benchmarks, mecanismos adversariales y API semántica.
 - `scripts/plan_experiment.py`: planificación aproximada de potencia y tamaño muestral.
 - `scripts/run_suite.py`: ejecución de modelos de referencia con proveniencia reproducible.
-- `tests/`: pruebas matemáticas, estadísticas, bibliográficas y de falsos positivos.
+- `scripts/semantic_graph.py`: materialización, validación y consulta de ABoxes.
+- `tests/`: pruebas matemáticas, estadísticas, bibliográficas, adversariales y semánticas.
 
 ## Inicio rápido
 
@@ -46,13 +53,32 @@ pip install -e .[dev]
 make check
 ```
 
-La comprobación completa valida el catálogo, las especificaciones de los 15 protocolos, la estructura bibliográfica, los tests, el planificador de potencia y el informe de simulación.
+La comprobación completa valida el catálogo, las especificaciones de los 15 protocolos, la estructura bibliográfica, la ontología, las ABoxes, los tests, el planificador de potencia y el informe de simulación.
 
 Para ejecutar únicamente la simulación de referencia:
 
 ```bash
 python scripts/run_suite.py --trials 200000 --seed 7
 python scripts/validate_reference_report.py artifacts/reference_report.json
+```
+
+Para materializar el informe como ABox JSON-LD y validarlo:
+
+```bash
+python scripts/semantic_graph.py from-report \
+  artifacts/reference_report.json \
+  artifacts/reference_run.jsonld \
+  --run-id reference-seed-7
+```
+
+El materializador divide el informe agregado en ejecuciones semánticas separadas y enlaza cada resultado con la especificación E02, E07, E09, E11, E12 o E13 que realmente lo produjo.
+
+Para consultar las ejecuciones completadas mediante SPARQL:
+
+```bash
+python scripts/semantic_graph.py query \
+  artifacts/reference_run.jsonld \
+  ontology/queries/completed-runs.rq
 ```
 
 Para estimar un tamaño muestral aproximado:
@@ -71,7 +97,7 @@ El simulador no pretende modelar un dispositivo concreto con precisión microsc�
 
 La suite adversarial añade mecanismos que pueden fabricar descubrimientos aparentes: deriva compartida, modulación de reloj, memoria entre ensayos y pérdidas dependientes del ajuste. Los tests deben demostrar que esos mecanismos son detectables y que los controles reducen la señal espuria.
 
-Los informes generados incluyen commit de Git, versión de Python, NumPy, algoritmo del generador pseudoaleatorio, plataforma, semilla y versiones del catálogo y de las especificaciones.
+Los informes generados incluyen commit de Git, versión de Python, NumPy, algoritmo del generador pseudoaleatorio, plataforma, semilla y versiones del catálogo y de las especificaciones. La capa semántica convierte esos informes en grafos RDF con procedencia PROV-O, validación JSON Schema y SHACL, inferencia RDFS controlada y consultas SPARQL reutilizables.
 
 ## Principio de diseño
 

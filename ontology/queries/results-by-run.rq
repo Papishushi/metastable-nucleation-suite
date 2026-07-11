@@ -1,0 +1,10 @@
+PREFIX mns: <https://w3id.org/metastable-nucleation-suite/ontology#>
+
+SELECT ?run ?result ?name ?numericValue ?jsonValue
+WHERE {
+  ?run a mns:Execution ; mns:hasResult ?result .
+  ?result mns:resultName ?name .
+  OPTIONAL { ?result mns:resultValue ?numericValue }
+  OPTIONAL { ?result mns:resultJson ?jsonValue }
+}
+ORDER BY ?run ?name
