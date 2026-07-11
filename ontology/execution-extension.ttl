@@ -17,11 +17,7 @@ mns:CampaignRunSummary a owl:Class ;
     rdfs:label "Campaign run summary"@en .
 
 mns:CampaignStatus a owl:Class ;
-    owl:oneOf (mns:CampaignRunning mns:CampaignCompleted mns:CampaignFailed) .
-
-mns:CampaignRunning a mns:CampaignStatus .
-mns:CampaignCompleted a mns:CampaignStatus .
-mns:CampaignFailed a mns:CampaignStatus .
+    owl:oneOf (mns:Running mns:Completed mns:Failed) .
 
 mns:HardwareBackend a owl:Class ;
     rdfs:subClassOf mns:Agent ;
@@ -63,16 +59,14 @@ mns:hasCampaignRunSummary a owl:ObjectProperty ;
     rdfs:range mns:CampaignRunSummary .
 
 mns:summarizesExecution a owl:ObjectProperty, owl:FunctionalProperty ;
-    rdfs:domain mns:CampaignRunSummary ;
-    rdfs:range mns:Execution .
+    rdfs:domain mns:CampaignRunSummary .
 
 mns:summarizedExecutionStatus a owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:domain mns:CampaignRunSummary ;
     rdfs:range mns:ExecutionStatus .
 
 mns:summarizesDependency a owl:ObjectProperty ;
-    rdfs:domain mns:CampaignRunSummary ;
-    rdfs:range mns:Execution .
+    rdfs:domain mns:CampaignRunSummary .
 
 mns:usesBackend a owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:domain mns:Execution ;
