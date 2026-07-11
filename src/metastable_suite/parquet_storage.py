@@ -161,7 +161,7 @@ def write_parquet_events(
                 len(partitions),
                 chunk,
                 schema_version,
-                1 if event_count == 0 else None,
+                1 if not partitions else None,
             )
         )
 
