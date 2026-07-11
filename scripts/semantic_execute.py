@@ -4,8 +4,9 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+from typing import Callable
 
-from rdflib import URIRef
+from rdflib import Graph, URIRef
 
 from metastable_suite.campaigns import FailurePolicy, execute_campaign, find_campaigns
 from metastable_suite.execution import (
@@ -33,6 +34,17 @@ def _validated_plan(plan_path: Path):
     if not outcome.conforms:
         raise ValueError(outcome.report_text)
     return graph, ontology
+
+
+def _completed_artifact_validator(ontology: Graph) -> Callable[[Path], bool]:
+    def validate(path: Path) -> bool:
+        try:
+            graph = load_abox(path, ABOX_SCHEMA)
+            return validate_abox(graph, SHAPES, ontology).conforms
+        except Exception:
+            return False
+
+    return validate
 
 
 def execute_plan(plan_path: Path, output_dir: Path, run_iri: str | None = None) -> list[dict]:
@@ -84,6 +96,7 @@ def execute_campaign_plan(
         BackendRegistry.default(),
         failure_policy=FailurePolicy.parse(failure_policy) if failure_policy else None,
         resume=resume,
+        artifact_validator=_completed_artifact_validator(ontology),
     )
     campaign_graph = load_abox(result.abox_path, ABOX_SCHEMA)
     validation = validate_abox(campaign_graph, SHAPES, ontology)
@@ -92,18 +105,38 @@ def execute_campaign_plan(
     return result
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Execute SHACL-valid semantic experiment plans")
     parser.add_argument("plan", type=Path)
     parser.add_argument("output_dir", type=Path)
-    parser.add_argument("--run-iri")
-    parser.add_argument("--campaign-iri")
+    parser.add_argument("--run-iri", help="execute only the selected planned execution")
+    parser.add_argument("--campaign-iri", help="execute the selected campaign")
     parser.add_argument(
         "--failure-policy",
         choices=[policy.value for policy in FailurePolicy],
+        help="override the campaign failure policy",
     )
-    parser.add_argument("--no-resume", action="store_true")
-    args = parser.parse_args()
+    parser.add_argument(
+        "--no-resume",
+        action="store_true",
+        help="start a campaign without using persisted completed runs",
+    )
+    args = parser.parse_args(argv)
+
+    if args.run_iri is not None:
+        if args.campaign_iri or args.failure_policy or args.no_resume:
+            parser.error(
+                "--run-iri cannot be combined with --campaign-iri, "
+                "--failure-policy or --no-resume"
+            )
+        documents = execute_plan(args.plan, args.output_dir, args.run_iri)
+        print(
+            json.dumps(
+                {"executed_runs": len(documents), "output_dir": args.output_dir.as_posix()},
+                indent=2,
+            )
+        )
+        return 0
 
     if args.campaign_iri or find_campaigns(load_abox(args.plan, ABOX_SCHEMA)):
         result = execute_campaign_plan(
@@ -126,8 +159,13 @@ def main() -> int:
             )
         )
     else:
-        documents = execute_plan(args.plan, args.output_dir, args.run_iri)
-        print(json.dumps({"executed_runs": len(documents), "output_dir": args.output_dir.as_posix()}, indent=2))
+        documents = execute_plan(args.plan, args.output_dir)
+        print(
+            json.dumps(
+                {"executed_runs": len(documents), "output_dir": args.output_dir.as_posix()},
+                indent=2,
+            )
+        )
     return 0
 
 
