@@ -1,0 +1,43 @@
+name: specifications
+on:
+  push:
+    paths:
+      - experiments/specifications.yaml
+      - experiments/specifications.schema.json
+      - scripts/validate_specifications.py
+      - references.bib
+      - .github/workflows/specifications.yml
+  pull_request:
+    paths:
+      - experiments/specifications.yaml
+      - experiments/specifications.schema.json
+      - scripts/validate_specifications.py
+      - references.bib
+      - .github/workflows/specifications.yml
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: pip install PyYAML jsonschema
+      - name: Validate specifications
+        shell: bash
+        run: |
+          mkdir -p artifacts
+          set +e
+          python scripts/validate_specifications.py > artifacts/specification-validation.txt 2>&1
+          status=$?
+          cat artifacts/specification-validation.txt
+          exit $status
+      - name: Upload validation report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: specification-validation-${{ github.run_id }}
+          path: artifacts/specification-validation.txt
+          if-no-files-found: error
+          retention-days: 30
