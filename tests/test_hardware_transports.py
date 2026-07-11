@@ -9,6 +9,7 @@ from metastable_suite.transports import (
     RetryPolicy,
     SerialTransport,
     TCPTransport,
+    TransportConnectionError,
     TransportProtocolError,
     TransportTimeout,
     VisaTransport,
@@ -131,7 +132,7 @@ def test_serial_transport_detects_partial_write():
         serial_factory=lambda **kwargs: serial,
     )
 
-    with pytest.raises(Exception, match="partial write"):
+    with pytest.raises(TransportConnectionError, match="partial write"):
         transport.exchange("read", {})
 
 
@@ -210,3 +211,24 @@ def test_transport_command_backend_normalizes_real_transport_lifecycle():
     backend.close()
 
     assert connection.closed
+
+
+def test_exhausted_trial_transport_failure_is_preserved_as_invalid_trial():
+    responses = [b'{"ok":true}\n']
+    connection = FakeSocket(responses=responses, recv_error=None)
+    transport = TCPTransport(
+        "127.0.0.1",
+        9000,
+        retry_policy=RetryPolicy(attempts=1),
+        socket_factory=lambda: connection,
+    )
+    backend = TransportCommandBackend(transport, backend_id="counter-a")
+    backend.prepare("E09", {})
+    connection.recv_error = socket.timeout("device stalled")
+
+    result = backend.execute_trial(TrialRequest("run-1", "E09", 0))
+
+    assert not result.valid
+    assert result.exclusion_reasons == ("transport_failure",)
+    assert result.outcome == {"transport_error": "TransportTimeout"}
+    assert result.diagnostics["transport_error_type"] == "TransportTimeout"
