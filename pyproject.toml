@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [{name = "Daniel Molinero Lucas"}]
-dependencies = ["numpy>=1.24", "PyYAML>=6"]
+dependencies = ["numpy>=1.24", "PyYAML>=6", "jsonschema>=4"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.5"]
