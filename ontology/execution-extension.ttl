@@ -19,6 +19,10 @@ mns:CampaignRunSummary a owl:Class ;
 mns:CampaignStatus a owl:Class ;
     owl:oneOf (mns:Running mns:Completed mns:Failed) .
 
+mns:Running a mns:CampaignStatus .
+mns:Completed a mns:CampaignStatus .
+mns:Failed a mns:CampaignStatus .
+
 mns:HardwareBackend a owl:Class ;
     rdfs:subClassOf mns:Agent ;
     rdfs:label "Hardware backend"@en .
