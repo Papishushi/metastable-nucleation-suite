@@ -68,9 +68,10 @@ Para materializar el informe como ABox JSON-LD y validarlo:
 python scripts/semantic_graph.py from-report \
   artifacts/reference_report.json \
   artifacts/reference_run.jsonld \
-  --run-id reference-seed-7 \
-  --specification E11
+  --run-id reference-seed-7
 ```
+
+El materializador divide el informe agregado en ejecuciones semánticas separadas y enlaza cada resultado con la especificación E02, E07, E09, E11, E12 o E13 que realmente lo produjo.
 
 Para consultar las ejecuciones completadas mediante SPARQL:
 
