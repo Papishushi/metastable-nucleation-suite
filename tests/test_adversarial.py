@@ -1,6 +1,12 @@
 import numpy as np
 
-from metastable_suite.adversarial import block_detrend, memory_sequence, shared_clock_modulation, shared_drift
+from metastable_suite.adversarial import (
+    block_detrend,
+    memory_sequence,
+    setting_dependent_loss,
+    shared_clock_modulation,
+    shared_drift,
+)
 
 
 def test_shared_drift_creates_spurious_raw_correlation_but_detrending_reduces_it():
@@ -21,3 +27,18 @@ def test_memory_sequence_has_strong_lag_one_autocorrelation():
     values = memory_sequence(40_000, 0.9, np.random.default_rng(13))
     lag_one = float(np.corrcoef(values[:-1], values[1:])[0, 1])
     assert lag_one > 0.75
+
+
+def test_setting_dependent_loss_creates_detectable_selection_bias():
+    rng = np.random.default_rng(14)
+    trials = 100_000
+    settings = rng.choice((-1, 1), trials)
+    outcomes = rng.choice((-1, 1), trials)
+    keep = setting_dependent_loss(settings, outcomes, keep_same=0.95, keep_different=0.20, rng=rng)
+
+    retained_same = float(np.mean(keep[settings == outcomes]))
+    retained_different = float(np.mean(keep[settings != outcomes]))
+    selected_agreement = float(np.mean(settings[keep] == outcomes[keep]))
+
+    assert retained_same - retained_different > 0.70
+    assert selected_agreement > 0.80
