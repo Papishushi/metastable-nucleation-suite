@@ -17,6 +17,10 @@ jobs:
       - run: python scripts/validate_specifications.py
       - name: Validate bibliography structure
         run: python scripts/verify_references.py --no-network
+      - name: Validate semantic example ABox
+        run: python scripts/semantic_graph.py validate ontology/examples/reference-run.jsonld
+      - name: Smoke-test semantic query
+        run: python scripts/semantic_graph.py query ontology/examples/reference-run.jsonld ontology/queries/completed-runs.rq > artifacts/completed-runs.json
       - name: Smoke-test power planner
         run: python scripts/plan_experiment.py --experiment chsh --target-s 2.4 --output artifacts/chsh-plan.json
       - run: pytest -q
@@ -24,6 +28,8 @@ jobs:
         run: python scripts/run_suite.py --trials 50000 --seed 7
       - name: Validate reference report
         run: python scripts/validate_reference_report.py artifacts/reference_report.json
+      - name: Materialize semantic ABox
+        run: python scripts/semantic_graph.py from-report artifacts/reference_report.json artifacts/reference_run.jsonld --run-id ci-${{ github.run_id }}
       - name: Upload scientific artifacts
         if: always()
         uses: actions/upload-artifact@v7
