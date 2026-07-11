@@ -1,8 +1,10 @@
+import json
 from pathlib import Path
 
 import pytest
 
 from metastable_suite.monte_carlo_power import (
+    PowerEstimate,
     analytical_correlation_power,
     analytical_proportion_power,
     wilson_interval,
@@ -39,4 +41,47 @@ def test_benchmark_grid_stays_within_expected_ranges():
     for result in results:
         low, high = result.estimate.confidence_interval
         assert low <= result.estimate.power <= high
+        assert result.reference_error <= result.reference_tolerance
         assert result.estimate.power == pytest.approx(result.reference_power, abs=0.03)
+
+
+def test_reference_drift_fails_even_when_estimate_is_inside_expected_range(tmp_path, monkeypatch):
+    grid = {
+        "schema_version": "1.0.0",
+        "repetitions": 100,
+        "reference_tolerance": 0.03,
+        "cases": [
+            {
+                "id": "drift",
+                "design": "proportion",
+                "seed": 1,
+                "parameters": {},
+                "expected_range": [0.4, 0.6],
+            }
+        ],
+    }
+    grid_path = tmp_path / "grid.json"
+    grid_path.write_text(json.dumps(grid), encoding="utf-8")
+    estimate = PowerEstimate(
+        design="two_proportions",
+        sample_size=100,
+        repetitions=100,
+        rejection_count=50,
+        power=0.5,
+        standard_error=0.05,
+        confidence_level=0.95,
+        confidence_interval=(0.4, 0.6),
+        parameters={},
+    )
+
+    monkeypatch.setattr(
+        "metastable_suite.power_calibration._run_case",
+        lambda case, repetitions: (estimate, 0.4),
+    )
+
+    result = run_benchmark_grid(grid_path)[0]
+
+    assert result.estimate.power == pytest.approx(0.5)
+    assert result.expected_range == (0.4, 0.6)
+    assert result.reference_error == pytest.approx(0.1)
+    assert not result.passed
