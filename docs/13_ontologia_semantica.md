@@ -47,11 +47,12 @@ puede materializarse una ABox:
 python scripts/semantic_graph.py from-report \
   artifacts/reference_report.json \
   artifacts/reference_run.jsonld \
-  --run-id reference-seed-7 \
-  --specification E11
+  --run-id reference-seed-7
 ```
 
-El comando genera JSON-LD, aplica el JSON Schema y ejecuta SHACL con inferencia OWL-RL. Si la ABox no cumple el contrato, el proceso termina con código distinto de cero.
+El informe de referencia es agregado, por lo que el materializador no lo atribuye artificialmente a un único experimento. Crea una `SimulationRun` independiente para cada especificación realmente representada y enlaza los resultados con E02, E07, E09, E11, E12 o E13 según corresponda.
+
+El comando genera JSON-LD, aplica el JSON Schema y ejecuta SHACL con inferencia RDFS controlada. Si la ABox no cumple el contrato, el proceso termina con código distinto de cero.
 
 ## Validación manual
 
