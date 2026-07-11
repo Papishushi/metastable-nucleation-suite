@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from rdflib import RDF, URIRef
+from rdflib import RDF
 
 from metastable_suite.report import build_report
 from metastable_suite.semantic import MNS, execute_query, load_abox, load_tbox, validate_abox
@@ -49,7 +49,10 @@ def test_report_is_partitioned_into_valid_per_specification_runs(tmp_path):
         specification_id = str(specifications[0]).rsplit("/", 1)[-1]
         assert specification_id in expected_specs
 
-    total_results = sum(len(list(abox.objects(execution, MNS.hasResult))) for execution in executions)
+    total_results = sum(
+        len(list(abox.objects(execution, MNS.hasResult)))
+        for execution in executions
+    )
     assert total_results == len(report["known_science_expectations"])
 
 
@@ -83,7 +86,11 @@ def test_materializer_rejects_reports_without_execution_timestamps():
 
 def test_simulation_without_seed_violates_shacl(tmp_path):
     document = json.loads(EXAMPLE.read_text(encoding="utf-8"))
-    run = next(node for node in document["@graph"] if "mns:SimulationRun" in node.get("@type", []))
+    run = next(
+        node
+        for node in document["@graph"]
+        if "mns:SimulationRun" in node.get("@type", [])
+    )
     del run["randomSeed"]
     target = tmp_path / "invalid.jsonld"
     target.write_text(json.dumps(document), encoding="utf-8")
