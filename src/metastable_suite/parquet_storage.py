@@ -24,7 +24,8 @@ def _pyarrow():
         import pyarrow.parquet as pq
     except ImportError as exc:
         raise RuntimeError(
-            "Parquet support requires the optional 'storage' dependency: pip install -e '.[storage]'"
+            "Parquet support requires the optional 'storage' dependency: "
+            "pip install -e '.[storage]'"
         ) from exc
     return pa, pq
 
@@ -130,37 +131,50 @@ def write_parquet_events(
 ) -> DatasetManifest:
     if partition_size <= 0:
         raise ValueError("partition_size must be positive")
+
     validator = event_validator(schema)
-    validated = [validate_event(event, validator) for event in events]
-    if not validated:
-        chunks = [[]]
-    else:
-        chunks = [
-            validated[index : index + partition_size]
-            for index in range(0, len(validated), partition_size)
-        ]
     base = Path(path)
-    partitions = tuple(
-        _write_partition(
-            base,
-            dataset_id,
-            index,
-            chunk,
-            schema_version,
-            len(chunks),
+    partitions: list[DatasetPartitionManifest] = []
+    chunk: list[Mapping[str, object]] = []
+    event_count = 0
+
+    for event in events:
+        chunk.append(validate_event(event, validator))
+        event_count += 1
+        if len(chunk) == partition_size:
+            partitions.append(
+                _write_partition(
+                    base,
+                    dataset_id,
+                    len(partitions),
+                    chunk,
+                    schema_version,
+                )
+            )
+            chunk = []
+
+    if chunk or not partitions:
+        partitions.append(
+            _write_partition(
+                base,
+                dataset_id,
+                len(partitions),
+                chunk,
+                schema_version,
+                1 if event_count == 0 else None,
+            )
         )
-        for index, chunk in enumerate(chunks)
-    )
+
     return DatasetManifest(
         dataset_id=dataset_id,
         path=base.as_posix(),
         media_type=PARQUET_MEDIA_TYPE,
         schema_version=schema_version,
-        event_count=len(validated),
+        event_count=event_count,
         sha256=aggregate_dataset_hash(partition.sha256 for partition in partitions),
         generated_at_utc=datetime.now(timezone.utc).isoformat(),
         storage_format="parquet",
-        partitions=partitions,
+        partitions=tuple(partitions),
     )
 
 
