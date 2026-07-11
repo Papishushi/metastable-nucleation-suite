@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0.0",
+  "repetitions": 5000,
+  "confidence_level": 0.95,
+  "cases": [
+    {"id":"proportion-small","design":"proportion","seed":101,"parameters":{"sample_size_per_group":100,"p0":0.5,"p1":0.6,"alpha":0.05},"expected_range":[0.26,0.33]},
+    {"id":"proportion-large","design":"proportion","seed":102,"parameters":{"sample_size_per_group":300,"p0":0.5,"p1":0.6,"alpha":0.05},"expected_range":[0.65,0.74]},
+    {"id":"correlation-small","design":"correlation","seed":103,"parameters":{"sample_size":100,"rho":0.2,"alpha":0.05},"expected_range":[0.47,0.57]},
+    {"id":"correlation-large","design":"correlation","seed":104,"parameters":{"sample_size":200,"rho":0.2,"alpha":0.05},"expected_range":[0.77,0.85]},
+    {"id":"chsh-near-threshold","design":"chsh","seed":105,"parameters":{"sample_size":1000,"visibility":0.74,"alpha":0.05},"expected_range":[0.18,0.27]},
+    {"id":"chsh-stronger","design":"chsh","seed":106,"parameters":{"sample_size":1000,"visibility":0.78,"alpha":0.05},"expected_range":[0.57,0.67]},
+    {"id":"no-signalling-small","design":"no-signalling","seed":107,"parameters":{"sample_size":3000,"delta":0.04,"alpha":0.05,"multiplicity":4},"expected_range":[0.13,0.22]},
+    {"id":"no-signalling-large","design":"no-signalling","seed":108,"parameters":{"sample_size":3000,"delta":0.06,"alpha":0.05,"multiplicity":4},"expected_range":[0.38,0.48]}
+  ]
+}
