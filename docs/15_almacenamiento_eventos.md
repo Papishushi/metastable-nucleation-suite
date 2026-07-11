@@ -30,7 +30,7 @@ manifest = write_events(
 DatasetRegistry("artifacts/datasets.registry.json").register(manifest)
 ```
 
-`execute_request` y `scripts/semantic_execute.py` aceptan `dataset_format="parquet"` / `--dataset-format parquet` para ejecuciones individuales. El orquestador de campañas conserva actualmente su layout NDJSON de recuperación; una campaña terminada puede convertirse sin cargar todo el dataset en memoria:
+El motor de ejecución semántica conserva NDJSON como formato nativo. Para obtener Parquet, convierta el artefacto terminado mediante el CLI de almacenamiento. La conversión consume el NDJSON como un iterador y escribe cada partición al alcanzar `--partition-size`, sin materializar la campaña completa en memoria:
 
 ```bash
 python scripts/dataset_storage.py convert \
@@ -51,9 +51,9 @@ python scripts/dataset_storage.py convert \
 - recuento total;
 - particiones ordenadas y valores comunes de partición;
 - SHA-256 de cada archivo;
-- hash agregado determinista del dataset.
+- hash agregado determinista del dataset para formatos multipartición.
 
-La escritura del registro es atómica. Registrar de nuevo el mismo identificador con contenido distinto falla salvo que el llamador solicite reemplazo explícito. `verify_manifest` recalcula hashes, lee cada partición y contrasta los recuentos.
+La escritura del registro es atómica. Registrar de nuevo el mismo identificador con contenido distinto falla salvo que el llamador solicite reemplazo explícito. `verify_manifest` recalcula hashes, lee cada partición y contrasta los recuentos. En NDJSON de una sola partición, `manifest.sha256` sigue siendo el hash directo del archivo para mantener compatibilidad con el motor existente.
 
 ```bash
 python scripts/dataset_storage.py verify artifacts/datasets.registry.json
