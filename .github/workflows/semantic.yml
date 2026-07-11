@@ -1,0 +1,53 @@
+name: semantic
+on:
+  push:
+    paths:
+      - ontology/**
+      - src/metastable_suite/semantic.py
+      - scripts/semantic_graph.py
+      - tests/test_semantic.py
+      - pyproject.toml
+      - .github/workflows/semantic.yml
+  pull_request:
+    paths:
+      - ontology/**
+      - src/metastable_suite/semantic.py
+      - scripts/semantic_graph.py
+      - tests/test_semantic.py
+      - pyproject.toml
+      - .github/workflows/semantic.yml
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: pip install -e .[dev]
+      - name: Validate semantic example
+        shell: bash
+        run: |
+          mkdir -p artifacts
+          set +e
+          python scripts/semantic_graph.py validate ontology/examples/reference-run.jsonld > artifacts/semantic-validation.txt 2>&1
+          status=$?
+          cat artifacts/semantic-validation.txt
+          exit $status
+      - name: Run semantic tests
+        shell: bash
+        run: |
+          set +e
+          pytest -q tests/test_semantic.py > artifacts/semantic-tests.txt 2>&1
+          status=$?
+          cat artifacts/semantic-tests.txt
+          exit $status
+      - name: Upload semantic diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: semantic-validation-${{ github.run_id }}
+          path: artifacts/
+          if-no-files-found: error
+          retention-days: 30
