@@ -25,6 +25,8 @@ class CalibrationResult:
     estimate: PowerEstimate
     reference_power: float
     expected_range: tuple[float, float]
+    reference_tolerance: float
+    reference_error: float
     passed: bool
 
     def as_dict(self) -> dict[str, object]:
@@ -34,6 +36,8 @@ class CalibrationResult:
             "estimate": self.estimate.as_dict(),
             "reference_power": self.reference_power,
             "expected_range": list(self.expected_range),
+            "reference_tolerance": self.reference_tolerance,
+            "reference_error": self.reference_error,
             "passed": self.passed,
         }
 
@@ -44,16 +48,26 @@ def load_benchmark_grid(path: str | Path) -> dict[str, Any]:
         raise ValueError("unsupported benchmark schema version")
     if not isinstance(document.get("cases"), list) or not document["cases"]:
         raise ValueError("benchmark grid must contain cases")
+    tolerance = float(document.get("reference_tolerance", 0.03))
+    if tolerance < 0:
+        raise ValueError("reference_tolerance must be non-negative")
     return document
 
 
 def run_benchmark_grid(path: str | Path) -> list[CalibrationResult]:
     document = load_benchmark_grid(path)
     repetitions = int(document["repetitions"])
+    default_tolerance = float(document.get("reference_tolerance", 0.03))
     results = []
     for case in document["cases"]:
         estimate, reference = _run_case(case, repetitions)
         lower, upper = map(float, case["expected_range"])
+        tolerance = float(case.get("reference_tolerance", default_tolerance))
+        if tolerance < 0:
+            raise ValueError("reference_tolerance must be non-negative")
+        reference_error = abs(estimate.power - reference)
+        within_expected_range = lower <= estimate.power <= upper
+        within_reference_tolerance = reference_error <= tolerance
         results.append(
             CalibrationResult(
                 case_id=str(case["id"]),
@@ -61,7 +75,9 @@ def run_benchmark_grid(path: str | Path) -> list[CalibrationResult]:
                 estimate=estimate,
                 reference_power=reference,
                 expected_range=(lower, upper),
-                passed=lower <= estimate.power <= upper,
+                reference_tolerance=tolerance,
+                reference_error=reference_error,
+                passed=within_expected_range and within_reference_tolerance,
             )
         )
     return results
