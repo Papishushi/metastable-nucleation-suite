@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 import json
 from pathlib import Path
+import re
 from typing import Any, Callable, Mapping
 
 from rdflib import Graph, Namespace, RDF, URIRef
@@ -13,6 +14,7 @@ from .hardware import ExperimentalBackend, SimulatorBackend, TrialRequest
 
 MNS = Namespace("https://w3id.org/metastable-nucleation-suite/ontology#")
 RESOURCE = "https://w3id.org/metastable-nucleation-suite/resource/"
+SAFE_RUN_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 
 
 @dataclass(frozen=True)
@@ -81,6 +83,23 @@ class BackendRegistry:
         return registry
 
 
+def validate_run_id(run_id: str) -> str:
+    if not SAFE_RUN_ID.fullmatch(run_id):
+        raise ValueError(
+            "run_id must start with an ASCII letter or digit and contain only letters, digits, dot, "
+            "underscore or hyphen (maximum 128 characters)"
+        )
+    return run_id
+
+
+def safe_output_path(output_dir: str | Path, filename: str) -> Path:
+    base = Path(output_dir).resolve()
+    target = (base / filename).resolve()
+    if not target.is_relative_to(base) or target.parent != base:
+        raise ValueError(f"output path escapes configured directory: {filename!r}")
+    return target
+
+
 def load_event_schema(path: str | Path) -> dict[str, Any]:
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
@@ -105,6 +124,7 @@ def request_from_graph(graph: Graph, run_iri: URIRef) -> ExecutionRequest:
     if missing:
         raise ValueError(f"execution request is missing {missing}")
 
+    run_id = validate_run_id(str(identifier))
     specification_id = str(graph.value(specification, MNS.identifier) or str(specification).rsplit("/", 1)[-1])
     backend_id = str(graph.value(backend, MNS.identifier) or str(backend).rsplit("/", 1)[-1])
 
@@ -123,7 +143,7 @@ def request_from_graph(graph: Graph, run_iri: URIRef) -> ExecutionRequest:
             raise ValueError(f"parameter {parameter} has no value")
 
     return ExecutionRequest(
-        run_id=str(identifier),
+        run_id=run_id,
         specification_id=specification_id,
         backend_id=backend_id,
         trial_count=int(trial_count),
@@ -149,13 +169,13 @@ def execute_request(
     schema: Mapping[str, Any],
     registry: BackendRegistry | None = None,
 ) -> ExecutionResult:
+    run_id = validate_run_id(request.run_id)
     if request.trial_count <= 0:
         raise ValueError("trial_count must be positive")
     registry = registry or BackendRegistry.default()
     backend = registry.create(request)
-    output_dir = Path(output_dir)
-    dataset_path = output_dir / f"{request.run_id}.events.ndjson"
-    dataset_id = f"{request.run_id}-events"
+    dataset_path = safe_output_path(output_dir, f"{run_id}.events.ndjson")
+    dataset_id = f"{run_id}-events"
 
     started_at = datetime.now(timezone.utc)
     valid_trials = 0
@@ -169,15 +189,15 @@ def execute_request(
                 reset = backend.reset()
                 response = backend.execute_trial(
                     TrialRequest(
-                        run_id=request.run_id,
+                        run_id=run_id,
                         specification_id=request.specification_id,
                         trial_index=trial_index,
                     )
                 )
                 event = {
                     "schema_version": "1.0.0",
-                    "event_id": f"{request.run_id}-{trial_index}",
-                    "run_id": request.run_id,
+                    "event_id": f"{run_id}-{trial_index}",
+                    "run_id": run_id,
                     "specification_id": request.specification_id,
                     "trial_index": trial_index,
                     "timestamp_utc": response.timestamp_utc,
@@ -201,7 +221,7 @@ def execute_request(
     ended_at = datetime.now(timezone.utc)
 
     return ExecutionResult(
-        run_id=request.run_id,
+        run_id=run_id,
         specification_id=request.specification_id,
         backend_id=request.backend_id,
         started_at_utc=started_at.isoformat(),
@@ -216,16 +236,17 @@ def execute_request(
 
 
 def result_to_abox(result: ExecutionResult) -> dict[str, Any]:
-    run_iri = RESOURCE + "run/" + result.run_id
+    run_id = validate_run_id(result.run_id)
+    run_iri = RESOURCE + "run/" + run_id
     spec_iri = RESOURCE + "specification/" + result.specification_id
     backend_iri = RESOURCE + "backend/" + result.backend_id
     dataset_iri = RESOURCE + "dataset/" + result.manifest.dataset_id
-    result_iri = RESOURCE + "result/" + result.run_id + "-execution-summary"
+    result_iri = RESOURCE + "result/" + run_id + "-execution-summary"
 
     run_node: dict[str, Any] = {
         "@id": run_iri,
         "@type": ["mns:Execution", "mns:SimulationRun"],
-        "mns:identifier": result.run_id,
+        "mns:identifier": run_id,
         "mns:executesSpecification": {"@id": spec_iri},
         "mns:usesBackend": {"@id": backend_iri},
         "mns:usesDataset": {"@id": dataset_iri},
@@ -268,7 +289,7 @@ def result_to_abox(result: ExecutionResult) -> dict[str, Any]:
             {
                 "@id": result_iri,
                 "@type": ["mns:Result", "mns:ExecutionSummary"],
-                "mns:identifier": result.run_id + "-execution-summary",
+                "mns:identifier": run_id + "-execution-summary",
                 "mns:resultName": "execution_summary",
                 "mns:resultJson": {"@value": result.as_dict(), "@type": "@json"},
                 "mns:derivedFromExecution": {"@id": run_iri},
