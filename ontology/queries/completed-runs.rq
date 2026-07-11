@@ -1,0 +1,13 @@
+PREFIX mns: <https://w3id.org/metastable-nucleation-suite/ontology#>
+
+SELECT ?run ?identifier ?specification ?trials ?seed ?endedAt
+WHERE {
+  ?run a mns:Execution ;
+       mns:identifier ?identifier ;
+       mns:executesSpecification ?specification ;
+       mns:hasExecutionStatus mns:Completed ;
+       mns:trialCount ?trials ;
+       mns:endedAt ?endedAt .
+  OPTIONAL { ?run mns:randomSeed ?seed }
+}
+ORDER BY DESC(?endedAt)
