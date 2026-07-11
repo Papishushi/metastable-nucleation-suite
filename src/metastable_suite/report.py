@@ -41,9 +41,10 @@ def _git_commit() -> str:
 def build_provenance(seed: int, started_at: datetime, ended_at: datetime) -> dict:
     rng = np.random.default_rng(seed)
     return {
-        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "generated_at_utc": ended_at.isoformat(),
         "execution_started_at_utc": started_at.isoformat(),
         "execution_ended_at_utc": ended_at.isoformat(),
+        "execution_duration_seconds": (ended_at - started_at).total_seconds(),
         "git_commit": _git_commit(),
         "python_version": platform.python_version(),
         "platform": platform.platform(),
@@ -69,22 +70,23 @@ def build_report(trials: int, seed: int) -> dict:
 
     a, b, _ = common_field_nodes(trials, rng=rng)
     optical = simulate_double_well(min(trials, 100_000), rng=rng)
+    expectations = {
+        "seed_odds_ratio_gt_1": hazard_ratio_from_seed(min(trials, 100_000), 1.0, rng),
+        "classical_common_cause_correlation": float(np.corrcoef(a, b)[0, 1]),
+        "independent_optical_nodes_correlation_near_0": independent_nodes_correlation(min(trials, 80_000), rng),
+        "local_chsh_le_2": {"S": s_local, "E": e_local},
+        "quantum_entangled_chsh_near_2sqrt2V": {"S": s_q, "E": e_q},
+        "quantum_no_signalling_deltas_near_0": no_signalling_deltas(*qideal),
+        "optical_metastate_positive_fraction": float(np.mean(optical.outcomes == 1)),
+        "optical_mean_commit_step": float(np.mean(optical.commit_steps)),
+    }
     ended_at = datetime.now(timezone.utc)
 
     return {
         "trials": trials,
         "seed": seed,
         "provenance": build_provenance(seed, started_at, ended_at),
-        "known_science_expectations": {
-            "seed_odds_ratio_gt_1": hazard_ratio_from_seed(min(trials, 100_000), 1.0, rng),
-            "classical_common_cause_correlation": float(np.corrcoef(a, b)[0, 1]),
-            "independent_optical_nodes_correlation_near_0": independent_nodes_correlation(min(trials, 80_000), rng),
-            "local_chsh_le_2": {"S": s_local, "E": e_local},
-            "quantum_entangled_chsh_near_2sqrt2V": {"S": s_q, "E": e_q},
-            "quantum_no_signalling_deltas_near_0": no_signalling_deltas(*qideal),
-            "optical_metastate_positive_fraction": float(np.mean(optical.outcomes == 1)),
-            "optical_mean_commit_step": float(np.mean(optical.commit_steps)),
-        },
+        "known_science_expectations": expectations,
     }
 
 
