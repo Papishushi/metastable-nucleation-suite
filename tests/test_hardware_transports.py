@@ -66,6 +66,29 @@ def test_tcp_transport_reconnects_after_timeout():
     assert request == {"command": "ping", "payload": {"sequence": 1}}
 
 
+def test_tcp_transport_drops_terminal_timeout_before_next_command():
+    first = FakeSocket(recv_error=socket.timeout("slow"))
+    second = FakeSocket(responses=[b'{"ok":true,"value":8}\n'])
+    sockets = iter([first, second])
+    transport = TCPTransport(
+        "127.0.0.1",
+        9000,
+        retry_policy=RetryPolicy(attempts=1, initial_delay_s=0),
+        socket_factory=lambda: next(sockets),
+    )
+
+    with pytest.raises(TransportTimeout, match="timed out"):
+        transport.exchange("ping", {"sequence": 1})
+
+    response = transport.exchange("ping", {"sequence": 2})
+
+    assert first.closed
+    assert second.connected
+    assert response == {"ok": True, "value": 8}
+    request = json.loads(second.sent[0].decode().strip())
+    assert request == {"command": "ping", "payload": {"sequence": 2}}
+
+
 def test_tcp_transport_rejects_malformed_response_without_retry():
     connection = FakeSocket(responses=[b"not-json\n"])
     transport = TCPTransport(
@@ -123,6 +146,8 @@ def test_serial_transport_times_out_on_empty_response():
     with pytest.raises(TransportTimeout, match="timed out"):
         transport.exchange("read", {})
 
+    assert serial.closed
+
 
 def test_serial_transport_detects_partial_write():
     serial = FakeSerial(partial_write=True)
@@ -134,6 +159,8 @@ def test_serial_transport_detects_partial_write():
 
     with pytest.raises(TransportConnectionError, match="partial write"):
         transport.exchange("read", {})
+
+    assert serial.closed
 
 
 class FakeVisaResource:
@@ -232,3 +259,4 @@ def test_exhausted_trial_transport_failure_is_preserved_as_invalid_trial():
     assert result.exclusion_reasons == ("transport_failure",)
     assert result.outcome == {"transport_error": "TransportTimeout"}
     assert result.diagnostics["transport_error_type"] == "TransportTimeout"
+    assert connection.closed

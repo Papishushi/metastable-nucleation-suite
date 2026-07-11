@@ -97,6 +97,11 @@ class JsonCommandTransport(ABC):
                 delay = min(delay * self.retry_policy.backoff, self.retry_policy.maximum_delay_s)
 
         assert last_error is not None
+        try:
+            self.disconnect()
+        except Exception:
+            # Preserve the terminal transport error even if closing the failed handle also fails.
+            pass
         raise last_error
 
 
