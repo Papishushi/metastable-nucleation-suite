@@ -45,8 +45,11 @@ def _json_dump(value: object) -> str:
 def _event_to_row(event: Mapping[str, object]) -> dict[str, object]:
     row = dict(event)
     for name in _JSON_COLUMNS:
-        row[name] = _json_dump(row.get(name, {}))
-    row["exclusion_reasons"] = list(row.get("exclusion_reasons", []))
+        row[name] = _json_dump(row[name]) if name in row else None
+    if "exclusion_reasons" in row:
+        row["exclusion_reasons"] = list(row["exclusion_reasons"])
+    else:
+        row["exclusion_reasons"] = None
     return row
 
 
@@ -54,8 +57,15 @@ def _row_to_event(row: Mapping[str, object]) -> dict[str, object]:
     event = dict(row)
     for name in _JSON_COLUMNS:
         value = event.get(name)
-        event[name] = json.loads(value) if isinstance(value, str) else {}
-    event["exclusion_reasons"] = list(event.get("exclusion_reasons") or [])
+        if isinstance(value, str):
+            event[name] = json.loads(value)
+        elif value is None:
+            event.pop(name, None)
+    exclusion_reasons = event.get("exclusion_reasons")
+    if exclusion_reasons is None:
+        event.pop("exclusion_reasons", None)
+    else:
+        event["exclusion_reasons"] = list(exclusion_reasons)
     return {key: value for key, value in event.items() if value is not None}
 
 
@@ -121,6 +131,25 @@ def _write_partition(
     )
 
 
+def _move_single_partition_to_base(
+    base: Path,
+    partition: DatasetPartitionManifest,
+) -> DatasetPartitionManifest:
+    source = Path(partition.path)
+    if source == base:
+        return partition
+    base.parent.mkdir(parents=True, exist_ok=True)
+    source.replace(base)
+    return DatasetPartitionManifest(
+        partition_id=partition.partition_id,
+        index=partition.index,
+        path=base.as_posix(),
+        event_count=partition.event_count,
+        sha256=partition.sha256,
+        partition_values=partition.partition_values,
+    )
+
+
 def write_parquet_events(
     path: str | Path,
     dataset_id: str,
@@ -164,6 +193,9 @@ def write_parquet_events(
                 1 if not partitions else None,
             )
         )
+
+    if len(partitions) == 1:
+        partitions[0] = _move_single_partition_to_base(base, partitions[0])
 
     return DatasetManifest(
         dataset_id=dataset_id,
