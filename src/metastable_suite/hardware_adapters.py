@@ -1,9 +1,16 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any, Mapping
 
-from .hardware import CommandBackend
-from .transports import JsonCommandTransport, SerialTransport, TCPTransport, VisaTransport
+from .hardware import CommandBackend, TrialRequest, TrialResponse
+from .transports import (
+    JsonCommandTransport,
+    SerialTransport,
+    TCPTransport,
+    TransportError,
+    VisaTransport,
+)
 
 
 class TransportCommandBackend(CommandBackend):
@@ -25,6 +32,21 @@ class TransportCommandBackend(CommandBackend):
 
     def _exchange(self, command: str, payload: Mapping[str, Any]) -> Mapping[str, Any]:
         return self.transport.exchange(command, payload)
+
+    def execute_trial(self, request: TrialRequest) -> TrialResponse:
+        try:
+            return super().execute_trial(request)
+        except TransportError as exc:
+            return TrialResponse(
+                timestamp_utc=datetime.now(timezone.utc).isoformat(),
+                outcome={"transport_error": exc.__class__.__name__},
+                diagnostics={
+                    "transport_error_type": exc.__class__.__name__,
+                    "transport_error_message": str(exc),
+                },
+                valid=False,
+                exclusion_reasons=("transport_failure",),
+            )
 
     def close(self) -> None:
         try:
