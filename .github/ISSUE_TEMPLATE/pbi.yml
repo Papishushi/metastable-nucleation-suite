@@ -1,0 +1,51 @@
+name: Product backlog item
+about: Define a traceable unit of scientific, software, hardware or documentation work
+title: "[PBI] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A PBI should describe an outcome that can be verified. Keep implementation details separate from acceptance criteria where possible.
+  - type: textarea
+    id: objective
+    attributes:
+      label: Objective
+      description: What observable outcome should this work deliver?
+      placeholder: The system should...
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context and problem
+      description: Explain the scientific, operational or technical reason for the work.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Use a checklist of testable conditions.
+      placeholder: |
+        - [ ] Condition one
+        - [ ] Condition two
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation strategy
+      description: Tests, controls, datasets, SHACL shapes, benchmarks or review evidence required.
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies and related work
+      description: Link the parent epic, blocking PBIs, experiments or PRs.
+      placeholder: "Parent epic: #N"
+  - type: textarea
+    id: out_of_scope
+    attributes:
+      label: Out of scope
+      description: State what this PBI deliberately does not include.
