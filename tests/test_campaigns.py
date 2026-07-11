@@ -131,7 +131,7 @@ def test_cycle_is_rejected_before_any_backend_is_created(tmp_path):
         execute_campaign(graph, CAMPAIGN, tmp_path, event_schema(), registry(activations))
 
     assert activations == []
-    assert not tmp_path.exists()
+    assert not any(tmp_path.iterdir())
 
 
 def test_continue_on_error_invalidates_dependents_and_runs_independent_work(tmp_path):
