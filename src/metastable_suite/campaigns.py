@@ -232,16 +232,51 @@ def _valid_completed_artifact(output: Path, request: ExecutionRequest) -> bool:
         document = json.loads(abox.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return False
-    datasets = [
-        node
-        for node in document.get("@graph", [])
-        if node.get("@type") == "mns:Dataset"
-        or "mns:Dataset" in node.get("@type", [])
-    ]
+    datasets = []
+    for node in document.get("@graph", []):
+        if not isinstance(node, dict):
+            continue
+        node_types = node.get("@type", [])
+        if node_types == "mns:Dataset" or (
+            isinstance(node_types, list) and "mns:Dataset" in node_types
+        ):
+            datasets.append(node)
     return bool(datasets) and datasets[0].get("mns:sha256") == sha256_file(events)
 
 
 def _campaign_abox(plan: CampaignPlan, state: Mapping[str, Any]) -> dict[str, Any]:
+    summaries = []
+    nodes: list[dict[str, Any]] = []
+    for run in plan.order:
+        request = plan.runs[run]
+        record = state["runs"][str(run)]
+        summary_iri = f"{plan.campaign_iri}/summary/{request.run_id}"
+        summaries.append({"@id": summary_iri})
+        node: dict[str, Any] = {
+            "@id": summary_iri,
+            "@type": "mns:CampaignRunSummary",
+            "mns:identifier": request.run_id,
+            "mns:summarizesExecution": {"@id": str(run)},
+            "mns:summarizedExecutionStatus": {"@id": f"mns:{record['status']}"},
+            "mns:executionAttemptCount": {
+                "@value": record["attempts"],
+                "@type": "xsd:nonNegativeInteger",
+            },
+        }
+        if plan.dependencies[run]:
+            node["mns:summarizesDependency"] = [
+                {"@id": str(dependency)} for dependency in plan.dependencies[run]
+            ]
+        if record.get("abox_file"):
+            node["mns:executionArtifactPath"] = record["abox_file"]
+        if record.get("events_file"):
+            node["mns:eventArtifactPath"] = record["events_file"]
+        if record.get("sha256"):
+            node["mns:artifactSha256"] = record["sha256"]
+        if record.get("error"):
+            node["mns:failureMessage"] = record["error"]["message"]
+        nodes.append(node)
+
     campaign = {
         "@id": str(plan.campaign_iri),
         "@type": ["mns:SuiteRun", "mns:ExperimentalCampaign"],
@@ -250,36 +285,14 @@ def _campaign_abox(plan: CampaignPlan, state: Mapping[str, Any]) -> dict[str, An
         "mns:failurePolicy": state["failure_policy"],
         "mns:campaignStartedAt": {"@value": state["started_at_utc"], "@type": "xsd:dateTime"},
         "mns:campaignEndedAt": {"@value": state["ended_at_utc"], "@type": "xsd:dateTime"},
-        "mns:hasSubExecution": [{"@id": str(run)} for run in plan.order],
+        "mns:hasCampaignRunSummary": summaries,
     }
-    nodes = [campaign]
-    for run in plan.order:
-        request = plan.runs[run]
-        record = state["runs"][str(run)]
-        node: dict[str, Any] = {
-            "@id": str(run),
-            "@type": ["mns:Execution", "mns:SimulationRun"],
-            "mns:identifier": request.run_id,
-            "mns:hasExecutionStatus": {"@id": f"mns:{record['status']}"},
-            "mns:partOfSuiteRun": {"@id": str(plan.campaign_iri)},
-        }
-        if plan.dependencies[run]:
-            node["mns:dependsOnExecution"] = [
-                {"@id": str(dependency)} for dependency in plan.dependencies[run]
-            ]
-        if record.get("abox_file"):
-            node["mns:executionArtifactPath"] = record["abox_file"]
-        if record.get("events_file"):
-            node["mns:eventArtifactPath"] = record["events_file"]
-        if record.get("error"):
-            node["mns:failureMessage"] = record["error"]["message"]
-        nodes.append(node)
     return {
         "@context": {
             "mns": str(MNS),
             "xsd": "http://www.w3.org/2001/XMLSchema#",
         },
-        "@graph": nodes,
+        "@graph": [campaign, *nodes],
     }
 
 
@@ -312,6 +325,7 @@ def execute_campaign(
             record["status"] = "Completed"
             record["abox_file"] = f"{request.run_id}.abox.jsonld"
             record["events_file"] = f"{request.run_id}.events.ndjson"
+            record["sha256"] = sha256_file(output / record["events_file"])
             continue
 
         dependency_statuses = {
