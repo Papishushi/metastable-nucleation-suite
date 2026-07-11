@@ -1,0 +1,85 @@
+@prefix mns: <https://w3id.org/metastable-nucleation-suite/ontology#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+
+mns:SuiteRun a owl:Class ;
+    rdfs:subClassOf mns:Activity ;
+    rdfs:label "Suite run"@en .
+
+mns:ExperimentalCampaign a owl:Class ;
+    rdfs:subClassOf mns:SuiteRun ;
+    rdfs:label "Experimental campaign"@en .
+
+mns:HardwareBackend a owl:Class ;
+    rdfs:subClassOf mns:Agent ;
+    rdfs:label "Hardware backend"@en .
+
+mns:SimulatorBackend a owl:Class ;
+    rdfs:subClassOf mns:HardwareBackend, mns:SoftwareAgent ;
+    rdfs:label "Simulator backend"@en .
+
+mns:ExecutionSummary a owl:Class ;
+    rdfs:subClassOf mns:Result ;
+    rdfs:label "Execution summary"@en .
+
+mns:PowerAnalysis a owl:Class ;
+    rdfs:subClassOf mns:StatisticalResult ;
+    rdfs:label "Power analysis"@en .
+
+mns:hasSubExecution a owl:ObjectProperty ;
+    rdfs:domain mns:SuiteRun ;
+    rdfs:range mns:Execution ;
+    owl:inverseOf mns:partOfSuiteRun .
+
+mns:partOfSuiteRun a owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain mns:Execution ;
+    rdfs:range mns:SuiteRun ;
+    rdfs:subPropertyOf prov:wasInformedBy .
+
+mns:dependsOnExecution a owl:ObjectProperty ;
+    rdfs:domain mns:Execution ;
+    rdfs:range mns:Execution ;
+    rdfs:subPropertyOf prov:wasInformedBy .
+
+mns:usesBackend a owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain mns:Execution ;
+    rdfs:range mns:HardwareBackend ;
+    rdfs:subPropertyOf prov:wasAssociatedWith .
+
+mns:supportsSpecification a owl:ObjectProperty ;
+    rdfs:domain mns:HardwareBackend ;
+    rdfs:range mns:ExperimentSpecification .
+
+mns:datasetPath a owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain mns:Dataset ;
+    rdfs:range xsd:string .
+
+mns:mediaType a owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain mns:Dataset ;
+    rdfs:range xsd:string .
+
+mns:schemaVersion a owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain mns:Dataset ;
+    rdfs:range xsd:string .
+
+mns:eventCount a owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain mns:Dataset ;
+    rdfs:range xsd:nonNegativeInteger .
+
+mns:sha256 a owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain mns:Dataset ;
+    rdfs:range xsd:string .
+
+mns:targetPower a owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain mns:PowerAnalysis ;
+    rdfs:range xsd:double .
+
+mns:estimatedPower a owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain mns:PowerAnalysis ;
+    rdfs:range xsd:double .
+
+mns:monteCarloRepetitions a owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain mns:PowerAnalysis ;
+    rdfs:range xsd:positiveInteger .
