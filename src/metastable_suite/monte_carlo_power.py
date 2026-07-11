@@ -164,6 +164,35 @@ def chsh_power(
     )
 
 
+def inject_no_signalling_delta(
+    x: np.ndarray,
+    y: np.ndarray,
+    a: np.ndarray,
+    delta: float,
+    rng: np.random.Generator,
+) -> np.ndarray:
+    """Inject an expected A_x0 marginal difference equal to ``delta``.
+
+    The two remote-setting arms are shifted symmetrically around an unbiased
+    marginal: P(a=+1|x=0,y=0)=0.5+delta/2 and
+    P(a=+1|x=0,y=1)=0.5-delta/2.
+    """
+    if x.shape != y.shape or x.shape != a.shape:
+        raise ValueError("x, y and a must have the same shape")
+    if not -1 < delta < 1 or delta == 0:
+        raise ValueError("delta must be non-zero and lie in (-1, 1)")
+
+    modified = a.copy()
+    targets = {0: 0.5 + delta / 2.0, 1: 0.5 - delta / 2.0}
+    for remote_setting, probability in targets.items():
+        mask = (x == 0) & (y == remote_setting)
+        count = int(mask.sum())
+        if count == 0:
+            raise ValueError("missing x=0 remote-setting arm")
+        modified[mask] = np.where(rng.random(count) < probability, 1, -1)
+    return modified
+
+
 def no_signalling_power(
     sample_size: int,
     delta: float,
@@ -181,13 +210,7 @@ def no_signalling_power(
 
     def trial(rng: np.random.Generator) -> bool:
         x, y, a, b = simulate_quantum_chsh(sample_size, visibility=0.98, rng=rng)
-        affected = (x == 0) & (y == 1)
-        flip_probability = min(abs(delta), 1.0)
-        flips = affected & (rng.random(sample_size) < flip_probability)
-        if delta > 0:
-            a[flips] = 1
-        else:
-            a[flips] = -1
+        a = inject_no_signalling_delta(x, y, a, delta, rng)
         deltas = no_signalling_deltas(x, y, a, b)
         observed = abs(deltas["A_x0"])
         n0 = max(int(((x == 0) & (y == 0)).sum()), 1)
