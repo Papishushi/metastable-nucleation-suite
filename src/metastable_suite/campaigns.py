@@ -7,11 +7,11 @@ import hashlib
 import heapq
 import json
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping
 
 from rdflib import Graph, RDF, URIRef
 
-from .datasets import sha256_file
+from .datasets import read_events, sha256_file
 from .execution import (
     BackendRegistry,
     ExecutionRequest,
@@ -22,6 +22,9 @@ from .execution import (
     safe_output_path,
     validate_run_id,
 )
+
+
+CompletedArtifactValidator = Callable[[Path], bool]
 
 
 class CampaignCycleError(ValueError):
@@ -223,25 +226,128 @@ def _load_state(path: Path, plan: CampaignPlan, policy: FailurePolicy, resume: b
     return state
 
 
-def _valid_completed_artifact(output: Path, request: ExecutionRequest) -> bool:
+def _types(node: Mapping[str, Any]) -> set[str]:
+    value = node.get("@type", [])
+    if isinstance(value, str):
+        return {value}
+    if isinstance(value, list):
+        return {item for item in value if isinstance(item, str)}
+    return set()
+
+
+def _id_reference(value: Any) -> str | None:
+    if isinstance(value, dict):
+        reference = value.get("@id")
+        return reference if isinstance(reference, str) else None
+    return None
+
+
+def _literal_value(value: Any) -> Any:
+    if isinstance(value, dict) and "@value" in value:
+        return value["@value"]
+    return value
+
+
+def _find_unique_node(
+    nodes: list[dict[str, Any]],
+    predicate: Callable[[dict[str, Any]], bool],
+) -> dict[str, Any] | None:
+    matches = [node for node in nodes if predicate(node)]
+    return matches[0] if len(matches) == 1 else None
+
+
+def _valid_completed_artifact(
+    output: Path,
+    run_iri: URIRef,
+    request: ExecutionRequest,
+    artifact_validator: CompletedArtifactValidator | None = None,
+) -> bool:
     abox = safe_output_path(output, f"{request.run_id}.abox.jsonld")
     events = safe_output_path(output, f"{request.run_id}.events.ndjson")
     if not abox.exists() or not events.exists():
         return False
+    if artifact_validator is not None:
+        try:
+            if not artifact_validator(abox):
+                return False
+        except Exception:
+            return False
+
     try:
         document = json.loads(abox.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
+        event_hash = sha256_file(events)
+        event_count = sum(1 for _ in read_events(events))
+    except (OSError, ValueError, json.JSONDecodeError):
         return False
-    datasets = []
-    for node in document.get("@graph", []):
-        if not isinstance(node, dict):
-            continue
-        node_types = node.get("@type", [])
-        if node_types == "mns:Dataset" or (
-            isinstance(node_types, list) and "mns:Dataset" in node_types
-        ):
-            datasets.append(node)
-    return bool(datasets) and datasets[0].get("mns:sha256") == sha256_file(events)
+    if not isinstance(document, dict) or not isinstance(document.get("@graph"), list):
+        return False
+    nodes = [node for node in document["@graph"] if isinstance(node, dict)]
+
+    run_node = _find_unique_node(
+        nodes,
+        lambda node: "mns:Execution" in _types(node)
+        and node.get("mns:identifier") == request.run_id,
+    )
+    if run_node is None:
+        return False
+    run_node_id = run_node.get("@id")
+    if not isinstance(run_node_id, str):
+        return False
+    expected_run_ids = {
+        str(run_iri),
+        f"https://w3id.org/metastable-nucleation-suite/resource/run/{request.run_id}",
+    }
+    if run_node_id not in expected_run_ids:
+        return False
+    if _id_reference(run_node.get("mns:hasExecutionStatus")) not in {
+        "mns:Completed",
+        str(MNS.Completed),
+    }:
+        return False
+
+    specification_id = _id_reference(run_node.get("mns:executesSpecification"))
+    backend_id = _id_reference(run_node.get("mns:usesBackend"))
+    dataset_id = _id_reference(run_node.get("mns:usesDataset"))
+    result_id = _id_reference(run_node.get("mns:hasResult"))
+    if not all((specification_id, backend_id, dataset_id, result_id)):
+        return False
+
+    specification = _find_unique_node(
+        nodes,
+        lambda node: node.get("@id") == specification_id
+        and "mns:ExperimentSpecification" in _types(node)
+        and node.get("mns:identifier") == request.specification_id,
+    )
+    backend = _find_unique_node(
+        nodes,
+        lambda node: node.get("@id") == backend_id
+        and "mns:Agent" in _types(node)
+        and node.get("mns:identifier") == request.backend_id,
+    )
+    dataset = _find_unique_node(
+        nodes,
+        lambda node: node.get("@id") == dataset_id and "mns:Dataset" in _types(node),
+    )
+    result = _find_unique_node(
+        nodes,
+        lambda node: node.get("@id") == result_id
+        and "mns:Result" in _types(node)
+        and _id_reference(node.get("mns:derivedFromExecution")) == run_node_id,
+    )
+    if None in (specification, backend, dataset, result):
+        return False
+    assert dataset is not None
+
+    if dataset.get("mns:sha256") != event_hash:
+        return False
+    if dataset.get("mns:mediaType") != "application/x-ndjson":
+        return False
+    if _literal_value(dataset.get("mns:eventCount")) != event_count:
+        return False
+    dataset_path = dataset.get("mns:datasetPath")
+    if not isinstance(dataset_path, str) or Path(dataset_path).resolve() != events.resolve():
+        return False
+    return True
 
 
 def _campaign_abox(plan: CampaignPlan, state: Mapping[str, Any]) -> dict[str, Any]:
@@ -304,6 +410,7 @@ def execute_campaign(
     registry: BackendRegistry | None = None,
     failure_policy: FailurePolicy | str | None = None,
     resume: bool = True,
+    artifact_validator: CompletedArtifactValidator | None = None,
 ) -> CampaignResult:
     plan = campaign_plan_from_graph(graph, campaign_iri)
     policy = FailurePolicy.parse(failure_policy or plan.configured_policy)
@@ -317,15 +424,23 @@ def execute_campaign(
     for run in plan.order:
         record = state["runs"][str(run)]
         request = plan.runs[run]
+        artifact_is_valid = _valid_completed_artifact(
+            output,
+            run,
+            request,
+            artifact_validator,
+        )
         if record["status"] == "Completed":
-            if not _valid_completed_artifact(output, request):
+            if not artifact_is_valid:
                 raise CampaignStateError(f"completed artifacts are missing or corrupt for {request.run_id}")
             continue
-        if resume and _valid_completed_artifact(output, request):
+        if resume and artifact_is_valid:
             record["status"] = "Completed"
             record["abox_file"] = f"{request.run_id}.abox.jsonld"
             record["events_file"] = f"{request.run_id}.events.ndjson"
             record["sha256"] = sha256_file(output / record["events_file"])
+            record["ended_at_utc"] = record.get("ended_at_utc") or _now()
+            _write_json(state_path, state)
             continue
 
         dependency_statuses = {
@@ -354,6 +469,15 @@ def execute_campaign(
         try:
             result = execute_request(request, output, schema, registry)
             _write_json(run_abox_path, result_to_abox(result))
+            if not _valid_completed_artifact(
+                output,
+                run,
+                request,
+                artifact_validator,
+            ):
+                raise CampaignStateError(
+                    f"generated completed artifacts failed validation for {request.run_id}"
+                )
             record["status"] = "Completed"
             record["ended_at_utc"] = _now()
             record["abox_file"] = run_abox_path.name
