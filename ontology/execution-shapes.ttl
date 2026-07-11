@@ -55,8 +55,28 @@ mns:EventDatasetShape
 mns:SuiteRunShape
     a sh:NodeShape ;
     sh:targetClass mns:SuiteRun ;
+    sh:property [ sh:path mns:identifier ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:pattern "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$" ] ;
+    sh:property [ sh:path mns:failurePolicy ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:in ("fail-fast" "continue-on-error") ] ;
+    sh:or (
+        [ sh:property [ sh:path mns:hasSubExecution ; sh:minCount 1 ; sh:class mns:Execution ] ]
+        [ sh:property [ sh:path mns:hasCampaignRunSummary ; sh:minCount 1 ; sh:class mns:CampaignRunSummary ] ;
+          sh:property [ sh:path mns:hasCampaignStatus ; sh:minCount 1 ; sh:maxCount 1 ; sh:class mns:CampaignStatus ] ;
+          sh:property [ sh:path mns:campaignStartedAt ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:dateTime ] ;
+          sh:property [ sh:path mns:campaignEndedAt ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:dateTime ] ]
+    ) .
+
+mns:CampaignRunSummaryShape
+    a sh:NodeShape ;
+    sh:targetClass mns:CampaignRunSummary ;
     sh:property [ sh:path mns:identifier ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
-    sh:property [ sh:path mns:hasSubExecution ; sh:minCount 1 ; sh:class mns:Execution ] .
+    sh:property [ sh:path mns:summarizesExecution ; sh:minCount 1 ; sh:maxCount 1 ; sh:nodeKind sh:IRI ] ;
+    sh:property [ sh:path mns:summarizesDependency ; sh:nodeKind sh:IRI ] ;
+    sh:property [ sh:path mns:summarizedExecutionStatus ; sh:minCount 1 ; sh:maxCount 1 ; sh:class mns:ExecutionStatus ] ;
+    sh:property [ sh:path mns:executionAttemptCount ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:nonNegativeInteger ] ;
+    sh:property [ sh:path mns:executionArtifactPath ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path mns:eventArtifactPath ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path mns:artifactSha256 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:pattern "^[0-9a-f]{64}$" ] ;
+    sh:property [ sh:path mns:failureMessage ; sh:maxCount 1 ; sh:datatype xsd:string ] .
 
 mns:PowerAnalysisShape
     a sh:NodeShape ;

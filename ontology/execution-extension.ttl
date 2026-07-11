@@ -12,6 +12,17 @@ mns:ExperimentalCampaign a owl:Class ;
     rdfs:subClassOf mns:SuiteRun ;
     rdfs:label "Experimental campaign"@en .
 
+mns:CampaignRunSummary a owl:Class ;
+    rdfs:subClassOf mns:Entity ;
+    rdfs:label "Campaign run summary"@en .
+
+mns:CampaignStatus a owl:Class ;
+    owl:oneOf (mns:Running mns:Completed mns:Failed) .
+
+mns:Running a mns:CampaignStatus .
+mns:Completed a mns:CampaignStatus .
+mns:Failed a mns:CampaignStatus .
+
 mns:HardwareBackend a owl:Class ;
     rdfs:subClassOf mns:Agent ;
     rdfs:label "Hardware backend"@en .
@@ -43,6 +54,24 @@ mns:dependsOnExecution a owl:ObjectProperty ;
     rdfs:range mns:Execution ;
     rdfs:subPropertyOf prov:wasInformedBy .
 
+mns:hasCampaignStatus a owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain mns:SuiteRun ;
+    rdfs:range mns:CampaignStatus .
+
+mns:hasCampaignRunSummary a owl:ObjectProperty ;
+    rdfs:domain mns:SuiteRun ;
+    rdfs:range mns:CampaignRunSummary .
+
+mns:summarizesExecution a owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain mns:CampaignRunSummary .
+
+mns:summarizedExecutionStatus a owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain mns:CampaignRunSummary ;
+    rdfs:range mns:ExecutionStatus .
+
+mns:summarizesDependency a owl:ObjectProperty ;
+    rdfs:domain mns:CampaignRunSummary .
+
 mns:usesBackend a owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:domain mns:Execution ;
     rdfs:range mns:HardwareBackend ;
@@ -70,6 +99,38 @@ mns:eventCount a owl:DatatypeProperty, owl:FunctionalProperty ;
 
 mns:sha256 a owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain mns:Dataset ;
+    rdfs:range xsd:string .
+
+mns:failurePolicy a owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain mns:SuiteRun ;
+    rdfs:range xsd:string .
+
+mns:campaignStartedAt a owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain mns:SuiteRun ;
+    rdfs:range xsd:dateTime .
+
+mns:campaignEndedAt a owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain mns:SuiteRun ;
+    rdfs:range xsd:dateTime .
+
+mns:executionAttemptCount a owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain mns:CampaignRunSummary ;
+    rdfs:range xsd:nonNegativeInteger .
+
+mns:executionArtifactPath a owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain mns:CampaignRunSummary ;
+    rdfs:range xsd:string .
+
+mns:eventArtifactPath a owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain mns:CampaignRunSummary ;
+    rdfs:range xsd:string .
+
+mns:artifactSha256 a owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain mns:CampaignRunSummary ;
+    rdfs:range xsd:string .
+
+mns:failureMessage a owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain mns:CampaignRunSummary ;
     rdfs:range xsd:string .
 
 mns:targetPower a owl:DatatypeProperty, owl:FunctionalProperty ;
