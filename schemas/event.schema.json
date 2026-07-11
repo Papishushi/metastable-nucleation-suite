@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/metastable-nucleation-suite/schema/event.schema.json",
+  "title": "Metastable Nucleation Suite event",
+  "type": "object",
+  "required": [
+    "schema_version", "event_id", "run_id", "specification_id", "trial_index",
+    "timestamp_utc", "backend_id", "outcome", "valid"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "event_id": {"type": "string", "minLength": 1},
+    "run_id": {"type": "string", "minLength": 1},
+    "specification_id": {"type": "string", "pattern": "^E(0[1-9]|1[0-5])$"},
+    "trial_index": {"type": "integer", "minimum": 0},
+    "timestamp_utc": {"type": "string", "format": "date-time"},
+    "backend_id": {"type": "string", "minLength": 1},
+    "settings": {"type": "object", "additionalProperties": {"type": ["string", "number", "integer", "boolean", "null"]}},
+    "outcome": {"type": "object", "minProperties": 1, "additionalProperties": {"type": ["string", "number", "integer", "boolean", "null"]}},
+    "diagnostics": {"type": "object", "additionalProperties": {"type": ["string", "number", "integer", "boolean", "null"]}},
+    "valid": {"type": "boolean"},
+    "exclusion_reasons": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^[a-z0-9_]+$"}
+    },
+    "clock_uncertainty_ns": {"type": "number", "minimum": 0},
+    "firmware_version": {"type": "string"}
+  },
+  "additionalProperties": false
+}
