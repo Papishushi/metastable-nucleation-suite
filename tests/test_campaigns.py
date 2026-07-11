@@ -1,17 +1,31 @@
 import json
 from datetime import datetime, timezone
+from pathlib import Path
 
 import pytest
 from rdflib import Graph, URIRef
 
-from metastable_suite.campaigns import CampaignCycleError, execute_campaign
+from metastable_suite.campaigns import (
+    CampaignCycleError,
+    CampaignStateError,
+    execute_campaign,
+)
 from metastable_suite.execution import BackendRegistry
 from metastable_suite.hardware import ExperimentalBackend, TrialResponse
 from metastable_suite.semantic import load_abox, load_tbox, validate_abox
-from scripts.semantic_execute import ABOX_SCHEMA, EVENT_SCHEMA, SHAPES, TBOX
+from scripts.semantic_execute import (
+    ABOX_SCHEMA,
+    EVENT_SCHEMA,
+    SHAPES,
+    TBOX,
+    main,
+)
 
 RESOURCE = "https://w3id.org/metastable-nucleation-suite/resource/"
 CAMPAIGN = URIRef(RESOURCE + "campaign/test-campaign")
+ROOT = Path(__file__).resolve().parents[1]
+CAMPAIGN_PLAN = ROOT / "ontology" / "examples" / "planned-campaign.jsonld"
+BASELINE_RUN = RESOURCE + "run/e09-baseline"
 
 
 def campaign_graph(run_ids, dependencies=None, policy="fail-fast"):
@@ -112,11 +126,26 @@ def event_schema():
     return json.loads(EVENT_SCHEMA.read_text(encoding="utf-8"))
 
 
+def semantic_artifact_validator(path):
+    try:
+        completed = load_abox(path, ABOX_SCHEMA)
+        return validate_abox(completed, SHAPES, load_tbox(TBOX)).conforms
+    except Exception:
+        return False
+
+
 def test_campaign_executes_dependencies_in_topological_order(tmp_path):
     graph = campaign_graph(["second", "first"], {"second": ["first"]})
     activations = []
 
-    result = execute_campaign(graph, CAMPAIGN, tmp_path, event_schema(), registry(activations))
+    result = execute_campaign(
+        graph,
+        CAMPAIGN,
+        tmp_path,
+        event_schema(),
+        registry(activations),
+        artifact_validator=semantic_artifact_validator,
+    )
 
     assert activations == ["first", "second"]
     assert result.status == "Completed"
@@ -148,6 +177,7 @@ def test_continue_on_error_invalidates_dependents_and_runs_independent_work(tmp_
         tmp_path,
         event_schema(),
         registry(activations, failures={"a"}),
+        artifact_validator=semantic_artifact_validator,
     )
 
     assert activations == ["a", "c"]
@@ -167,6 +197,7 @@ def test_resume_does_not_repeat_completed_runs(tmp_path):
         tmp_path,
         event_schema(),
         registry(first_activations, failures={"b"}),
+        artifact_validator=semantic_artifact_validator,
     )
     assert first.status == "Failed"
     assert first_activations == ["a", "b"]
@@ -178,6 +209,7 @@ def test_resume_does_not_repeat_completed_runs(tmp_path):
         tmp_path,
         event_schema(),
         registry(resumed_activations),
+        artifact_validator=semantic_artifact_validator,
     )
 
     assert resumed.status == "Completed"
@@ -187,11 +219,84 @@ def test_resume_does_not_repeat_completed_runs(tmp_path):
     assert state["runs"][RESOURCE + "run/b"]["attempts"] == 2
 
 
+def test_resume_rejects_semantically_corrupt_completed_abox(tmp_path):
+    graph = campaign_graph(["a", "b"], {"b": ["a"]})
+    execute_campaign(
+        graph,
+        CAMPAIGN,
+        tmp_path,
+        event_schema(),
+        registry([], failures={"b"}),
+        artifact_validator=semantic_artifact_validator,
+    )
+
+    abox_path = tmp_path / "a.abox.jsonld"
+    document = json.loads(abox_path.read_text(encoding="utf-8"))
+    run_node = next(
+        node
+        for node in document["@graph"]
+        if "mns:Execution" in node.get("@type", [])
+    )
+    run_node.pop("mns:hasResult")
+    abox_path.write_text(json.dumps(document), encoding="utf-8")
+
+    resumed_activations = []
+    with pytest.raises(CampaignStateError, match="missing or corrupt"):
+        execute_campaign(
+            graph,
+            CAMPAIGN,
+            tmp_path,
+            event_schema(),
+            registry(resumed_activations),
+            artifact_validator=semantic_artifact_validator,
+        )
+
+    assert resumed_activations == []
+
+
 def test_campaign_result_abox_is_shacl_valid(tmp_path):
     graph = campaign_graph(["a", "b"], {"b": ["a"]})
-    result = execute_campaign(graph, CAMPAIGN, tmp_path, event_schema(), registry([]))
+    result = execute_campaign(
+        graph,
+        CAMPAIGN,
+        tmp_path,
+        event_schema(),
+        registry([]),
+        artifact_validator=semantic_artifact_validator,
+    )
 
     completed = load_abox(result.abox_path, ABOX_SCHEMA)
     validation = validate_abox(completed, SHAPES, load_tbox(TBOX))
 
     assert validation.conforms, validation.report_text
+
+
+def test_run_iri_takes_precedence_when_plan_contains_campaign(tmp_path):
+    exit_code = main(
+        [
+            CAMPAIGN_PLAN.as_posix(),
+            tmp_path.as_posix(),
+            "--run-iri",
+            BASELINE_RUN,
+        ]
+    )
+
+    assert exit_code == 0
+    assert (tmp_path / "e09-baseline.abox.jsonld").exists()
+    assert (tmp_path / "e09-baseline.events.ndjson").exists()
+    assert not (tmp_path / "e09-confirmation.abox.jsonld").exists()
+    assert not (tmp_path / "e09-sequence.campaign-state.json").exists()
+
+
+def test_run_iri_rejects_campaign_only_options(tmp_path):
+    with pytest.raises(SystemExit):
+        main(
+            [
+                CAMPAIGN_PLAN.as_posix(),
+                tmp_path.as_posix(),
+                "--run-iri",
+                BASELINE_RUN,
+                "--failure-policy",
+                "fail-fast",
+            ]
+        )
