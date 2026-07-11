@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+import pytest
+
 from metastable_suite.datasets import read_events, sha256_file
 from metastable_suite.execution import request_from_graph
 from metastable_suite.semantic import MNS, load_abox, load_tbox, validate_abox
@@ -43,3 +45,18 @@ def test_semantic_plan_round_trip_creates_valid_abox_and_hashed_events(tmp_path)
     graph = load_abox(abox_path, ABOX_SCHEMA)
     outcome = validate_abox(graph, SHAPES, load_tbox(TBOX))
     assert outcome.conforms, outcome.report_text
+
+
+def test_path_traversal_run_identifier_is_rejected_before_writing(tmp_path):
+    document = json.loads(PLAN.read_text(encoding="utf-8"))
+    run = next(node for node in document["@graph"] if "mns:SimulationRun" in node.get("@type", []))
+    run["mns:identifier"] = "../outside/run"
+    malicious_plan = tmp_path / "malicious-plan.jsonld"
+    malicious_plan.write_text(json.dumps(document), encoding="utf-8")
+    output_dir = tmp_path / "output"
+
+    with pytest.raises(ValueError):
+        execute_plan(malicious_plan, output_dir)
+
+    assert not (tmp_path / "outside").exists()
+    assert not output_dir.exists() or not any(output_dir.rglob("*"))
