@@ -69,7 +69,8 @@ mns:CampaignRunSummaryShape
     a sh:NodeShape ;
     sh:targetClass mns:CampaignRunSummary ;
     sh:property [ sh:path mns:identifier ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
-    sh:property [ sh:path mns:summarizesExecution ; sh:minCount 1 ; sh:maxCount 1 ; sh:class mns:Execution ] ;
+    sh:property [ sh:path mns:summarizesExecution ; sh:minCount 1 ; sh:maxCount 1 ; sh:nodeKind sh:IRI ] ;
+    sh:property [ sh:path mns:summarizesDependency ; sh:nodeKind sh:IRI ] ;
     sh:property [ sh:path mns:summarizedExecutionStatus ; sh:minCount 1 ; sh:maxCount 1 ; sh:class mns:ExecutionStatus ] ;
     sh:property [ sh:path mns:executionAttemptCount ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:nonNegativeInteger ] ;
     sh:property [ sh:path mns:executionArtifactPath ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
