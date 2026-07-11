@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import math
+from statistics import NormalDist
 from typing import Callable, Mapping
 
 import numpy as np
@@ -17,6 +18,8 @@ class PowerEstimate:
     rejection_count: int
     power: float
     standard_error: float
+    confidence_level: float
+    confidence_interval: tuple[float, float]
     parameters: Mapping[str, float | int | bool]
 
     def as_dict(self) -> dict[str, object]:
@@ -27,8 +30,25 @@ class PowerEstimate:
             "rejection_count": self.rejection_count,
             "power": self.power,
             "standard_error": self.standard_error,
+            "confidence_level": self.confidence_level,
+            "confidence_interval": list(self.confidence_interval),
             "parameters": dict(self.parameters),
         }
+
+
+def wilson_interval(successes: int, trials: int, confidence_level: float = 0.95) -> tuple[float, float]:
+    if trials <= 0 or not 0 <= successes <= trials:
+        raise ValueError("successes must lie in [0, trials] and trials must be positive")
+    if not 0 < confidence_level < 1:
+        raise ValueError("confidence_level must lie in (0, 1)")
+    probability = successes / trials
+    z = NormalDist().inv_cdf(0.5 + confidence_level / 2)
+    denominator = 1 + z**2 / trials
+    centre = (probability + z**2 / (2 * trials)) / denominator
+    radius = z * math.sqrt(
+        probability * (1 - probability) / trials + z**2 / (4 * trials**2)
+    ) / denominator
+    return max(0.0, centre - radius), min(1.0, centre + radius)
 
 
 def _estimate(
@@ -38,6 +58,7 @@ def _estimate(
     simulator: Callable[[np.random.Generator], bool],
     seed: int,
     parameters: Mapping[str, float | int | bool],
+    confidence_level: float = 0.95,
 ) -> PowerEstimate:
     if sample_size <= 0 or repetitions <= 0:
         raise ValueError("sample_size and repetitions must be positive")
@@ -45,7 +66,89 @@ def _estimate(
     rejections = sum(bool(simulator(rng)) for _ in range(repetitions))
     power = rejections / repetitions
     standard_error = math.sqrt(power * (1.0 - power) / repetitions)
-    return PowerEstimate(design, sample_size, repetitions, rejections, power, standard_error, parameters)
+    interval = wilson_interval(rejections, repetitions, confidence_level)
+    return PowerEstimate(
+        design,
+        sample_size,
+        repetitions,
+        rejections,
+        power,
+        standard_error,
+        confidence_level,
+        interval,
+        parameters,
+    )
+
+
+def analytical_proportion_power(
+    sample_size_per_group: int,
+    p0: float,
+    p1: float,
+    alpha: float = 0.001,
+) -> float:
+    if sample_size_per_group <= 0:
+        raise ValueError("sample_size_per_group must be positive")
+    if not 0 < p0 < 1 or not 0 < p1 < 1:
+        raise ValueError("p0 and p1 must lie in (0, 1)")
+    if not 0 < alpha < 1:
+        raise ValueError("alpha must lie in (0, 1)")
+    pooled = (p0 + p1) / 2
+    null_se = math.sqrt(2 * pooled * (1 - pooled) / sample_size_per_group)
+    alternative_se = math.sqrt(
+        (p0 * (1 - p0) + p1 * (1 - p1)) / sample_size_per_group
+    )
+    critical = _normal_quantile(1 - alpha / 2) * null_se
+    effect = abs(p1 - p0)
+    return _two_sided_normal_power(effect, alternative_se, critical)
+
+
+def analytical_correlation_power(sample_size: int, rho: float, alpha: float = 0.001) -> float:
+    if sample_size <= 3:
+        raise ValueError("sample_size must exceed 3")
+    if not -1 < rho < 1 or rho == 0:
+        raise ValueError("rho must be non-zero and lie in (-1, 1)")
+    if not 0 < alpha < 1:
+        raise ValueError("alpha must lie in (0, 1)")
+    mean = math.atanh(rho) * math.sqrt(sample_size - 3)
+    critical = _normal_quantile(1 - alpha / 2)
+    return _two_sided_standard_normal_power(mean, critical)
+
+
+def analytical_chsh_power(sample_size: int, visibility: float, alpha: float = 0.001) -> float:
+    if sample_size <= 0:
+        raise ValueError("sample_size must be positive")
+    if not 0 <= visibility <= 1:
+        raise ValueError("visibility must lie in [0, 1]")
+    if not 0 < alpha < 1:
+        raise ValueError("alpha must lie in (0, 1)")
+    correlation = visibility / math.sqrt(2)
+    mean_s = 2 * math.sqrt(2) * visibility
+    standard_error = 4 * math.sqrt(max(1 - correlation**2, 0.0) / sample_size)
+    if standard_error == 0:
+        return float(mean_s > 2)
+    mean_z = (mean_s - 2) / standard_error
+    critical = _normal_quantile(1 - alpha)
+    return _normal_survival(critical - mean_z)
+
+
+def analytical_no_signalling_power(
+    sample_size: int,
+    delta: float,
+    alpha: float = 0.001,
+    multiplicity: int = 4,
+) -> float:
+    if sample_size <= 0:
+        raise ValueError("sample_size must be positive")
+    if not -1 < delta < 1 or delta == 0:
+        raise ValueError("delta must be non-zero and lie in (-1, 1)")
+    if not 0 < alpha < 1:
+        raise ValueError("alpha must lie in (0, 1)")
+    if multiplicity < 1:
+        raise ValueError("multiplicity must be positive")
+    standard_error = math.sqrt(2 / sample_size)
+    mean_z = abs(delta) / standard_error
+    critical = _normal_quantile(1 - alpha / multiplicity / 2)
+    return _two_sided_standard_normal_power(mean_z, critical)
 
 
 def proportion_power(
@@ -171,12 +274,7 @@ def inject_no_signalling_delta(
     delta: float,
     rng: np.random.Generator,
 ) -> np.ndarray:
-    """Inject an expected A_x0 marginal difference equal to ``delta``.
-
-    The two remote-setting arms are shifted symmetrically around an unbiased
-    marginal: P(a=+1|x=0,y=0)=0.5+delta/2 and
-    P(a=+1|x=0,y=1)=0.5-delta/2.
-    """
+    """Inject an expected A_x0 marginal difference equal to ``delta``."""
     if x.shape != y.shape or x.shape != a.shape:
         raise ValueError("x, y and a must have the same shape")
     if not -1 < delta < 1 or delta == 0:
@@ -255,7 +353,25 @@ def search_sample_size(
     return best
 
 
-def _normal_quantile(probability: float) -> float:
-    from statistics import NormalDist
+def _two_sided_normal_power(effect: float, standard_error: float, critical: float) -> float:
+    if standard_error <= 0:
+        return float(effect > critical)
+    mean = effect / standard_error
+    threshold = critical / standard_error
+    return _two_sided_standard_normal_power(mean, threshold)
 
+
+def _two_sided_standard_normal_power(mean: float, critical: float) -> float:
+    return _normal_survival(critical - mean) + _normal_cdf(-critical - mean)
+
+
+def _normal_cdf(value: float) -> float:
+    return NormalDist().cdf(value)
+
+
+def _normal_survival(value: float) -> float:
+    return 1.0 - _normal_cdf(value)
+
+
+def _normal_quantile(probability: float) -> float:
     return NormalDist().inv_cdf(probability)

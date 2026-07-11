@@ -1,4 +1,4 @@
-.PHONY: install test lint validate simulate plan power semantic execute check
+.PHONY: install test lint validate simulate plan power calibrate semantic execute check
 
 install:
 	python -m pip install -e .[dev]
@@ -24,6 +24,9 @@ plan:
 power:
 	python scripts/monte_carlo_power.py --design chsh --sample-size 4000 --visibility 0.95 --alpha 0.05 --repetitions 300 --output artifacts/chsh-power.json
 
+calibrate:
+	python scripts/calibrate_power.py --output artifacts/power-calibration.json
+
 semantic:
 	python scripts/semantic_graph.py from-report artifacts/reference_report.json artifacts/reference_run.jsonld --run-id local-reference
 	python scripts/semantic_graph.py query artifacts/reference_run.jsonld ontology/queries/completed-runs.rq
@@ -31,4 +34,4 @@ semantic:
 execute:
 	python scripts/semantic_execute.py ontology/examples/planned-e09.jsonld artifacts/execution
 
-check: lint validate test plan power simulate semantic execute
+check: lint validate test calibrate plan power simulate semantic execute
