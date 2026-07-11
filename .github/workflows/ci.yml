@@ -27,7 +27,12 @@ jobs:
         run: python scripts/monte_carlo_power.py --design correlation --sample-size 500 --rho 0.15 --alpha 0.05 --repetitions 200 --output artifacts/correlation-power.json
       - name: Execute semantic plan
         run: python scripts/semantic_execute.py ontology/examples/planned-e09.jsonld artifacts/execution
-      - run: pytest -q
+      - name: Run tests
+        shell: bash
+        run: |
+          mkdir -p artifacts
+          set -o pipefail
+          pytest -q | tee artifacts/pytest.txt
       - name: Generate reference report
         run: python scripts/run_suite.py --trials 50000 --seed 7
       - name: Validate reference report
