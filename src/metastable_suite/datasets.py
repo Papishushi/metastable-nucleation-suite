@@ -5,9 +5,14 @@ from datetime import datetime, timezone
 import hashlib
 import json
 from pathlib import Path
+import re
 from typing import Iterable, Iterator, Mapping
 
 from jsonschema import Draft202012Validator, FormatChecker
+
+RFC3339_DATETIME = re.compile(
+    r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$"
+)
 
 
 @dataclass(frozen=True)
@@ -40,6 +45,18 @@ def sha256_file(path: str | Path) -> str:
     return digest.hexdigest()
 
 
+def validate_rfc3339_datetime(value: object, field_name: str = "timestamp_utc") -> None:
+    if not isinstance(value, str) or not RFC3339_DATETIME.fullmatch(value):
+        raise ValueError(f"{field_name}: expected an RFC 3339 date-time with an explicit timezone")
+    normalized = value[:-1] + "+00:00" if value.endswith("Z") else value
+    try:
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError as exc:
+        raise ValueError(f"{field_name}: invalid RFC 3339 date-time {value!r}") from exc
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise ValueError(f"{field_name}: timezone offset is required")
+
+
 class EventDatasetWriter:
     def __init__(
         self,
@@ -68,6 +85,8 @@ class EventDatasetWriter:
         if self._stream is None:
             raise RuntimeError("dataset writer is not open")
         document = dict(event)
+        if "timestamp_utc" in document:
+            validate_rfc3339_datetime(document["timestamp_utc"])
         if self._validator is not None:
             errors = sorted(self._validator.iter_errors(document), key=lambda error: list(error.path))
             if errors:
