@@ -5,8 +5,6 @@ import argparse
 import json
 from pathlib import Path
 
-from rdflib import Graph
-
 from metastable_suite.execution import (
     BackendRegistry,
     execute_request,
@@ -18,15 +16,16 @@ from metastable_suite.execution import (
 from metastable_suite.semantic import load_abox, load_tbox, validate_abox
 
 ROOT = Path(__file__).resolve().parents[1]
-TBOX = ROOT / "ontology" / "tbox.ttl"
-SHAPES = ROOT / "ontology" / "abox-shapes.ttl"
+TBOX = [ROOT / "ontology" / "tbox.ttl", ROOT / "ontology" / "execution-extension.ttl"]
+SHAPES = [ROOT / "ontology" / "abox-shapes.ttl", ROOT / "ontology" / "execution-shapes.ttl"]
 ABOX_SCHEMA = ROOT / "ontology" / "abox.schema.json"
 EVENT_SCHEMA = ROOT / "schemas" / "event.schema.json"
 
 
 def execute_plan(plan_path: Path, output_dir: Path, run_iri: str | None = None) -> list[dict]:
     plan_graph = load_abox(plan_path, ABOX_SCHEMA)
-    outcome = validate_abox(plan_graph, SHAPES, load_tbox(TBOX))
+    ontology = load_tbox(TBOX)
+    outcome = validate_abox(plan_graph, SHAPES, ontology)
     if not outcome.conforms:
         raise ValueError(outcome.report_text)
 
@@ -48,7 +47,7 @@ def execute_plan(plan_path: Path, output_dir: Path, run_iri: str | None = None) 
         target = output_dir / f"{request.run_id}.abox.jsonld"
         target.write_text(json.dumps(document, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
         completed_graph = load_abox(target, ABOX_SCHEMA)
-        completed_validation = validate_abox(completed_graph, SHAPES, load_tbox(TBOX))
+        completed_validation = validate_abox(completed_graph, SHAPES, ontology)
         if not completed_validation.conforms:
             raise RuntimeError(completed_validation.report_text)
         documents.append(document)
