@@ -3,8 +3,8 @@ from pathlib import Path
 
 import pytest
 from jsonschema import Draft202012Validator
-from rdflib import Graph
 from pyshacl import validate
+from rdflib import Graph
 
 from metastable_suite.dataset_semantics import manifest_to_abox
 from metastable_suite.datasets import (
@@ -56,6 +56,49 @@ def test_parquet_round_trip_preserves_schema_values_and_partitions(tmp_path):
     assert [partition.event_count for partition in manifest.partitions] == [2, 2, 1]
     assert manifest.partitions[0].partition_values["run_id"] == "run-1"
     verify_manifest(manifest)
+
+
+def test_ndjson_manifest_uses_direct_file_hash_and_verifies(tmp_path):
+    manifest = write_events(
+        tmp_path / "events.ndjson",
+        "dataset-ndjson",
+        [_event(0), _event(1)],
+        EVENT_SCHEMA,
+    )
+
+    assert manifest.sha256 == manifest.partitions[0].sha256
+    verify_manifest(manifest)
+
+
+def test_parquet_writer_flushes_before_consuming_full_iterator(tmp_path, monkeypatch):
+    from metastable_suite import parquet_storage
+
+    first_partition_written = False
+    original_write_partition = parquet_storage._write_partition
+
+    def tracked_write_partition(*args, **kwargs):
+        nonlocal first_partition_written
+        first_partition_written = True
+        return original_write_partition(*args, **kwargs)
+
+    monkeypatch.setattr(parquet_storage, "_write_partition", tracked_write_partition)
+
+    def events():
+        yield _event(0)
+        yield _event(1)
+        assert first_partition_written
+        yield _event(2)
+
+    manifest = write_events(
+        tmp_path / "events.parquet",
+        "streaming-parquet",
+        events(),
+        EVENT_SCHEMA,
+        storage_format="parquet",
+        partition_size=2,
+    )
+
+    assert [partition.event_count for partition in manifest.partitions] == [2, 1]
 
 
 def test_registry_records_format_schema_partitions_and_hashes(tmp_path):
