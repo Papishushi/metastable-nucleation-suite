@@ -1,0 +1,131 @@
+@prefix mns: <https://w3id.org/metastable-nucleation-suite/ontology#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+
+mns:ExecutionShape
+    a sh:NodeShape ;
+    sh:targetClass mns:Execution ;
+    sh:closed true ;
+    sh:ignoredProperties (rdf:type prov:hadPlan prov:generated prov:wasAssociatedWith) ;
+    sh:property [ sh:path mns:identifier ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1 ] ;
+    sh:property [ sh:path mns:executesSpecification ; sh:minCount 1 ; sh:maxCount 1 ; sh:class mns:ExperimentSpecification ] ;
+    sh:property [ sh:path mns:hasExecutionStatus ; sh:minCount 1 ; sh:maxCount 1 ; sh:class mns:ExecutionStatus ] ;
+    sh:property [ sh:path mns:trialCount ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:positiveInteger ] ;
+    sh:property [ sh:path mns:startedAt ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:dateTime ] ;
+    sh:property [ sh:path mns:endedAt ; sh:maxCount 1 ; sh:datatype xsd:dateTime ] ;
+    sh:property [ sh:path mns:randomSeed ; sh:maxCount 1 ; sh:datatype xsd:nonNegativeInteger ] ;
+    sh:property [ sh:path mns:gitCommit ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:pattern "^[0-9a-f]{7,40}$|^unavailable$" ] ;
+    sh:property [ sh:path mns:softwareVersion ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path mns:wasExecutedBy ; sh:minCount 1 ; sh:class mns:Agent ] ;
+    sh:property [ sh:path mns:hasParameter ; sh:class mns:Parameter ] ;
+    sh:property [ sh:path mns:hasResult ; sh:class mns:Result ] ;
+    sh:property [ sh:path mns:hasTrial ; sh:class mns:Trial ] ;
+    sh:property [ sh:path mns:usesDataset ; sh:class mns:Dataset ] ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "A completed execution must have an endedAt timestamp and at least one result." ;
+        sh:select """
+            PREFIX mns: <https://w3id.org/metastable-nucleation-suite/ontology#>
+            SELECT $this WHERE {
+              { $this mns:hasExecutionStatus mns:Completed . FILTER NOT EXISTS { $this mns:endedAt ?ended } }
+              UNION
+              { $this mns:hasExecutionStatus mns:Completed . FILTER NOT EXISTS { $this mns:hasResult ?result } }
+            }
+        """
+    ] .
+
+mns:SimulationRunShape
+    a sh:NodeShape ;
+    sh:targetClass mns:SimulationRun ;
+    sh:property [ sh:path mns:randomSeed ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:nonNegativeInteger ] .
+
+mns:ExperimentRunShape
+    a sh:NodeShape ;
+    sh:targetClass mns:ExperimentRun ;
+    sh:property [ sh:path mns:randomSeed ; sh:maxCount 0 ] .
+
+mns:TrialShape
+    a sh:NodeShape ;
+    sh:targetClass mns:Trial ;
+    sh:closed true ;
+    sh:ignoredProperties (rdf:type) ;
+    sh:property [ sh:path mns:identifier ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path mns:trialOf ; sh:minCount 1 ; sh:maxCount 1 ; sh:class mns:Execution ] ;
+    sh:property [ sh:path mns:hasObservation ; sh:class mns:Observation ] ;
+    sh:property [ sh:path mns:startedAt ; sh:maxCount 1 ; sh:datatype xsd:dateTime ] ;
+    sh:property [ sh:path mns:endedAt ; sh:maxCount 1 ; sh:datatype xsd:dateTime ] .
+
+mns:ParameterShape
+    a sh:NodeShape ;
+    sh:targetClass mns:Parameter ;
+    sh:closed true ;
+    sh:ignoredProperties (rdf:type) ;
+    sh:property [ sh:path mns:parameterName ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1 ] ;
+    sh:property [ sh:path mns:numericValue ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path mns:stringValue ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:xone (
+        [ sh:property [ sh:path mns:numericValue ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+          sh:property [ sh:path mns:stringValue ; sh:maxCount 0 ] ]
+        [ sh:property [ sh:path mns:stringValue ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+          sh:property [ sh:path mns:numericValue ; sh:maxCount 0 ] ]
+    ) ;
+    sh:property [ sh:path mns:unit ; sh:maxCount 1 ; sh:datatype xsd:string ] .
+
+mns:MeasurementShape
+    a sh:NodeShape ;
+    sh:targetClass mns:Measurement ;
+    sh:closed true ;
+    sh:ignoredProperties (rdf:type) ;
+    sh:property [ sh:path mns:identifier ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path mns:observationOf ; sh:minCount 1 ; sh:maxCount 1 ] ;
+    sh:property [ sh:path mns:measurementValue ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path mns:measurementUnit ; sh:maxCount 1 ; sh:datatype xsd:string ] .
+
+mns:ResultShape
+    a sh:NodeShape ;
+    sh:targetClass mns:Result ;
+    sh:closed true ;
+    sh:ignoredProperties (rdf:type prov:wasGeneratedBy) ;
+    sh:property [ sh:path mns:identifier ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path mns:resultName ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path mns:derivedFromExecution ; sh:minCount 1 ; sh:maxCount 1 ; sh:class mns:Execution ] ;
+    sh:property [ sh:path mns:resultValue ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path mns:resultJson ; sh:maxCount 1 ] ;
+    sh:property [ sh:path mns:conforms ; sh:maxCount 1 ; sh:datatype xsd:boolean ] ;
+    sh:property [ sh:path mns:hasValidationStatus ; sh:maxCount 1 ; sh:class mns:ValidationStatus ] ;
+    sh:property [ sh:path mns:validationReport ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path mns:validatesGraph ; sh:class mns:Dataset ] ;
+    sh:or (
+        [ sh:property [ sh:path mns:resultValue ; sh:minCount 1 ; sh:datatype xsd:double ] ]
+        [ sh:property [ sh:path mns:resultJson ; sh:minCount 1 ] ]
+    ) .
+
+mns:ValidationResultShape
+    a sh:NodeShape ;
+    sh:targetClass mns:ValidationResult ;
+    sh:property [ sh:path mns:conforms ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:boolean ] ;
+    sh:property [ sh:path mns:hasValidationStatus ; sh:minCount 1 ; sh:maxCount 1 ; sh:class mns:ValidationStatus ] ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "conforms=true requires hasValidationStatus mns:Conforms; conforms=false requires mns:Violates." ;
+        sh:select """
+            PREFIX mns: <https://w3id.org/metastable-nucleation-suite/ontology#>
+            SELECT $this WHERE {
+              { $this mns:conforms true . FILTER NOT EXISTS { $this mns:hasValidationStatus mns:Conforms } }
+              UNION
+              { $this mns:conforms false . FILTER NOT EXISTS { $this mns:hasValidationStatus mns:Violates } }
+            }
+        """
+    ] .
+
+mns:AgentShape
+    a sh:NodeShape ;
+    sh:targetClass mns:Agent ;
+    sh:property [ sh:path mns:identifier ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] .
+
+mns:DatasetShape
+    a sh:NodeShape ;
+    sh:targetClass mns:Dataset ;
+    sh:property [ sh:path mns:identifier ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] .
