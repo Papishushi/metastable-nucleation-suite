@@ -38,28 +38,44 @@ def correlation_trials(rho: float, alpha: float, power: float) -> int:
     return math.ceil(((z_alpha + z_beta) / fisher) ** 2 + 3)
 
 
-def chsh_trials(target_s: float, alpha: float, power: float, settings: int = 4) -> int:
+def chsh_trials_per_setting(target_s: float, alpha: float, power: float, settings: int = 4) -> int:
+    if settings < 2:
+        raise ValueError("settings must be at least 2")
     if not 2.0 < target_s <= 2.0 * math.sqrt(2.0):
         raise ValueError("target_s must lie in (2, 2sqrt(2)]")
     z_alpha = z_for_two_sided_alpha(alpha)
     z_beta = z_for_power(power)
     margin = target_s - 2.0
-    conservative_variance_per_setting = 1.0
-    return math.ceil(settings * conservative_variance_per_setting * ((z_alpha + z_beta) / margin) ** 2)
+    # For balanced settings, Var(S) <= settings / n_per_setting.
+    return math.ceil(settings * ((z_alpha + z_beta) / margin) ** 2)
 
 
-def no_signalling_trials(delta: float, alpha: float, power: float) -> int:
+def chsh_trials(target_s: float, alpha: float, power: float, settings: int = 4) -> int:
+    """Return the total balanced trial count across all CHSH setting pairs."""
+    return settings * chsh_trials_per_setting(target_s, alpha, power, settings)
+
+
+def no_signalling_trials_per_arm(delta: float, alpha: float, power: float) -> int:
     if not 0 < abs(delta) < 1:
         raise ValueError("delta must be non-zero and have magnitude below 1")
     z_alpha = z_for_two_sided_alpha(alpha)
     z_beta = z_for_power(power)
-    conservative_variance = 0.5
-    return math.ceil(conservative_variance * ((z_alpha + z_beta) / abs(delta)) ** 2)
+    # For two Bernoulli arms, Var(p0 - p1) <= 0.25/n + 0.25/n = 0.5/n.
+    return math.ceil(0.5 * ((z_alpha + z_beta) / abs(delta)) ** 2)
+
+
+def no_signalling_trials(delta: float, alpha: float, power: float) -> int:
+    """Return the total trial count across two balanced remote-setting arms."""
+    return 2 * no_signalling_trials_per_arm(delta, alpha, power)
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Plan approximate sample sizes for suite experiments")
-    parser.add_argument("--experiment", required=True, choices=["proportion", "correlation", "chsh", "no-signalling"])
+    parser.add_argument(
+        "--experiment",
+        required=True,
+        choices=["proportion", "correlation", "chsh", "no-signalling"],
+    )
     parser.add_argument("--alpha", type=float, default=0.001)
     parser.add_argument("--power", type=float, default=0.90)
     parser.add_argument("--p0", type=float)
@@ -78,19 +94,39 @@ def main() -> int:
             if args.p0 is None or args.p1 is None:
                 parser.error("proportion planning requires --p0 and --p1")
             per_group = proportion_trials(args.p0, args.p1, args.alpha, args.power)
-            result = {"design": "two_proportions", "required_trials_per_group": per_group, "total_trials": 2 * per_group}
+            result = {
+                "design": "two_proportions",
+                "required_trials_per_group": per_group,
+                "required_trials_total": 2 * per_group,
+            }
         elif args.experiment == "correlation":
             if args.rho is None:
                 parser.error("correlation planning requires --rho")
-            result = {"design": "single_correlation", "required_trials": correlation_trials(args.rho, args.alpha, args.power)}
+            result = {
+                "design": "single_correlation",
+                "required_trials_total": correlation_trials(args.rho, args.alpha, args.power),
+            }
         elif args.experiment == "chsh":
             if args.target_s is None:
                 parser.error("CHSH planning requires --target-s")
-            result = {"design": "chsh", "required_trials": chsh_trials(args.target_s, args.alpha, args.power)}
+            settings = 4
+            per_setting = chsh_trials_per_setting(args.target_s, args.alpha, args.power, settings)
+            result = {
+                "design": "balanced_chsh",
+                "setting_pairs": settings,
+                "required_trials_per_setting_pair": per_setting,
+                "required_trials_total": settings * per_setting,
+            }
         else:
             if args.delta is None:
                 parser.error("no-signalling planning requires --delta")
-            result = {"design": "no_signalling", "required_trials": no_signalling_trials(args.delta, args.alpha, args.power)}
+            per_arm = no_signalling_trials_per_arm(args.delta, args.alpha, args.power)
+            result = {
+                "design": "single_marginal_two_remote_settings",
+                "remote_setting_arms": 2,
+                "required_trials_per_arm": per_arm,
+                "required_trials_total": 2 * per_arm,
+            }
     except ValueError as exc:
         print(f"Planning failed: {exc}", file=sys.stderr)
         return 1
