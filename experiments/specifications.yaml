@@ -1,0 +1,243 @@
+version: 1
+suite: metastable-nucleation-suite
+experiments:
+  - id: E01
+    name: baseline_hazard
+    objective: Characterize transition-time and final-state variability before introducing perturbations.
+    hypothesis: Local stochastic dynamics with batch, history and drift effects explain the observations.
+    null_hypothesis: No residual synchronization remains after conditioning on measured local variables.
+    primary_observable: transition_time
+    secondary_observables: [final_state, censoring, autocorrelation, drift]
+    controls:
+      positive: Inject a known temperature or pump-power modulation.
+      negative: Run independent randomized blocks with identical nominal settings.
+    exclusion_rules: [hardware_failure, invalid_reset]
+    stopping_rule: Fixed trial count determined by pilot survival variance.
+    analysis_plan: Hierarchical survival model with blocked temporal validation.
+    expected_result: Stable hazard structure with explainable batch and drift variation.
+    escalation_criteria: Residual synchronized changes predict future held-out blocks.
+    references: [sosso2016nucleation, menon2020preordered]
+  - id: E02
+    name: controlled_seeding
+    objective: Quantify how seed identity and dose alter nucleation rate and state selection.
+    hypothesis: Compatible seeds reduce the effective barrier and produce a dose-response relation.
+    null_hypothesis: Seed-compatible effects are fully explained by material transfer and surface chemistry.
+    primary_observable: hazard_ratio
+    secondary_observables: [state_probability, particle_size, surface_area]
+    controls:
+      positive: Use a characterized compatible seed at a high dose.
+      negative: Use inert particles and preparation blanks.
+    exclusion_rules: [composition_out_of_range, unblinded_classification]
+    stopping_rule: Fixed allocation per logarithmic dose with preregistered power.
+    analysis_plan: Survival and multinomial models with monotonic dose-response contrasts.
+    expected_result: Monotonic or threshold response followed by saturation.
+    escalation_criteria: Replicated effect without detectable material or chemical pathway.
+    references: [bucar2015disappearing, bauer2001ritonavir]
+  - id: E03
+    name: material_contamination_network
+    objective: Determine whether apparent form contagion follows physical transfer routes.
+    hypothesis: Surface, aerosol or consumable transfer explains cross-session propagation.
+    null_hypothesis: Transfer probability follows the measured material-contact graph.
+    primary_observable: state_probability
+    secondary_observables: [surface_load, tracer_signal, transfer_graph]
+    controls:
+      positive: Deliberately transfer a known trace concentration.
+      negative: Exchange sterilized material under blinded allocation.
+    exclusion_rules: [broken_chain_of_custody, tracer_failure]
+    stopping_rule: Fixed number of randomized transfer cycles per route.
+    analysis_plan: Graph-conditioned logistic model with blinded route decoding.
+    expected_result: Cleaning and isolation reduce the effect along physical pathways.
+    escalation_criteria: Third-party replication without route or shared environment.
+    references: [bucar2015disappearing, morissette2003ritonavir]
+  - id: E04
+    name: recover_disappeared_form
+    objective: Search alternative kinetic pathways for a form no longer obtained by the original recipe.
+    hypothesis: The form remains accessible in a restricted process region.
+    null_hypothesis: Non-recovery is limited to the explored parameter domain.
+    primary_observable: phase_identity
+    secondary_observables: [process_region, precursor_identity, transformation_path]
+    controls:
+      positive: Reproduce a known accessible polymorph under a benchmark condition.
+      negative: Analyze blank and reference materials with the same classifier.
+    exclusion_rules: [unresolved_phase_identity, contaminated_reference]
+    stopping_rule: Coverage-based stopping after the preregistered design space is exhausted.
+    analysis_plan: Designed-experiment response surface and phase-map reconstruction.
+    expected_result: Recovery in a specific region or a domain-bounded negative result.
+    escalation_criteria: None; non-recovery never establishes ontological impossibility.
+    references: [morissette2003ritonavir, sosso2016nucleation]
+  - id: E05
+    name: local_multichannel_environment
+    objective: Estimate how much outcome variance is predicted by ordinary local sensors.
+    hypothesis: Local variables and nonlinear interactions explain part of the selection process.
+    null_hypothesis: Residuals are exchangeable after conditioning on local measurements and hierarchy.
+    primary_observable: predictive_log_likelihood
+    secondary_observables: [calibration, residual_correlation, feature_stability]
+    controls:
+      positive: Inject a hidden but logged perturbation into selected blocks.
+      negative: Include shuffled and physically irrelevant sensor channels.
+    exclusion_rules: [clock_desynchronization, calibration_expired]
+    stopping_rule: Fixed train and future holdout blocks.
+    analysis_plan: Regularized hierarchical model with blocked out-of-sample evaluation.
+    expected_result: Lower out-of-sample than in-sample performance with stable local predictors.
+    escalation_criteria: Residual signature survives hardware, site and temporal transfer.
+    references: [sosso2016nucleation, menon2020preordered]
+  - id: E06
+    name: measurement_backaction
+    objective: Measure whether the probe changes transition rate or selected state.
+    hypothesis: Probe power, timing and losses produce local, quantifiable backaction.
+    null_hypothesis: All measurement effects scale with a measurable local coupling channel.
+    primary_observable: hazard_ratio
+    secondary_observables: [state_bias, deposited_energy, loss_change]
+    controls:
+      positive: Apply a probe intensity known to produce heating or injection locking.
+      negative: Detector active with no probe light and delayed readout.
+    exclusion_rules: [probe_monitor_failure, timing_jitter_out_of_spec]
+    stopping_rule: Balanced randomized blocks across probe conditions.
+    analysis_plan: Dose-response model with mediation by energy and loss channels.
+    expected_result: Local dependence on probe strength, detuning or heating.
+    escalation_criteria: Replicated effect without measurable coupling using distinct instruments.
+    references: [schlosshauer2005decoherence, baas2004bistability]
+  - id: E07
+    name: terrestrial_network
+    objective: Search for predictive common structure across independent terrestrial nodes.
+    hypothesis: Shared environmental and operational causes explain raw correlations.
+    null_hypothesis: Cross-node residuals are independent after conditioning and multiplicity control.
+    primary_observable: lagged_correlation
+    secondary_observables: [spectral_coherence, directional_delay, out_of_sample_score]
+    controls:
+      positive: Broadcast a known delayed perturbation to selected nodes.
+      negative: Time-scrambled and geographically mismatched node pairs.
+    exclusion_rules: [clock_uncertainty_exceeded, shared_control_link_active]
+    stopping_rule: Preregistered observation windows and future confirmation period.
+    analysis_plan: Block permutation, latent common-cause models and held-out lag prediction.
+    expected_result: Correlations shrink after conditioning on shared causes.
+    escalation_criteria: Repeated preregistered spacetime pattern with predictive delay geometry.
+    references: [pustelny2013gnome]
+  - id: E08
+    name: earth_orbit_deep_space
+    objective: Test whether a propagating perturbation produces consistent arrival geometry across distant platforms.
+    hypothesis: Platform-specific radiation, thermal and acceleration environments dominate.
+    null_hypothesis: No universal residual remains after platform-specific modeling.
+    primary_observable: arrival_time
+    secondary_observables: [amplitude_geometry, platform_response, propagation_fit]
+    controls:
+      positive: Inject synchronized calibration events with known delays.
+      negative: Analyze impossible directions and time-reversed templates.
+    exclusion_rules: [ephemeris_invalid, timing_solution_out_of_spec]
+    stopping_rule: Mission-window based and conditional on terrestrial replication.
+    analysis_plan: Directional propagation model with preregistered velocity hypotheses.
+    expected_result: Large local differences and no universal residual.
+    escalation_criteria: Recurrent propagation law not attributable to known channels.
+    references: [roberts2017clocks]
+  - id: E09
+    name: independent_optical_bifurcation
+    objective: Validate two resettable binary optical metastate nodes.
+    hypothesis: Local imperfections create bias and memory but no cross-node correlation.
+    null_hypothesis: Conditioned cross-node correlation equals zero within finite-sample uncertainty.
+    primary_observable: binary_metastate
+    secondary_observables: [commit_time, reset_fidelity, state_bias, memory]
+    controls:
+      positive: Introduce a logged common modulation.
+      negative: Independent clocks, lasers and randomized acquisition order.
+    exclusion_rules: [reset_failure, ambiguous_state, detector_saturation]
+    stopping_rule: At least one million cycles after pilot stability criteria are met.
+    analysis_plan: Bias-corrected correlation, memory tests and blocked stationarity analysis.
+    expected_result: Stable local biases with zero residual cross-node correlation.
+    escalation_criteria: Replicated nonzero correlation with independent hardware and clocks.
+    references: [baas2004bistability]
+  - id: E10
+    name: entanglement_amplification
+    objective: Quantify transfer of prepared entanglement into a macroscopic metastable output.
+    hypothesis: Bell visibility survives only if the full amplification chain preserves fidelity.
+    null_hypothesis: Output correlations do not exceed those supported by the characterized input state.
+    primary_observable: input_output_fidelity
+    secondary_observables: [CHSH, visibility, detection_efficiency]
+    controls:
+      positive: Run a calibrated entangled source without the amplifier.
+      negative: Replace the source with matched separable states.
+    exclusion_rules: [source_unheralded, efficiency_below_preregistered_threshold]
+    stopping_rule: Fixed event-ready count derived from target visibility precision.
+    analysis_plan: Compare Bell statistics before and after amplification with propagated uncertainty.
+    expected_result: Reduced but nonzero visibility consistent with channel fidelity.
+    escalation_criteria: Output correlations exceed the calibrated input capability.
+    references: [peyronel2012nonlinear, firstenberg2013attractive]
+  - id: E11
+    name: bell_metastate_readout
+    objective: Use the metastable state itself as the binary output of a Bell test.
+    hypothesis: Prepared entanglement can yield CHSH above two if locality and efficiency requirements are met.
+    null_hypothesis: Separable inputs and local models satisfy the preregistered local bound.
+    primary_observable: CHSH
+    secondary_observables: [detection_efficiency, signalling_tests, commit_time]
+    controls:
+      positive: Calibrated entangled source with known visibility.
+      negative: Separable source and deliberately decorrelated settings.
+    exclusion_rules: [late_commit, invalid_setting, no_detection]
+    stopping_rule: Event-ready count fixed before unblinding.
+    analysis_plan: Memory-robust Bell test plus simultaneous no-signalling intervals.
+    expected_result: Bell violation only for prepared entangled inputs.
+    escalation_criteria: None unless source independence is independently established.
+    references: [brunner2014bell, hensen2015loophole, giustina2015significant, shalm2015strong]
+  - id: E12
+    name: spontaneous_nonlocality
+    objective: Test independent nodes for Bell-incompatible correlations without a common quantum source.
+    hypothesis: The standard prediction is no violation.
+    null_hypothesis: CHSH remains at or below the local bound under a loophole-aware analysis.
+    primary_observable: CHSH
+    secondary_observables: [setting_balance, efficiency_by_setting, memory, coincidence_bias]
+    controls:
+      positive: Inject synthetic entangled-like correlations into a sealed validation dataset.
+      negative: Independent hardware and precommitted event pairing.
+    exclusion_rules: [shared_reference_active, adaptive_pairing, efficiency_threshold_failed]
+    stopping_rule: Fixed preregistered count with no optional stopping.
+    analysis_plan: Martingale or event-ready Bell test with independent code audit.
+    expected_result: No violation after correcting finite-sample and selection effects.
+    escalation_criteria: Loophole-resistant blinded replication on a second physical platform.
+    references: [brunner2014bell, hensen2015loophole]
+  - id: E13
+    name: no_signalling
+    objective: Test whether remote settings alter local marginal distributions.
+    hypothesis: Standard quantum mechanics preserves no-signalling.
+    null_hypothesis: Local marginals are invariant to remote settings within simultaneous uncertainty bounds.
+    primary_observable: local_marginal_difference
+    secondary_observables: [latency, pairing_sensitivity, temporal_strata]
+    controls:
+      positive: Inject a known classical communication channel during calibration.
+      negative: Analyze local marginals before revealing remote settings.
+    exclusion_rules: [remote_data_revealed_early, posthoc_pairing]
+    stopping_rule: Fixed balanced setting blocks with preregistered multiplicity correction.
+    analysis_plan: Simultaneous confidence intervals over all local-setting marginals.
+    expected_result: Marginal differences compatible with zero.
+    escalation_criteria: Blinded replicated dependence robust to pairing and drift analyses.
+    references: [brunner2014bell, giustina2015significant, shalm2015strong]
+  - id: E14
+    name: cross_platform_replication
+    objective: Determine whether a candidate anomaly survives translation across distinct physical systems.
+    hypothesis: Device-specific mechanisms dominate and no universal signature appears.
+    null_hypothesis: Dimensionless effect signatures differ across platforms or vanish under controls.
+    primary_observable: dimensionless_effect_signature
+    secondary_observables: [temporal_scaling, geometry, coupling_dependence]
+    controls:
+      positive: Reproduce a platform-specific injected perturbation.
+      negative: Apply the same analysis to deliberately insensitive platforms.
+    exclusion_rules: [noncomparable_normalization, shared_analysis_leakage]
+    stopping_rule: At least two independent platforms and one external analysis team.
+    analysis_plan: Hierarchical cross-platform model with preregistered invariants.
+    expected_result: Heterogeneous platform-dependent responses.
+    escalation_criteria: Same predictive temporal and geometric signature across distinct couplings.
+    references: [bernien2017rydberg, zhang2023zigzag, tsui2024wigner]
+  - id: E15
+    name: gravitational_quantum_channel
+    objective: Test whether gravity can mediate an entanglement witness between coherent masses.
+    hypothesis: Classical gravity produces force and phase; quantum mediation claims require additional assumptions.
+    null_hypothesis: Any observed witness is attributable to electromagnetic, mechanical or analysis channels.
+    primary_observable: entanglement_witness
+    secondary_observables: [electromagnetic_residual, mechanical_coupling, phase_shift]
+    controls:
+      positive: Inject a calibrated non-gravitational entangling interaction.
+      negative: Use shield and geometry configurations suppressing the gravitational signal model.
+    exclusion_rules: [shielding_out_of_spec, coherence_lost, classical_channel_unbounded]
+    stopping_rule: Technology-readiness gated; no confirmatory run before classical channels are bounded.
+    analysis_plan: Witness estimation with explicit nuisance-channel upper bounds.
+    expected_result: No interpretable witness until extraordinary isolation is achieved.
+    escalation_criteria: Witness survives independent bounds on electromagnetic and classical channels.
+    references: [bose2017gravity, marletto2017gravity]
