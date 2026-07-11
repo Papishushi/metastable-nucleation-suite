@@ -10,4 +10,39 @@ Las afirmaciones experimentales deben apoyarse preferentemente en fuentes primar
 
 Los cambios que afecten a cálculos críticos, emparejamiento de eventos, desigualdades de Bell, no señalización o validación estadística deben incluir datos sintéticos, pruebas automatizadas y una explicación de los supuestos matemáticos. Cuando sea posible, debe añadirse un control positivo que demuestre que el análisis detecta una señal conocida y un control negativo que muestre que no produce efectos espurios.
 
-Antes de abrir un pull request, deben ejecutarse `ruff check .`, `python scripts/validate_catalog.py`, `pytest -q` y la simulación de referencia. La plantilla de pull request solicita la información mínima necesaria para revisar el cambio con rigor.
+## Gestión del trabajo con PBIs
+
+El equivalente a un Product Backlog Item es una GitHub Issue cuyo título comienza por `[PBI]`. Los trabajos amplios se representan mediante una issue `[EPIC]` con enlaces a los PBIs que la componen.
+
+Cada PBI debe contener:
+
+- un objetivo observable;
+- contexto y problema;
+- criterios de aceptación verificables;
+- estrategia de validación;
+- dependencias y épica principal;
+- elementos expresamente fuera de alcance.
+
+La plantilla `.github/ISSUE_TEMPLATE/pbi.yml` proporciona esta estructura. Un PBI debe ser suficientemente pequeño para resolverse mediante un pull request coherente. Cuando una tarea mezcle resultados independientes, debe dividirse antes de empezar la implementación.
+
+Cada pull request debe enlazar el trabajo mediante `Closes #N` y, cuando corresponda, indicar su épica. GitHub cerrará automáticamente el PBI al fusionar el PR. Los comentarios de revisión que descubran trabajo adicional deben convertirse en un PBI cuando no puedan resolverse de forma segura dentro del alcance del PR actual.
+
+No deben cerrarse hilos de revisión únicamente porque la CI esté verde. Primero debe responderse indicando la corrección, añadirse una prueba de regresión y comprobarse la CI sobre el nuevo commit.
+
+## Validación antes de abrir un PR
+
+Antes de abrir o actualizar un pull request debe ejecutarse:
+
+```bash
+make check
+```
+
+Como mínimo, la revisión debe confirmar:
+
+- lint y tests en verde;
+- validación del catálogo y las especificaciones;
+- JSON Schema y SHACL cuando haya cambios semánticos;
+- pruebas de regresión para cálculos críticos;
+- conservación explícita de errores, exclusiones y diagnósticos en integraciones de hardware;
+- documentación actualizada;
+- ausencia de secretos o datos personales no controlados en artifacts y datasets.
