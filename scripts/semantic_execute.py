@@ -12,6 +12,7 @@ from metastable_suite.execution import (
     load_event_schema,
     request_from_graph,
     result_to_abox,
+    safe_output_path,
 )
 from metastable_suite.semantic import load_abox, load_tbox, validate_abox
 
@@ -44,7 +45,7 @@ def execute_plan(plan_path: Path, output_dir: Path, run_iri: str | None = None) 
         request = request_from_graph(plan_graph, run)
         result = execute_request(request, output_dir, event_schema, registry)
         document = result_to_abox(result)
-        target = output_dir / f"{request.run_id}.abox.jsonld"
+        target = safe_output_path(output_dir, f"{request.run_id}.abox.jsonld")
         target.write_text(json.dumps(document, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
         completed_graph = load_abox(target, ABOX_SCHEMA)
         completed_validation = validate_abox(completed_graph, SHAPES, ontology)
