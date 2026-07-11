@@ -28,21 +28,25 @@ El repositorio separa explícitamente tres cosas que suelen mezclarse:
 - `docs/11_contrato_de_datos.md`: formato común de eventos, tiempos, flags y metrología.
 - `docs/12_matriz_de_fallos_y_lagunas.md`: amenazas experimentales, falsos positivos y mitigaciones.
 - `docs/13_ontologia_semantica.md`: arquitectura TBox/ABox, validación SHACL y uso por agentes.
+- `docs/14_motor_ejecucion_hardware_y_potencia.md`: ejecución semántica, adaptadores y potencia Monte Carlo.
 - `references.bib`: bibliografía primaria y revisiones verificables por DOI.
 - `experiments/catalog.yaml`: índice resumido legible por máquina.
 - `experiments/specifications.yaml`: especificaciones ejecutables de E01–E15, con hipótesis nula, controles, exclusiones, parada y análisis.
 - `experiments/specifications.schema.json`: contrato formal de las especificaciones.
 - `ontology/tbox.ttl`: ontología OWL del dominio científico.
-- `ontology/abox-shapes.ttl`: contrato SHACL para ABoxes de simulaciones y experimentos.
+- `ontology/execution-extension.ttl`: campañas, backends, datasets y análisis de potencia.
+- `ontology/abox-shapes.ttl`: contrato SHACL base.
+- `ontology/execution-shapes.ttl`: shapes para planes, ejecuciones, datasets y campañas.
 - `ontology/abox.schema.json`: JSON Schema para documentos ABox en JSON-LD.
 - `ontology/context.jsonld`: contexto JSON-LD reutilizable.
 - `ontology/queries/`: biblioteca de consultas SPARQL para humanos y agentes.
-- `examples/reference-report.json`: salida estadística de referencia.
-- `src/metastable_suite/`: simuladores, benchmarks, mecanismos adversariales y API semántica.
-- `scripts/plan_experiment.py`: planificación aproximada de potencia y tamaño muestral.
-- `scripts/run_suite.py`: ejecución de modelos de referencia con proveniencia reproducible.
-- `scripts/semantic_graph.py`: materialización, validación y consulta de ABoxes.
-- `tests/`: pruebas matemáticas, estadísticas, bibliográficas, adversariales y semánticas.
+- `schemas/event.schema.json`: contrato de datos evento a evento.
+- `src/metastable_suite/hardware.py`: interfaz común de backends físicos y simulados.
+- `src/metastable_suite/execution.py`: motor de ejecución semántico.
+- `src/metastable_suite/monte_carlo_power.py`: potencia empírica mediante simulación.
+- `scripts/semantic_execute.py`: ejecución de ABoxes `Planned`.
+- `scripts/monte_carlo_power.py`: CLI de potencia Monte Carlo.
+- `tests/`: pruebas matemáticas, estadísticas, bibliográficas, adversariales, semánticas y de hardware.
 
 ## Inicio rápido
 
@@ -53,27 +57,29 @@ pip install -e .[dev]
 make check
 ```
 
-La comprobación completa valida el catálogo, las especificaciones de los 15 protocolos, la estructura bibliográfica, la ontología, las ABoxes, los tests, el planificador de potencia y el informe de simulación.
+La comprobación completa valida catálogo, especificaciones, bibliografía, ontología, ABoxes, backends, datasets, potencia y ejecución de referencia.
 
-Para ejecutar únicamente la simulación de referencia:
+### Ejecutar un plan ontológico
+
+```bash
+python scripts/semantic_execute.py \
+  ontology/examples/planned-e09.jsonld \
+  artifacts/execution
+```
+
+El motor valida la ABox `Planned`, materializa la configuración, ejecuta el backend, escribe eventos NDJSON con SHA-256 y genera una ABox `Completed` que vuelve a pasar SHACL.
+
+### Materializar un informe agregado
 
 ```bash
 python scripts/run_suite.py --trials 200000 --seed 7
-python scripts/validate_reference_report.py artifacts/reference_report.json
-```
-
-Para materializar el informe como ABox JSON-LD y validarlo:
-
-```bash
 python scripts/semantic_graph.py from-report \
   artifacts/reference_report.json \
   artifacts/reference_run.jsonld \
   --run-id reference-seed-7
 ```
 
-El materializador divide el informe agregado en ejecuciones semánticas separadas y enlaza cada resultado con la especificación E02, E07, E09, E11, E12 o E13 que realmente lo produjo.
-
-Para consultar las ejecuciones completadas mediante SPARQL:
+### Consultar mediante SPARQL
 
 ```bash
 python scripts/semantic_graph.py query \
@@ -81,15 +87,20 @@ python scripts/semantic_graph.py query \
   ontology/queries/completed-runs.rq
 ```
 
-Para estimar un tamaño muestral aproximado:
+### Potencia analítica y Monte Carlo
 
 ```bash
-python scripts/plan_experiment.py --experiment correlation --rho 0.02 --alpha 0.001 --power 0.90
 python scripts/plan_experiment.py --experiment chsh --target-s 2.4 --alpha 0.001 --power 0.90
-python scripts/plan_experiment.py --experiment no-signalling --delta 0.005 --alpha 0.001 --power 0.90
+python scripts/monte_carlo_power.py \
+  --design chsh \
+  --sample-size 10000 \
+  --visibility 0.95 \
+  --loss-by-setting 0.10 \
+  --alpha 0.001 \
+  --repetitions 2000
 ```
 
-Estas estimaciones utilizan aproximaciones normales conservadoras. Sirven para diseñar pilotos y comparar órdenes de magnitud, no sustituyen una simulación Monte Carlo específica del dispositivo, sus pérdidas, su memoria y su regla de parada.
+La aproximación analítica sirve para órdenes de magnitud. Monte Carlo permite introducir memoria, pérdida dependiente del ajuste, multiplicidad y parámetros específicos del dispositivo.
 
 ## Qué comprueba el software
 
@@ -97,7 +108,7 @@ El simulador no pretende modelar un dispositivo concreto con precisión microsc�
 
 La suite adversarial añade mecanismos que pueden fabricar descubrimientos aparentes: deriva compartida, modulación de reloj, memoria entre ensayos y pérdidas dependientes del ajuste. Los tests deben demostrar que esos mecanismos son detectables y que los controles reducen la señal espuria.
 
-Los informes generados incluyen commit de Git, versión de Python, NumPy, algoritmo del generador pseudoaleatorio, plataforma, semilla y versiones del catálogo y de las especificaciones. La capa semántica convierte esos informes en grafos RDF con procedencia PROV-O, validación JSON Schema y SHACL, inferencia RDFS controlada y consultas SPARQL reutilizables.
+Los backends físicos y simulados comparten el mismo ciclo de vida. Los fallos no se descartan silenciosamente: se conservan como ensayos inválidos con motivos de exclusión auditables. RDF representa significado y procedencia; NDJSON conserva el volumen de eventos; el manifiesto enlaza ambos mediante hash criptográfico.
 
 ## Principio de diseño
 
@@ -116,7 +127,7 @@ No se salta al último peldaño porque una correlación misteriosa casi siempre 
 
 ## Estado del proyecto
 
-Diseño conceptual y software de referencia. **No afirma que exista no localidad espontánea en la nucleación.** Define cómo intentar refutar primero las explicaciones ordinarias y qué observación sería realmente extraordinaria.
+Diseño conceptual, software de referencia y motor de ejecución semántico. **No afirma que exista no localidad espontánea en la nucleación.** Define cómo intentar refutar primero las explicaciones ordinarias y qué observación sería realmente extraordinaria.
 
 ## Licencia
 
