@@ -37,6 +37,7 @@ class ExecutionResult:
     diagnostics: Mapping[str, Any]
     valid_trials: int
     invalid_trials: int
+    random_seed: int | None = None
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -50,6 +51,7 @@ class ExecutionResult:
             "diagnostics": dict(self.diagnostics),
             "valid_trials": self.valid_trials,
             "invalid_trials": self.invalid_trials,
+            "random_seed": self.random_seed,
         }
 
 
@@ -209,6 +211,7 @@ def execute_request(
         diagnostics=diagnostics,
         valid_trials=valid_trials,
         invalid_trials=invalid_trials,
+        random_seed=request.random_seed,
     )
 
 
@@ -218,6 +221,23 @@ def result_to_abox(result: ExecutionResult) -> dict[str, Any]:
     backend_iri = RESOURCE + "backend/" + result.backend_id
     dataset_iri = RESOURCE + "dataset/" + result.manifest.dataset_id
     result_iri = RESOURCE + "result/" + result.run_id + "-execution-summary"
+
+    run_node: dict[str, Any] = {
+        "@id": run_iri,
+        "@type": ["mns:Execution", "mns:SimulationRun"],
+        "mns:identifier": result.run_id,
+        "mns:executesSpecification": {"@id": spec_iri},
+        "mns:usesBackend": {"@id": backend_iri},
+        "mns:usesDataset": {"@id": dataset_iri},
+        "mns:hasResult": {"@id": result_iri},
+        "mns:hasExecutionStatus": {"@id": "mns:Completed"},
+        "mns:trialCount": {"@value": result.manifest.event_count, "@type": "xsd:positiveInteger"},
+        "mns:startedAt": {"@value": result.started_at_utc, "@type": "xsd:dateTime"},
+        "mns:endedAt": {"@value": result.ended_at_utc, "@type": "xsd:dateTime"},
+        "mns:wasExecutedBy": {"@id": backend_iri},
+    }
+    if result.random_seed is not None:
+        run_node["mns:randomSeed"] = {"@value": result.random_seed, "@type": "xsd:nonNegativeInteger"}
 
     return {
         "@context": {
@@ -232,7 +252,7 @@ def result_to_abox(result: ExecutionResult) -> dict[str, Any]:
             },
             {
                 "@id": backend_iri,
-                "@type": ["mns:Agent", "mns:HardwareBackend"],
+                "@type": ["mns:Agent", "mns:HardwareBackend", "mns:SimulatorBackend"],
                 "mns:identifier": result.backend_id,
             },
             {
@@ -253,19 +273,6 @@ def result_to_abox(result: ExecutionResult) -> dict[str, Any]:
                 "mns:resultJson": {"@value": result.as_dict(), "@type": "@json"},
                 "mns:derivedFromExecution": {"@id": run_iri},
             },
-            {
-                "@id": run_iri,
-                "@type": ["mns:Execution", "mns:SimulationRun"],
-                "mns:identifier": result.run_id,
-                "mns:executesSpecification": {"@id": spec_iri},
-                "mns:usesBackend": {"@id": backend_iri},
-                "mns:usesDataset": {"@id": dataset_iri},
-                "mns:hasResult": {"@id": result_iri},
-                "mns:hasExecutionStatus": {"@id": "mns:Completed"},
-                "mns:trialCount": {"@value": result.manifest.event_count, "@type": "xsd:positiveInteger"},
-                "mns:startedAt": {"@value": result.started_at_utc, "@type": "xsd:dateTime"},
-                "mns:endedAt": {"@value": result.ended_at_utc, "@type": "xsd:dateTime"},
-                "mns:wasExecutedBy": {"@id": backend_iri},
-            },
+            run_node,
         ],
     }
