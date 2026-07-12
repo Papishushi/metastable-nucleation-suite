@@ -1,6 +1,6 @@
 services:
   artifact-init:
-    image: python:3.12-slim
+    image: python:3.14-slim
     user: root
     command: ["chown", "10001:10001", "/artifacts"]
     volumes:
