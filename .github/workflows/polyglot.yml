@@ -31,10 +31,10 @@ jobs:
             runner: ubuntu-latest
             smoke: false
           - rid: osx-x64
-            runner: macos-13
+            runner: macos-15-intel
             smoke: true
           - rid: osx-arm64
-            runner: macos-14
+            runner: macos-15
             smoke: true
     runs-on: ${{ matrix.runner }}
     steps:
