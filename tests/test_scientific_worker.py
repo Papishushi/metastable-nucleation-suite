@@ -37,6 +37,20 @@ def test_validate_request_envelope_accepts_contract_fixture():
 
 
 @pytest.mark.parametrize(
+    "timestamp",
+    [
+        "2026-07-12T12:00:00+00:00",
+        "2026-07-12T12:00:00.123456+02:30",
+        "2026-07-12t12:00:00z",
+    ],
+)
+def test_validate_request_envelope_accepts_rfc3339_date_times(timestamp):
+    envelope = {**VALID_REQUEST, "submitted_at_utc": timestamp}
+
+    assert validate_request_envelope(envelope) == envelope
+
+
+@pytest.mark.parametrize(
     "envelope",
     [
         None,
@@ -45,6 +59,9 @@ def test_validate_request_envelope_accepts_contract_fixture():
         {**VALID_REQUEST, "schema_version": "2.0.0"},
         {**VALID_REQUEST, "submitted_at_utc": "not-a-timestamp"},
         {**VALID_REQUEST, "submitted_at_utc": "2026-07-12T12:00:00"},
+        {**VALID_REQUEST, "submitted_at_utc": "2026-07-12 12:00:00+00:00"},
+        {**VALID_REQUEST, "submitted_at_utc": "20260712T120000+00:00"},
+        {**VALID_REQUEST, "submitted_at_utc": "2026-07-12T12:00:00+0000"},
         {**VALID_REQUEST, "experiment_id": ""},
         {**VALID_REQUEST, "experiment_id": "x" * 129},
         {**VALID_REQUEST, "unexpected": True},
