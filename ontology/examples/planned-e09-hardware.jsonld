@@ -20,6 +20,7 @@
     {
       "@id": "https://w3id.org/metastable-nucleation-suite/resource/parameter/e09-gain",
       "@type": "mns:Parameter",
+      "mns:identifier": "e09-gain",
       "mns:parameterName": "gain",
       "mns:numericValue": {"@value": 2.0, "@type": "xsd:double"}
     },
