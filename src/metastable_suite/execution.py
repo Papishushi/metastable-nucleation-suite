@@ -65,24 +65,60 @@ class BackendRegistry:
     def __init__(self) -> None:
         self._factories: dict[
             str,
-            Callable[[ExecutionRequest], ExperimentalBackend],
+            tuple[
+                Callable[[ExecutionRequest], ExperimentalBackend],
+                str | None,
+            ],
         ] = {}
 
     def register(
         self,
         backend_id: str,
         factory: Callable[[ExecutionRequest], ExperimentalBackend],
+        *,
+        backend_kind: str | None = None,
     ) -> None:
         if not backend_id or backend_id in self._factories:
             raise ValueError(f"backend already registered or invalid: {backend_id!r}")
-        self._factories[backend_id] = factory
+        if backend_kind not in BACKEND_KINDS | {None}:
+            raise ValueError(f"unsupported backend kind {backend_kind!r}")
+        self._factories[backend_id] = (factory, backend_kind)
+
+    def registered_kind(self, backend_id: str) -> str | None:
+        try:
+            _, backend_kind = self._factories[backend_id]
+        except KeyError as exc:
+            raise ValueError(f"unknown backend {backend_id!r}") from exc
+        return backend_kind
 
     def create(self, request: ExecutionRequest) -> ExperimentalBackend:
         try:
-            factory = self._factories[request.backend_id]
+            factory, registered_kind = self._factories[request.backend_id]
         except KeyError as exc:
             raise ValueError(f"unknown backend {request.backend_id!r}") from exc
-        return factory(request)
+
+        if (
+            request.execution_kind is not None
+            and registered_kind is not None
+            and request.execution_kind != registered_kind
+        ):
+            raise ValueError(
+                f"execution {request.run_id!r} expects {request.execution_kind!r} "
+                f"but backend {request.backend_id!r} is {registered_kind!r}"
+            )
+
+        backend = factory(request)
+        declared_kind = getattr(backend, "backend_kind", None)
+        if (
+            declared_kind is not None
+            and registered_kind is not None
+            and declared_kind != registered_kind
+        ):
+            raise ValueError(
+                f"backend {request.backend_id!r} was registered as "
+                f"{registered_kind!r} but declares {declared_kind!r}"
+            )
+        return backend
 
     @classmethod
     def default(cls) -> BackendRegistry:
@@ -90,6 +126,7 @@ class BackendRegistry:
         registry.register(
             "reference-simulator",
             lambda request: SimulatorBackend(seed=request.random_seed or 0),
+            backend_kind="simulator",
         )
         return registry
 
@@ -207,12 +244,13 @@ def execute_request(
         )
 
     registry = registry or BackendRegistry.default()
+    registered_kind = registry.registered_kind(request.backend_id)
     backend = registry.create(request)
     declared_backend_kind = getattr(backend, "backend_kind", None)
     backend_kind = (
-        request.execution_kind or "hardware"
-        if declared_backend_kind is None
-        else str(declared_backend_kind)
+        str(declared_backend_kind)
+        if declared_backend_kind is not None
+        else registered_kind or request.execution_kind or "hardware"
     )
     if backend_kind not in BACKEND_KINDS:
         raise ValueError(
