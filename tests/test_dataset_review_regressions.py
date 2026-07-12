@@ -1,0 +1,68 @@
+from dataclasses import replace
+import json
+from pathlib import Path
+
+import pytest
+
+from metastable_suite.datasets import read_events, verify_manifest, write_events
+
+
+ROOT = Path(__file__).resolve().parents[1]
+EVENT_SCHEMA = json.loads(
+    (ROOT / "schemas" / "event.schema.json").read_text(encoding="utf-8")
+)
+
+
+def _event(index: int, outcome: dict[str, object] | None = None) -> dict[str, object]:
+    return {
+        "schema_version": "1.0.0",
+        "event_id": f"event-{index}",
+        "run_id": "run-1",
+        "specification_id": "E09",
+        "trial_index": index,
+        "timestamp_utc": "2026-07-12T10:00:00Z",
+        "backend_id": "reference-simulator",
+        "outcome": outcome if outcome is not None else {"metastate": index},
+        "valid": True,
+    }
+
+
+def test_verification_rejects_missing_multipart_dataset_root(tmp_path):
+    manifest = write_events(
+        tmp_path / "events.parquet",
+        "multipart-root",
+        [_event(0), _event(1), _event(2)],
+        EVENT_SCHEMA,
+        storage_format="parquet",
+        partition_size=2,
+    )
+    missing_root = tmp_path / "missing.parquet"
+    inconsistent = replace(manifest, path=missing_root.as_posix())
+
+    with pytest.raises(ValueError, match="single-file Parquet dataset path"):
+        verify_manifest(inconsistent)
+
+
+def test_parquet_writer_snapshots_reused_mutable_payloads(tmp_path):
+    shared_outcome: dict[str, object] = {"metastate": 0}
+
+    def events():
+        for index in range(3):
+            shared_outcome["metastate"] = index
+            yield _event(index, shared_outcome)
+
+    manifest = write_events(
+        tmp_path / "events.parquet",
+        "mutable-payloads",
+        events(),
+        EVENT_SCHEMA,
+        storage_format="parquet",
+        partition_size=10,
+    )
+
+    stored = list(read_events(manifest.path, "parquet"))
+    assert [event["outcome"] for event in stored] == [
+        {"metastate": 0},
+        {"metastate": 1},
+        {"metastate": 2},
+    ]
