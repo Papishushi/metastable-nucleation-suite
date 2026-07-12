@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import os
@@ -13,12 +13,39 @@ from uuid import UUID
 HOST = os.environ.get("METASTABLE_WORKER_HOST", "0.0.0.0")
 PORT = int(os.environ.get("METASTABLE_WORKER_PORT", "8081"))
 ARTIFACTS = Path(os.environ.get("METASTABLE_ARTIFACTS", "/artifacts"))
+SERVER_VERSION = "0.1.0"
+CAPABILITY_SCHEMA_VERSION = "1.0.0"
 REQUEST_FIELDS = frozenset(
     {"schema_version", "request_id", "experiment_id", "submitted_at_utc"}
 )
 RFC3339_DATE_TIME = re.compile(
     r"^\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:[Zz]|[+-]\d{2}:\d{2})$"
 )
+CAPABILITIES = (
+    {
+        "id": "experiments.execute.v1",
+        "status": "active",
+        "since_version": "0.1.0",
+    },
+    {
+        "id": "server.capabilities.v1",
+        "status": "active",
+        "since_version": "0.1.0",
+    },
+)
+
+
+def utc_now_rfc3339() -> str:
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def capability_manifest(*, generated_at_utc: str | None = None) -> dict[str, Any]:
+    return {
+        "schema_version": CAPABILITY_SCHEMA_VERSION,
+        "server_version": SERVER_VERSION,
+        "generated_at_utc": generated_at_utc or utc_now_rfc3339(),
+        "capabilities": [dict(capability) for capability in CAPABILITIES],
+    }
 
 
 def canonical_request_id(value: object) -> str:
@@ -68,7 +95,7 @@ def validate_request_envelope(value: object) -> dict[str, str]:
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "metastable-scientific-worker/0.1.0"
+    server_version = f"metastable-scientific-worker/{SERVER_VERSION}"
 
     def _json(self, status: int, document: dict[str, Any]) -> None:
         payload = json.dumps(document, sort_keys=True).encode("utf-8")
@@ -81,6 +108,9 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         if self.path == "/healthz":
             self._json(200, {"status": "ok"})
+            return
+        if self.path == "/v1/capabilities":
+            self._json(200, capability_manifest())
             return
         self._json(404, {"error": "not_found"})
 
