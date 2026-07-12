@@ -38,6 +38,9 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps({"verified_datasets": len(manifests)}, indent=2))
         return 0
 
+    if args.source.resolve() == args.target.resolve():
+        parser.error("source and target must be different paths")
+
     schema = json.loads(args.schema.read_text(encoding="utf-8"))
     manifest = write_events(
         args.target,
