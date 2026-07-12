@@ -9,6 +9,7 @@ from rdflib import Graph
 from metastable_suite.dataset_semantics import manifest_to_abox
 from metastable_suite.datasets import (
     DatasetRegistry,
+    read_events,
     read_manifest_events,
     verify_manifest,
     write_events,
@@ -51,11 +52,43 @@ def test_parquet_round_trip_preserves_schema_values_and_partitions(tmp_path):
     )
 
     assert list(read_manifest_events(manifest)) == expected
+    assert list(read_events(manifest.path, "parquet")) == expected
+    assert Path(manifest.path).is_dir()
     assert manifest.storage_format == "parquet"
     assert manifest.media_type == "application/vnd.apache.parquet"
     assert [partition.event_count for partition in manifest.partitions] == [2, 2, 1]
     assert manifest.partitions[0].partition_values["run_id"] == "run-1"
     verify_manifest(manifest)
+
+
+def test_parquet_multipart_replaces_stale_single_partition_file(tmp_path):
+    target = tmp_path / "events.parquet"
+    single_manifest = write_events(
+        target,
+        "single-parquet",
+        [_event(0)],
+        EVENT_SCHEMA,
+        storage_format="parquet",
+        partition_size=2,
+    )
+    assert Path(single_manifest.path).is_file()
+
+    expected = [_event(index) for index in range(3)]
+    multipart_manifest = write_events(
+        target,
+        "multipart-parquet",
+        expected,
+        EVENT_SCHEMA,
+        storage_format="parquet",
+        partition_size=2,
+    )
+
+    assert Path(multipart_manifest.path).is_dir()
+    assert list(read_events(multipart_manifest.path, "parquet")) == expected
+    assert all(
+        Path(partition.path).parent == Path(multipart_manifest.path)
+        for partition in multipart_manifest.partitions
+    )
 
 
 def test_ndjson_manifest_uses_direct_file_hash_and_verifies(tmp_path):
@@ -74,14 +107,18 @@ def test_parquet_writer_flushes_before_consuming_full_iterator(tmp_path, monkeyp
     from metastable_suite import parquet_storage
 
     first_partition_written = False
-    original_write_partition = parquet_storage._write_partition
+    original_write_partition = parquet_storage._write_temporary_partition
 
     def tracked_write_partition(*args, **kwargs):
         nonlocal first_partition_written
         first_partition_written = True
         return original_write_partition(*args, **kwargs)
 
-    monkeypatch.setattr(parquet_storage, "_write_partition", tracked_write_partition)
+    monkeypatch.setattr(
+        parquet_storage,
+        "_write_temporary_partition",
+        tracked_write_partition,
+    )
 
     def events():
         yield _event(0)
@@ -122,6 +159,7 @@ def test_registry_records_format_schema_partitions_and_hashes(tmp_path):
 
 def test_rdf_manifest_uses_same_dataset_model_for_ndjson_and_parquet(tmp_path):
     shapes = Graph().parse(ROOT / "ontology" / "dataset-storage-shapes.ttl")
+    shapes.parse(ROOT / "ontology" / "execution-shapes.ttl")
     ontology = Graph().parse(ROOT / "ontology" / "tbox.ttl")
     ontology.parse(ROOT / "ontology" / "dataset-storage-extension.ttl")
 
@@ -136,7 +174,12 @@ def test_rdf_manifest_uses_same_dataset_model_for_ndjson_and_parquet(tmp_path):
         )
         document = manifest_to_abox(manifest, "datasets.registry.json")
         graph = Graph().parse(data=json.dumps(document), format="json-ld")
-        conforms, _, report = validate(graph, shacl_graph=shapes, ont_graph=ontology)
+        conforms, _, report = validate(
+            graph,
+            shacl_graph=shapes,
+            ont_graph=ontology,
+            advanced=True,
+        )
         assert conforms, report
         dataset = document["@graph"][0]
         assert dataset["@type"] == "mns:Dataset"
