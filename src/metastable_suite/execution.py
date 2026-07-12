@@ -26,6 +26,7 @@ class ExecutionRequest:
     trial_count: int
     parameters: Mapping[str, Any]
     random_seed: int | None = None
+    execution_kind: str | None = None
 
 
 @dataclass(frozen=True)
@@ -134,6 +135,16 @@ def request_from_graph(graph: Graph, run_iri: URIRef) -> ExecutionRequest:
     if missing:
         raise ValueError(f"execution request is missing {missing}")
 
+    is_simulation = (run_iri, RDF.type, MNS.SimulationRun) in graph
+    is_experiment = (run_iri, RDF.type, MNS.ExperimentRun) in graph
+    if is_simulation and is_experiment:
+        raise ValueError(
+            f"execution {run_iri} cannot be both SimulationRun and ExperimentRun"
+        )
+    execution_kind = (
+        "simulator" if is_simulation else "hardware" if is_experiment else None
+    )
+
     run_id = validate_run_id(str(identifier))
     specification_id = str(
         graph.value(specification, MNS.identifier)
@@ -165,6 +176,7 @@ def request_from_graph(graph: Graph, run_iri: URIRef) -> ExecutionRequest:
         trial_count=int(trial_count),
         parameters=parameters,
         random_seed=int(seed) if seed is not None else None,
+        execution_kind=execution_kind,
     )
 
 
@@ -188,16 +200,41 @@ def execute_request(
     run_id = validate_run_id(request.run_id)
     if request.trial_count <= 0:
         raise ValueError("trial_count must be positive")
+    if request.execution_kind not in BACKEND_KINDS | {None}:
+        raise ValueError(
+            f"execution {run_id!r} declares unsupported kind "
+            f"{request.execution_kind!r}"
+        )
+
     registry = registry or BackendRegistry.default()
     backend = registry.create(request)
-    backend_kind = str(getattr(backend, "backend_kind", "hardware"))
+    declared_backend_kind = getattr(backend, "backend_kind", None)
+    backend_kind = (
+        request.execution_kind or "hardware"
+        if declared_backend_kind is None
+        else str(declared_backend_kind)
+    )
     if backend_kind not in BACKEND_KINDS:
         raise ValueError(
             f"backend {request.backend_id!r} declares unsupported kind {backend_kind!r}"
         )
+    if (
+        request.execution_kind is not None
+        and backend_kind != request.execution_kind
+    ):
+        raise ValueError(
+            f"execution {run_id!r} expects {request.execution_kind!r} but backend "
+            f"{request.backend_id!r} is {backend_kind!r}"
+        )
+
     effective_random_seed = request.random_seed
     if backend_kind == "simulator" and effective_random_seed is None:
         effective_random_seed = 0
+    if backend_kind == "hardware" and effective_random_seed is not None:
+        raise ValueError(
+            f"hardware execution {run_id!r} must not declare random_seed"
+        )
+
     dataset_path = safe_output_path(output_dir, f"{run_id}.events.ndjson")
     dataset_id = f"{run_id}-events"
 
