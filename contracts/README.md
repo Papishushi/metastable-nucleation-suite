@@ -13,4 +13,16 @@ Compatibility policy:
 - RDF/JSON-LD remains canonical for semantics and provenance;
 - Arrow/Parquet remains canonical for high-volume event datasets.
 
+## Capability negotiation
+
+Servers expose `GET /v1/capabilities` using `v1/server-capabilities.schema.json`.
+Clients must gate every optional or remotely versioned operation against a stable capability identifier before invoking it.
+
+- an absent capability is unsupported and must not be invoked;
+- `active` capabilities may be used normally;
+- `deprecated` capabilities remain callable during their compatibility window, but clients must warn and prefer `replacement` when provided;
+- deprecated entries must declare `deprecated_since_version`;
+- `sunset_at_utc` communicates a planned removal deadline when one is known;
+- removal of an advertised capability is a compatibility event and requires the documented deprecation policy or a new API major version.
+
 Python and .NET code validate against these files and never share internal classes as a contract.
