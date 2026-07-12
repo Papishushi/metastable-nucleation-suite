@@ -103,19 +103,32 @@ jobs:
           docker compose run --rm --no-deps platform-cli --version
           docker compose run --rm --no-deps platform-cli --self-test
       - name: Execute distributed request
+        id: distributed-request
         shell: bash
         run: |
+          mkdir -p container-diagnostics
           set +e
-          output=$(docker compose run --rm --no-deps platform-cli execute compose-smoke-test 2>&1)
+          docker compose run --rm --no-deps platform-cli execute compose-smoke-test \
+            >container-diagnostics/cli.log 2>&1
           status=$?
-          printf '%s\n' "$output"
-          docker compose logs --no-color scientific-worker
+          docker compose logs --no-color scientific-worker \
+            >container-diagnostics/worker.log 2>&1
+          printf '%s\n' "$status" >container-diagnostics/exit-code.txt
+          cat container-diagnostics/cli.log
+          cat container-diagnostics/worker.log
           exit "$status"
       - name: Verify persisted artifact
         run: >-
           docker compose exec -T scientific-worker python -c
           "from pathlib import Path; files=list(Path('/artifacts').glob('*.json'));
           assert files, 'no persisted artifact'; print(files[0])"
+      - name: Upload container diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: container-diagnostics
+          path: container-diagnostics
+          if-no-files-found: warn
       - name: Container diagnostics
         if: always()
         run: |
