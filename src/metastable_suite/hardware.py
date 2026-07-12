@@ -33,7 +33,7 @@ class ExperimentalBackend(ABC):
     """Lifecycle contract for simulators and physical hardware adapters."""
 
     backend_id: str
-    backend_kind = "hardware"
+    backend_kind: str | None = None
     firmware_version: str = "unknown"
 
     @abstractmethod
@@ -168,6 +168,7 @@ class CommandBackend(ExperimentalBackend):
     """
 
     backend_id = "command-backend"
+    backend_kind = "hardware"
 
     def __init__(self, firmware_version: str = "unknown") -> None:
         self.firmware_version = firmware_version
