@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -175,7 +176,7 @@ internal static partial class CapabilityGate
             : $"; use '{capability.Replacement}' instead";
         var sunset = capability.SunsetAtUtc is null
             ? string.Empty
-            : $"; sunset at {capability.SunsetAtUtc:O}";
+            : $"; sunset at {capability.SunsetAtUtc.Value.ToString("O", CultureInfo.InvariantCulture)}";
         Console.Error.WriteLine(
             $"warning: capability '{capabilityId}' is deprecated{replacement}{sunset}");
         return true;
