@@ -18,12 +18,14 @@
     {
       "@id": "https://w3id.org/metastable-nucleation-suite/resource/parameter/e09-noise",
       "@type": "mns:Parameter",
+      "mns:identifier": "e09-noise",
       "mns:parameterName": "noise",
       "mns:numericValue": {"@value": 0.45, "@type": "xsd:double"}
     },
     {
       "@id": "https://w3id.org/metastable-nucleation-suite/resource/parameter/e09-steps",
       "@type": "mns:Parameter",
+      "mns:identifier": "e09-steps",
       "mns:parameterName": "steps",
       "mns:numericValue": {"@value": 100, "@type": "xsd:double"}
     },
