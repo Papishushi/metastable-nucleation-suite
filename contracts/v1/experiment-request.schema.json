@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/metastable-nucleation-suite/contracts/v1/experiment-request.schema.json",
+  "title": "Experiment request envelope",
+  "type": "object",
+  "required": ["schema_version", "request_id", "experiment_id", "submitted_at_utc"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "request_id": {"type": "string", "format": "uuid"},
+    "experiment_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "submitted_at_utc": {"type": "string", "format": "date-time"}
+  },
+  "additionalProperties": false
+}
