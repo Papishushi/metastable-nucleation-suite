@@ -70,6 +70,7 @@ mns:ParameterShape
     sh:closed true ;
     sh:ignoredProperties (rdf:type) ;
     sh:property [ sh:path mns:identifier ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1 ] ;
+    sh:property [ sh:path mns:parameterName ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1 ] ;
     sh:property [ sh:path mns:numericValue ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
     sh:property [ sh:path mns:stringValue ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
     sh:xone (
