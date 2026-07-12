@@ -1,5 +1,4 @@
 using System.Net.Http.Json;
-using System.Reflection;
 using Metastable.Domain;
 
 const string Version = "0.1.0";
@@ -12,14 +11,7 @@ if (args is ["--version"])
 
 if (args is ["--self-test"])
 {
-    var request = new ExperimentRequest(
-        SchemaVersion: "1.0.0",
-        RequestId: Guid.Parse("11111111-1111-1111-1111-111111111111"),
-        ExperimentId: "self-test",
-        SubmittedAtUtc: DateTimeOffset.UnixEpoch);
-
-    var validation = Validation.validateRequest(request);
-    if (validation.IsError)
+    if (!Validation.selfTest())
     {
         Console.Error.WriteLine("domain self-test failed");
         return 1;
