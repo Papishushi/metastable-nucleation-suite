@@ -1,6 +1,10 @@
 import pytest
 
-from services.scientific_worker import canonical_request_id, validate_request_envelope
+from services.scientific_worker import (
+    capability_manifest,
+    canonical_request_id,
+    validate_request_envelope,
+)
 
 
 VALID_REQUEST = {
@@ -9,6 +13,21 @@ VALID_REQUEST = {
     "experiment_id": "contract-smoke",
     "submitted_at_utc": "2026-07-12T12:00:00Z",
 }
+
+
+def test_capability_manifest_advertises_required_active_capabilities():
+    manifest = capability_manifest(generated_at_utc="2026-07-12T12:00:00Z")
+
+    assert manifest["schema_version"] == "1.0.0"
+    assert manifest["generated_at_utc"] == "2026-07-12T12:00:00Z"
+    assert {
+        capability["id"]
+        for capability in manifest["capabilities"]
+        if capability["status"] == "active"
+    } >= {"experiments.execute.v1", "server.capabilities.v1"}
+    assert {
+        capability["status"] for capability in manifest["capabilities"]
+    } <= {"active", "deprecated"}
 
 
 def test_canonical_request_id_accepts_uuid():
