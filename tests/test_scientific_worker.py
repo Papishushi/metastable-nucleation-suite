@@ -37,7 +37,7 @@ def test_validate_request_envelope_accepts_contract_fixture():
 
 
 @pytest.mark.parametrize(
-    "request",
+    "envelope",
     [
         None,
         {},
@@ -50,6 +50,6 @@ def test_validate_request_envelope_accepts_contract_fixture():
         {**VALID_REQUEST, "unexpected": True},
     ],
 )
-def test_validate_request_envelope_rejects_malformed_contracts(request):
+def test_validate_request_envelope_rejects_malformed_contracts(envelope):
     with pytest.raises(ValueError):
-        validate_request_envelope(request)
+        validate_request_envelope(envelope)
