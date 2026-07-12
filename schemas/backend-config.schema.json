@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/metastable-nucleation-suite/schema/backend-config.schema.json",
+  "title": "Metastable Suite hardware backend configuration",
+  "type": "object",
+  "required": ["schema_version", "backends"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "backends": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "oneOf": [
+          {"$ref": "#/$defs/tcpBackend"},
+          {"$ref": "#/$defs/serialBackend"},
+          {"$ref": "#/$defs/visaBackend"}
+        ]
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "backendId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+    },
+    "specificationId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+    },
+    "retryPolicy": {
+      "type": "object",
+      "properties": {
+        "attempts": {"type": "integer", "minimum": 1, "default": 3},
+        "initial_delay_s": {"type": "number", "minimum": 0, "default": 0.05},
+        "backoff": {"type": "number", "minimum": 1, "default": 2.0},
+        "maximum_delay_s": {"type": "number", "minimum": 0, "default": 1.0}
+      },
+      "additionalProperties": false
+    },
+    "commonProperties": {
+      "id": {"$ref": "#/$defs/backendId"},
+      "firmware_version": {"type": "string", "minLength": 1, "default": "unknown"},
+      "timeout_s": {"type": "number", "exclusiveMinimum": 0, "default": 2.0},
+      "supported_specifications": {
+        "type": "array",
+        "minItems": 1,
+        "uniqueItems": true,
+        "items": {"$ref": "#/$defs/specificationId"}
+      },
+      "retry_policy": {"$ref": "#/$defs/retryPolicy"}
+    },
+    "tcpBackend": {
+      "type": "object",
+      "required": ["id", "transport", "host", "port", "supported_specifications"],
+      "properties": {
+        "id": {"$ref": "#/$defs/backendId"},
+        "transport": {"const": "tcp"},
+        "host": {"type": "string", "minLength": 1},
+        "port": {"type": "integer", "minimum": 1, "maximum": 65535},
+        "maximum_message_bytes": {"type": "integer", "minimum": 1, "default": 1048576},
+        "firmware_version": {"type": "string", "minLength": 1, "default": "unknown"},
+        "timeout_s": {"type": "number", "exclusiveMinimum": 0, "default": 2.0},
+        "supported_specifications": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/specificationId"}
+        },
+        "retry_policy": {"$ref": "#/$defs/retryPolicy"}
+      },
+      "additionalProperties": false
+    },
+    "serialBackend": {
+      "type": "object",
+      "required": ["id", "transport", "port", "supported_specifications"],
+      "properties": {
+        "id": {"$ref": "#/$defs/backendId"},
+        "transport": {"const": "serial"},
+        "port": {"type": "string", "minLength": 1},
+        "baudrate": {"type": "integer", "minimum": 1, "default": 115200},
+        "firmware_version": {"type": "string", "minLength": 1, "default": "unknown"},
+        "timeout_s": {"type": "number", "exclusiveMinimum": 0, "default": 2.0},
+        "supported_specifications": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/specificationId"}
+        },
+        "retry_policy": {"$ref": "#/$defs/retryPolicy"}
+      },
+      "additionalProperties": false
+    },
+    "visaBackend": {
+      "type": "object",
+      "required": ["id", "transport", "resource_name", "supported_specifications"],
+      "properties": {
+        "id": {"$ref": "#/$defs/backendId"},
+        "transport": {"const": "visa"},
+        "resource_name": {"type": "string", "minLength": 1},
+        "firmware_version": {"type": "string", "minLength": 1, "default": "unknown"},
+        "timeout_s": {"type": "number", "exclusiveMinimum": 0, "default": 2.0},
+        "supported_specifications": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/specificationId"}
+        },
+        "retry_policy": {"$ref": "#/$defs/retryPolicy"}
+      },
+      "additionalProperties": false
+    }
+  }
+}
