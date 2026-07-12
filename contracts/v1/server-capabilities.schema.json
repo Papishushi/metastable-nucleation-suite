@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/metastable-nucleation-suite/contracts/v1/server-capabilities.schema.json",
+  "title": "Server capability manifest",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "server_version",
+    "generated_at_utc",
+    "capabilities"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "server_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$"
+    },
+    "generated_at_utc": {"type": "string", "format": "date-time"},
+    "capabilities": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/capability"}
+    }
+  },
+  "$defs": {
+    "capability": {
+      "type": "object",
+      "required": ["id", "status", "since_version"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*\\.v[1-9][0-9]*$"
+        },
+        "status": {"enum": ["active", "deprecated"]},
+        "since_version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$"
+        },
+        "deprecated_since_version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$"
+        },
+        "sunset_at_utc": {"type": "string", "format": "date-time"},
+        "replacement": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*\\.v[1-9][0-9]*$"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"status": {"const": "deprecated"}},
+            "required": ["status"]
+          },
+          "then": {"required": ["deprecated_since_version"]}
+        }
+      ],
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
