@@ -8,6 +8,7 @@ from typing import Callable
 
 from rdflib import Graph, URIRef
 
+from metastable_suite.backend_config import load_backend_registry
 from metastable_suite.campaigns import FailurePolicy, execute_campaign, find_campaigns
 from metastable_suite.execution import (
     BackendRegistry,
@@ -21,10 +22,17 @@ from metastable_suite.execution import (
 from metastable_suite.semantic import load_abox, load_tbox, validate_abox
 
 ROOT = Path(__file__).resolve().parents[1]
-TBOX = [ROOT / "ontology" / "tbox.ttl", ROOT / "ontology" / "execution-extension.ttl"]
-SHAPES = [ROOT / "ontology" / "abox-shapes.ttl", ROOT / "ontology" / "execution-shapes.ttl"]
+TBOX = [
+    ROOT / "ontology" / "tbox.ttl",
+    ROOT / "ontology" / "execution-extension.ttl",
+]
+SHAPES = [
+    ROOT / "ontology" / "abox-shapes.ttl",
+    ROOT / "ontology" / "execution-shapes.ttl",
+]
 ABOX_SCHEMA = ROOT / "ontology" / "abox.schema.json"
 EVENT_SCHEMA = ROOT / "schemas" / "event.schema.json"
+BACKEND_CONFIG_SCHEMA = ROOT / "schemas" / "backend-config.schema.json"
 
 
 def _validated_plan(plan_path: Path):
@@ -47,7 +55,32 @@ def _completed_artifact_validator(ontology: Graph) -> Callable[[Path], bool]:
     return validate
 
 
-def execute_plan(plan_path: Path, output_dir: Path, run_iri: str | None = None) -> list[dict]:
+def _resolve_registry(
+    backend_config: Path | None,
+    registry: BackendRegistry | None,
+) -> BackendRegistry:
+    if backend_config is not None and registry is not None:
+        raise ValueError("backend_config and registry cannot be supplied together")
+    if registry is not None:
+        return registry
+    default = BackendRegistry.default()
+    if backend_config is None:
+        return default
+    return load_backend_registry(
+        backend_config,
+        BACKEND_CONFIG_SCHEMA,
+        registry=default,
+    )
+
+
+def execute_plan(
+    plan_path: Path,
+    output_dir: Path,
+    run_iri: str | None = None,
+    *,
+    backend_config: Path | None = None,
+    registry: BackendRegistry | None = None,
+) -> list[dict]:
     plan_graph, ontology = _validated_plan(plan_path)
     runs = find_planned_runs(plan_graph)
     if run_iri is not None:
@@ -56,16 +89,24 @@ def execute_plan(plan_path: Path, output_dir: Path, run_iri: str | None = None) 
         raise ValueError("no matching planned execution found")
 
     event_schema = load_event_schema(EVENT_SCHEMA)
-    registry = BackendRegistry.default()
+    resolved_registry = _resolve_registry(backend_config, registry)
     documents: list[dict] = []
     output_dir.mkdir(parents=True, exist_ok=True)
 
     for run in runs:
         request = request_from_graph(plan_graph, run)
-        result = execute_request(request, output_dir, event_schema, registry)
+        result = execute_request(
+            request,
+            output_dir,
+            event_schema,
+            resolved_registry,
+        )
         document = result_to_abox(result)
         target = safe_output_path(output_dir, f"{request.run_id}.abox.jsonld")
-        target.write_text(json.dumps(document, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        target.write_text(
+            json.dumps(document, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
         completed_graph = load_abox(target, ABOX_SCHEMA)
         completed_validation = validate_abox(completed_graph, SHAPES, ontology)
         if not completed_validation.conforms:
@@ -80,11 +121,18 @@ def execute_campaign_plan(
     campaign_iri: str | None = None,
     failure_policy: str | None = None,
     resume: bool = True,
+    *,
+    backend_config: Path | None = None,
+    registry: BackendRegistry | None = None,
 ):
     plan_graph, ontology = _validated_plan(plan_path)
     campaigns = find_campaigns(plan_graph)
     if campaign_iri is not None:
-        campaigns = [campaign for campaign in campaigns if str(campaign) == campaign_iri]
+        campaigns = [
+            campaign
+            for campaign in campaigns
+            if str(campaign) == campaign_iri
+        ]
     if len(campaigns) != 1:
         raise ValueError("select exactly one campaign with --campaign-iri")
 
@@ -93,8 +141,12 @@ def execute_campaign_plan(
         URIRef(campaigns[0]),
         output_dir,
         load_event_schema(EVENT_SCHEMA),
-        BackendRegistry.default(),
-        failure_policy=FailurePolicy.parse(failure_policy) if failure_policy else None,
+        _resolve_registry(backend_config, registry),
+        failure_policy=(
+            FailurePolicy.parse(failure_policy)
+            if failure_policy
+            else None
+        ),
         resume=resume,
         artifact_validator=_completed_artifact_validator(ontology),
     )
@@ -106,11 +158,21 @@ def execute_campaign_plan(
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Execute SHACL-valid semantic experiment plans")
+    parser = argparse.ArgumentParser(
+        description="Execute SHACL-valid semantic experiment plans"
+    )
     parser.add_argument("plan", type=Path)
     parser.add_argument("output_dir", type=Path)
     parser.add_argument("--run-iri", help="execute only the selected planned execution")
     parser.add_argument("--campaign-iri", help="execute the selected campaign")
+    parser.add_argument(
+        "--backend-config",
+        type=Path,
+        help=(
+            "versioned external configuration for TCP, Serial or VISA backends; "
+            "connection details are never read from the semantic ABox"
+        ),
+    )
     parser.add_argument(
         "--failure-policy",
         choices=[policy.value for policy in FailurePolicy],
@@ -129,10 +191,18 @@ def main(argv: list[str] | None = None) -> int:
                 "--run-iri cannot be combined with --campaign-iri, "
                 "--failure-policy or --no-resume"
             )
-        documents = execute_plan(args.plan, args.output_dir, args.run_iri)
+        documents = execute_plan(
+            args.plan,
+            args.output_dir,
+            args.run_iri,
+            backend_config=args.backend_config,
+        )
         print(
             json.dumps(
-                {"executed_runs": len(documents), "output_dir": args.output_dir.as_posix()},
+                {
+                    "executed_runs": len(documents),
+                    "output_dir": args.output_dir.as_posix(),
+                },
                 indent=2,
             )
         )
@@ -145,6 +215,7 @@ def main(argv: list[str] | None = None) -> int:
             args.campaign_iri,
             args.failure_policy,
             resume=not args.no_resume,
+            backend_config=args.backend_config,
         )
         print(
             json.dumps(
@@ -159,10 +230,17 @@ def main(argv: list[str] | None = None) -> int:
             )
         )
     else:
-        documents = execute_plan(args.plan, args.output_dir)
+        documents = execute_plan(
+            args.plan,
+            args.output_dir,
+            backend_config=args.backend_config,
+        )
         print(
             json.dumps(
-                {"executed_runs": len(documents), "output_dir": args.output_dir.as_posix()},
+                {
+                    "executed_runs": len(documents),
+                    "output_dir": args.output_dir.as_posix(),
+                },
                 indent=2,
             )
         )
