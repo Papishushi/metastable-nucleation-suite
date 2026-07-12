@@ -1,0 +1,33 @@
+services:
+  scientific-worker:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.scientific-worker
+    environment:
+      METASTABLE_ARTIFACTS: /artifacts
+    ports:
+      - "8081:8081"
+    read_only: true
+    tmpfs:
+      - /tmp
+    volumes:
+      - artifacts:/artifacts
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8081/healthz', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  platform-cli:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.platform-cli
+    environment:
+      METASTABLE_SCIENTIFIC_WORKER_URL: http://scientific-worker:8081
+    depends_on:
+      scientific-worker:
+        condition: service_healthy
+    command: ["execute", "compose-smoke-test"]
+
+volumes:
+  artifacts:
