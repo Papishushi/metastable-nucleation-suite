@@ -142,6 +142,7 @@ def build_backend_registry(
                     definition,
                     request,
                 ),
+                backend_kind="hardware",
             )
         except ValueError as exc:
             raise BackendConfigurationError(
