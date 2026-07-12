@@ -8,8 +8,18 @@ from typing import Callable
 
 from rdflib import Graph, URIRef
 
-from metastable_suite.backend_config import load_backend_registry
-from metastable_suite.campaigns import FailurePolicy, execute_campaign, find_campaigns
+from metastable_suite.backend_config import (
+    backend_configuration_fingerprint,
+    build_backend_registry,
+    load_backend_configuration,
+)
+from metastable_suite.campaigns import (
+    CampaignStateError,
+    FailurePolicy,
+    campaign_plan_from_graph,
+    execute_campaign,
+    find_campaigns,
+)
 from metastable_suite.execution import (
     BackendRegistry,
     execute_request,
@@ -33,6 +43,8 @@ SHAPES = [
 ABOX_SCHEMA = ROOT / "ontology" / "abox.schema.json"
 EVENT_SCHEMA = ROOT / "schemas" / "event.schema.json"
 BACKEND_CONFIG_SCHEMA = ROOT / "schemas" / "backend-config.schema.json"
+DEFAULT_BACKEND_CONTEXT = "default-registry-v1"
+INJECTED_BACKEND_CONTEXT = "injected-registry-v1"
 
 
 def _validated_plan(plan_path: Path):
@@ -58,19 +70,89 @@ def _completed_artifact_validator(ontology: Graph) -> Callable[[Path], bool]:
 def _resolve_registry(
     backend_config: Path | None,
     registry: BackendRegistry | None,
-) -> BackendRegistry:
+) -> tuple[BackendRegistry, str]:
     if backend_config is not None and registry is not None:
         raise ValueError("backend_config and registry cannot be supplied together")
     if registry is not None:
-        return registry
+        return registry, INJECTED_BACKEND_CONTEXT
+
     default = BackendRegistry.default()
     if backend_config is None:
-        return default
-    return load_backend_registry(
+        return default, DEFAULT_BACKEND_CONTEXT
+
+    document = load_backend_configuration(
         backend_config,
         BACKEND_CONFIG_SCHEMA,
-        registry=default,
     )
+    fingerprint = backend_configuration_fingerprint(document)
+    return (
+        build_backend_registry(document, registry=default),
+        f"backend-config-sha256:{fingerprint}",
+    )
+
+
+def _write_json_atomic(path: Path, document: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(f".{path.name}.tmp")
+    temporary.write_text(
+        json.dumps(document, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+    temporary.replace(path)
+
+
+def _guard_campaign_execution_context(
+    output_dir: Path,
+    campaign_id: str,
+    backend_registry_fingerprint: str,
+    *,
+    resume: bool,
+) -> Path:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    context_path = safe_output_path(
+        output_dir,
+        f"{campaign_id}.execution-context.json",
+    )
+    state_path = safe_output_path(
+        output_dir,
+        f"{campaign_id}.campaign-state.json",
+    )
+
+    if resume and state_path.exists() and not context_path.exists():
+        raise CampaignStateError(
+            "campaign execution context is missing; use --no-resume to start "
+            "with the current backend configuration"
+        )
+
+    if resume and context_path.exists():
+        try:
+            persisted = json.loads(context_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise CampaignStateError(
+                f"cannot read campaign execution context: {exc}"
+            ) from exc
+        if not isinstance(persisted, dict):
+            raise CampaignStateError(
+                "persisted campaign execution context is not a JSON object"
+            )
+        if (
+            persisted.get("backend_registry_fingerprint")
+            != backend_registry_fingerprint
+        ):
+            raise CampaignStateError(
+                "backend configuration changed since campaign state was persisted; "
+                "use --no-resume to start a new acquisition"
+            )
+
+    _write_json_atomic(
+        context_path,
+        {
+            "schema_version": "1.0.0",
+            "campaign_id": campaign_id,
+            "backend_registry_fingerprint": backend_registry_fingerprint,
+        },
+    )
+    return context_path
 
 
 def execute_plan(
@@ -89,7 +171,7 @@ def execute_plan(
         raise ValueError("no matching planned execution found")
 
     event_schema = load_event_schema(EVENT_SCHEMA)
-    resolved_registry = _resolve_registry(backend_config, registry)
+    resolved_registry, _ = _resolve_registry(backend_config, registry)
     documents: list[dict] = []
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -136,12 +218,28 @@ def execute_campaign_plan(
     if len(campaigns) != 1:
         raise ValueError("select exactly one campaign with --campaign-iri")
 
+    selected_campaign = URIRef(campaigns[0])
+    campaign_plan = campaign_plan_from_graph(
+        plan_graph,
+        selected_campaign,
+    )
+    resolved_registry, registry_fingerprint = _resolve_registry(
+        backend_config,
+        registry,
+    )
+    _guard_campaign_execution_context(
+        output_dir,
+        campaign_plan.campaign_id,
+        registry_fingerprint,
+        resume=resume,
+    )
+
     result = execute_campaign(
         plan_graph,
-        URIRef(campaigns[0]),
+        selected_campaign,
         output_dir,
         load_event_schema(EVENT_SCHEMA),
-        _resolve_registry(backend_config, registry),
+        resolved_registry,
         failure_policy=(
             FailurePolicy.parse(failure_policy)
             if failure_policy
