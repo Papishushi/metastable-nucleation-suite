@@ -97,6 +97,10 @@ jobs:
       - name: Build images
         run: docker compose build
       - name: Run distributed smoke test
+        shell: bash
         run: |
+          set -euo pipefail
+          trap 'docker compose down -v' EXIT
           docker compose up --abort-on-container-exit --exit-code-from platform-cli
-          docker compose down -v
+          docker compose run --rm --no-deps --entrypoint python scientific-worker -c \
+            "from pathlib import Path; files=list(Path('/artifacts').glob('*.json')); assert files, 'no persisted artifact'; print(files[0])"
