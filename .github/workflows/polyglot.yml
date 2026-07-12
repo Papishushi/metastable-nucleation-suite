@@ -101,6 +101,7 @@ jobs:
         run: |
           set -euo pipefail
           trap 'docker compose down -v' EXIT
-          docker compose up --abort-on-container-exit --exit-code-from platform-cli
+          docker compose up -d --wait scientific-worker
+          docker compose run --rm --no-deps platform-cli
           docker compose run --rm --no-deps --entrypoint python scientific-worker -c \
             "from pathlib import Path; files=list(Path('/artifacts').glob('*.json')); assert files, 'no persisted artifact'; print(files[0])"
