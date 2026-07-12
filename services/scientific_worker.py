@@ -6,6 +6,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import os
 from pathlib import Path
+import re
 from typing import Any
 from uuid import UUID
 
@@ -14,6 +15,9 @@ PORT = int(os.environ.get("METASTABLE_WORKER_PORT", "8081"))
 ARTIFACTS = Path(os.environ.get("METASTABLE_ARTIFACTS", "/artifacts"))
 REQUEST_FIELDS = frozenset(
     {"schema_version", "request_id", "experiment_id", "submitted_at_utc"}
+)
+RFC3339_DATE_TIME = re.compile(
+    r"^\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:[Zz]|[+-]\d{2}:\d{2})$"
 )
 
 
@@ -39,11 +43,13 @@ def validate_request_envelope(value: object) -> dict[str, str]:
         raise ValueError("experiment_id must contain between 1 and 128 characters")
 
     submitted_at_utc = value["submitted_at_utc"]
-    if not isinstance(submitted_at_utc, str):
-        raise ValueError("submitted_at_utc must be a date-time string")
+    if not isinstance(submitted_at_utc, str) or not RFC3339_DATE_TIME.fullmatch(
+        submitted_at_utc
+    ):
+        raise ValueError("submitted_at_utc must be an RFC 3339 date-time string")
     normalized_timestamp = (
         submitted_at_utc[:-1] + "+00:00"
-        if submitted_at_utc.endswith("Z")
+        if submitted_at_utc[-1] in {"Z", "z"}
         else submitted_at_utc
     )
     try:
