@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using Metastable.Domain;
@@ -40,9 +41,7 @@ if (args is ["capabilities"])
         return 3;
     }
 
-    Console.WriteLine(JsonSerializer.Serialize(
-        manifest,
-        new JsonSerializerOptions { WriteIndented = true }));
+    Console.WriteLine(JsonSerializer.Serialize(manifest));
     return 0;
 }
 
@@ -59,7 +58,9 @@ if (args is ["execute", var experimentId])
         ["schema_version"] = "1.0.0",
         ["request_id"] = Guid.NewGuid().ToString("D"),
         ["experiment_id"] = experimentId,
-        ["submitted_at_utc"] = DateTimeOffset.UtcNow.ToString("O"),
+        ["submitted_at_utc"] = DateTimeOffset.UtcNow.ToString(
+            "O",
+            CultureInfo.InvariantCulture),
     };
     var payload = JsonSerializer.SerializeToUtf8Bytes(request);
     using var content = new ByteArrayContent(payload);
