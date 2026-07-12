@@ -1,3 +1,4 @@
+from dataclasses import replace
 import json
 from pathlib import Path
 import shutil
@@ -109,6 +110,22 @@ def test_verification_rejects_unmanifested_parquet_part(tmp_path):
         verify_manifest(manifest)
 
 
+def test_verification_rejects_public_path_that_differs_from_partition(tmp_path):
+    manifest = write_events(
+        tmp_path / "events.parquet",
+        "dataset-parquet",
+        [_event(0)],
+        EVENT_SCHEMA,
+        storage_format="parquet",
+    )
+    misleading = tmp_path / "other.parquet"
+    shutil.copyfile(manifest.path, misleading)
+    inconsistent = replace(manifest, path=misleading.as_posix())
+
+    with pytest.raises(ValueError, match="must match its partition path"):
+        verify_manifest(inconsistent)
+
+
 def test_ndjson_manifest_uses_direct_file_hash_and_verifies(tmp_path):
     manifest = write_events(
         tmp_path / "events.ndjson",
@@ -202,6 +219,36 @@ def test_rdf_manifest_uses_same_dataset_model_for_ndjson_and_parquet(tmp_path):
         dataset = document["@graph"][0]
         assert dataset["@type"] == "mns:Dataset"
         assert dataset["mns:storageFormat"] == storage_format
+
+
+def test_legacy_ndjson_abox_remains_valid_with_composed_shapes():
+    shapes = Graph().parse(ROOT / "ontology" / "dataset-storage-shapes.ttl")
+    shapes.parse(ROOT / "ontology" / "execution-shapes.ttl")
+    ontology = Graph().parse(ROOT / "ontology" / "tbox.ttl")
+    ontology.parse(ROOT / "ontology" / "dataset-storage-extension.ttl")
+    document = {
+        "@context": {
+            "mns": "https://w3id.org/metastable-nucleation-suite/ontology#",
+            "xsd": "http://www.w3.org/2001/XMLSchema#",
+        },
+        "@id": "https://w3id.org/metastable-nucleation-suite/resource/dataset/legacy",
+        "@type": "mns:Dataset",
+        "mns:datasetPath": "legacy.events.ndjson",
+        "mns:mediaType": "application/x-ndjson",
+        "mns:schemaVersion": "1.0.0",
+        "mns:eventCount": {"@value": 1, "@type": "xsd:nonNegativeInteger"},
+        "mns:sha256": "0" * 64,
+    }
+    graph = Graph().parse(data=json.dumps(document), format="json-ld")
+
+    conforms, _, report = validate(
+        graph,
+        shacl_graph=shapes,
+        ont_graph=ontology,
+        advanced=True,
+    )
+
+    assert conforms, report
 
 
 def test_integrity_verification_detects_partition_tampering(tmp_path):
