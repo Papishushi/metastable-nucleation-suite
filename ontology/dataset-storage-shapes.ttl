@@ -4,7 +4,15 @@
 
 mns:RegisteredDatasetShape
     a sh:NodeShape ;
-    sh:targetClass mns:Dataset ;
+    sh:target [
+        a sh:SPARQLTarget ;
+        sh:select """
+            PREFIX mns: <https://w3id.org/metastable-nucleation-suite/ontology#>
+            SELECT ?this WHERE {
+              ?this a mns:Dataset ; mns:storageFormat ?format .
+            }
+        """
+    ] ;
     sh:property [ sh:path mns:identifier ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
     sh:property [ sh:path mns:datasetPath ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
     sh:property [ sh:path mns:datasetRegistryPath ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
