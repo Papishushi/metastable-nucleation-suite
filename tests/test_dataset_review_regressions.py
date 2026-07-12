@@ -4,7 +4,12 @@ from pathlib import Path
 
 import pytest
 
-from metastable_suite.datasets import read_events, verify_manifest, write_events
+from metastable_suite.datasets import (
+    DatasetRegistry,
+    read_events,
+    verify_manifest,
+    write_events,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -130,3 +135,49 @@ def test_verification_rejects_event_schema_version_mismatch(tmp_path):
     inconsistent = replace(manifest, schema_version="2.0.0")
     with pytest.raises(ValueError, match="event schema version mismatch"):
         verify_manifest(inconsistent)
+
+
+def test_registry_rejects_key_manifest_id_mismatch(tmp_path):
+    manifest = write_events(
+        tmp_path / "events.ndjson",
+        "actual-id",
+        [_event(0)],
+        EVENT_SCHEMA,
+    )
+    registry_path = tmp_path / "datasets.registry.json"
+    registry_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "1.0.0",
+                "datasets": {"wrong-key": manifest.as_dict()},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="does not match manifest dataset_id"):
+        DatasetRegistry(registry_path).manifests()
+
+
+def test_registry_rejects_non_canonical_extra_properties(tmp_path):
+    manifest = write_events(
+        tmp_path / "events.ndjson",
+        "extra-property",
+        [_event(0)],
+        EVENT_SCHEMA,
+    )
+    entry = manifest.as_dict()
+    entry["unexpected"] = True
+    registry_path = tmp_path / "datasets.registry.json"
+    registry_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "1.0.0",
+                "datasets": {manifest.dataset_id: entry},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="is not canonical"):
+        DatasetRegistry(registry_path).get(manifest.dataset_id)
