@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "dotnet/**"
+      - "global.json"
       - "contracts/**"
       - "services/**"
       - "deploy/**"
@@ -41,7 +42,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "8.0.x"
+          dotnet-version: "10.0.x"
+          global-json-file: global.json
+      - name: Show .NET SDK
+        run: dotnet --info
       - name: Build solution
         run: dotnet build dotnet/Metastable.Platform.sln -c Release
       - name: Publish self-contained artifact
@@ -75,19 +79,44 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install jsonschema
-      - name: Validate contract fixture
+      - name: Validate contract fixtures
         run: |
           python - <<'PY'
           import json
           from jsonschema import Draft202012Validator, FormatChecker
-          schema = json.load(open('contracts/v1/experiment-request.schema.json'))
-          fixture = {
-              'schema_version': '1.0.0',
-              'request_id': '11111111-1111-1111-1111-111111111111',
-              'experiment_id': 'contract-smoke',
-              'submitted_at_utc': '2026-07-12T12:00:00Z',
-          }
-          Draft202012Validator(schema, format_checker=FormatChecker()).validate(fixture)
+
+          fixtures = [
+              (
+                  'contracts/v1/experiment-request.schema.json',
+                  {
+                      'schema_version': '1.0.0',
+                      'request_id': '11111111-1111-1111-1111-111111111111',
+                      'experiment_id': 'contract-smoke',
+                      'submitted_at_utc': '2026-07-12T12:00:00Z',
+                  },
+              ),
+              (
+                  'contracts/v1/server-capabilities.schema.json',
+                  {
+                      'schema_version': '1.0.0',
+                      'server_version': '0.1.0',
+                      'generated_at_utc': '2026-07-12T12:00:00Z',
+                      'capabilities': [
+                          {
+                              'id': 'experiments.execute.v1',
+                              'status': 'active',
+                              'since_version': '0.1.0',
+                          }
+                      ],
+                  },
+              ),
+          ]
+
+          for schema_path, fixture in fixtures:
+              schema = json.load(open(schema_path))
+              Draft202012Validator(
+                  schema, format_checker=FormatChecker()
+              ).validate(fixture)
           PY
 
   containers:
