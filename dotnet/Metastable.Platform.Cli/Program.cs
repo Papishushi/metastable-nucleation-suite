@@ -1,4 +1,5 @@
-using System.Net.Http.Json;
+using System.Net.Http.Headers;
+using System.Text.Json;
 using Metastable.Domain;
 
 const string Version = "0.1.0";
@@ -25,16 +26,29 @@ if (args is ["execute", var experimentId])
 {
     var workerUrl = Environment.GetEnvironmentVariable("METASTABLE_SCIENTIFIC_WORKER_URL")
         ?? "http://127.0.0.1:8081";
-    using var client = new HttpClient { BaseAddress = new Uri(workerUrl) };
-    var request = new
+    using var client = new HttpClient
     {
-        schema_version = "1.0.0",
-        request_id = Guid.NewGuid(),
-        experiment_id = experimentId,
-        submitted_at_utc = DateTimeOffset.UtcNow,
+        BaseAddress = new Uri(workerUrl),
+        Timeout = TimeSpan.FromSeconds(30),
     };
-    using var response = await client.PostAsJsonAsync("/v1/experiments", request);
-    Console.WriteLine(await response.Content.ReadAsStringAsync());
+
+    var request = new Dictionary<string, string>
+    {
+        ["schema_version"] = "1.0.0",
+        ["request_id"] = Guid.NewGuid().ToString("D"),
+        ["experiment_id"] = experimentId,
+        ["submitted_at_utc"] = DateTimeOffset.UtcNow.ToString("O"),
+    };
+    var payload = JsonSerializer.SerializeToUtf8Bytes(request);
+    using var content = new ByteArrayContent(payload);
+    content.Headers.ContentType = new MediaTypeHeaderValue("application/json")
+    {
+        CharSet = "utf-8",
+    };
+
+    using var response = await client.PostAsync("/v1/experiments", content);
+    var responseBody = await response.Content.ReadAsStringAsync();
+    Console.WriteLine(responseBody);
     return response.IsSuccessStatusCode ? 0 : 1;
 }
 
