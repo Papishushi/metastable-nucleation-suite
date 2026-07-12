@@ -17,34 +17,41 @@ def _read_partition(path: str, storage_format: str) -> Iterator[dict[str, object
     yield from read_parquet_events(path)
 
 
-def _verify_parquet_directory_contents(manifest: DatasetManifest) -> None:
-    if manifest.storage_format != "parquet":
+def _verify_dataset_path_contract(manifest: DatasetManifest) -> None:
+    dataset_path = Path(manifest.path).resolve()
+    partition_paths = [Path(partition.path).resolve() for partition in manifest.partitions]
+
+    if manifest.storage_format == "ndjson":
+        if len(partition_paths) != 1 or partition_paths[0] != dataset_path:
+            raise ValueError("NDJSON dataset path must match its single partition path")
         return
 
-    dataset_path = Path(manifest.path)
-    if not dataset_path.is_dir():
+    if dataset_path.is_dir():
+        expected_paths = set(partition_paths)
+        actual_paths = {
+            partition_path.resolve()
+            for partition_path in dataset_path.glob("part-*.parquet")
+        }
+
+        unexpected_paths = sorted(actual_paths - expected_paths)
+        if unexpected_paths:
+            unexpected = ", ".join(path.as_posix() for path in unexpected_paths)
+            raise ValueError(f"unmanifested Parquet partition(s): {unexpected}")
+
+        missing_paths = sorted(expected_paths - actual_paths)
+        if missing_paths:
+            missing = ", ".join(path.as_posix() for path in missing_paths)
+            raise ValueError(
+                f"manifested Parquet partition(s) missing from dataset directory: {missing}"
+            )
         return
 
-    expected_paths = {Path(partition.path).resolve() for partition in manifest.partitions}
-    actual_paths = {
-        partition_path.resolve() for partition_path in dataset_path.glob("part-*.parquet")
-    }
-
-    unexpected_paths = sorted(actual_paths - expected_paths)
-    if unexpected_paths:
-        unexpected = ", ".join(path.as_posix() for path in unexpected_paths)
-        raise ValueError(f"unmanifested Parquet partition(s): {unexpected}")
-
-    missing_paths = sorted(expected_paths - actual_paths)
-    if missing_paths:
-        missing = ", ".join(path.as_posix() for path in missing_paths)
-        raise ValueError(
-            f"manifested Parquet partition(s) missing from dataset directory: {missing}"
-        )
+    if len(partition_paths) != 1 or partition_paths[0] != dataset_path:
+        raise ValueError("single-file Parquet dataset path must match its partition path")
 
 
 def verify_manifest(manifest: DatasetManifest) -> None:
-    _verify_parquet_directory_contents(manifest)
+    _verify_dataset_path_contract(manifest)
 
     count = 0
     hashes: list[str] = []
