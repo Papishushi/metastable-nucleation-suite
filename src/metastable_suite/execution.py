@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 import json
 from pathlib import Path
@@ -107,7 +107,12 @@ class BackendRegistry:
                 f"but backend {request.backend_id!r} is {registered_kind!r}"
             )
 
-        backend = factory(request)
+        kind_hint = registered_kind or request.execution_kind
+        factory_request = request
+        if kind_hint == "simulator" and request.random_seed is None:
+            factory_request = replace(request, random_seed=0)
+
+        backend = factory(factory_request)
         declared_kind = getattr(backend, "backend_kind", None)
         if (
             declared_kind is not None
