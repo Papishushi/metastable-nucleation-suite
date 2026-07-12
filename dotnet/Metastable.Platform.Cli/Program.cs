@@ -14,9 +14,9 @@ if (args is ["--version"])
 
 if (args is ["--self-test"])
 {
-    if (!Validation.selfTest())
+    if (!Validation.selfTest() || !CapabilityGate.SelfTest())
     {
-        Console.Error.WriteLine("domain self-test failed");
+        Console.Error.WriteLine("self-test failed");
         return 1;
     }
 
