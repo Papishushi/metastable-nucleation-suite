@@ -21,12 +21,15 @@ def test_planned_abox_is_valid_and_materializes_request():
     request = request_from_graph(graph, run)
     assert request.specification_id == "E09"
     assert request.backend_id == "reference-simulator"
+    assert request.execution_kind == "simulator"
     assert request.trial_count == 25
     assert request.random_seed == 7
     assert request.parameters["noise"] == 0.45
 
 
-def test_semantic_plan_round_trip_creates_valid_abox_and_hashed_events(tmp_path):
+def test_semantic_plan_round_trip_creates_valid_abox_and_hashed_events(
+    tmp_path,
+):
     documents = execute_plan(PLAN, tmp_path)
     assert len(documents) == 1
 
@@ -35,10 +38,39 @@ def test_semantic_plan_round_trip_creates_valid_abox_and_hashed_events(tmp_path)
     events = list(read_events(events_path))
     assert len(events) == 25
     assert all(event["specification_id"] == "E09" for event in events)
-    assert all(event["backend_id"] == "reference-simulator" for event in events)
+    assert all(
+        event["backend_id"] == "reference-simulator" for event in events
+    )
 
     document = json.loads(abox_path.read_text(encoding="utf-8"))
-    dataset = next(node for node in document["@graph"] if node.get("@type") == "mns:Dataset")
+    run = next(
+        node
+        for node in document["@graph"]
+        if node.get("mns:identifier") == "planned-e09-demo"
+    )
+    backend = next(
+        node
+        for node in document["@graph"]
+        if node.get("mns:identifier") == "reference-simulator"
+    )
+    specification = next(
+        node
+        for node in document["@graph"]
+        if node.get("mns:identifier") == "E09"
+    )
+    dataset = next(
+        node
+        for node in document["@graph"]
+        if node.get("@type") == "mns:Dataset"
+    )
+
+    assert "mns:SimulationRun" in run["@type"]
+    assert "mns:ExperimentRun" not in run["@type"]
+    assert "mns:ExecutionBackend" in backend["@type"]
+    assert "mns:SimulatorBackend" in backend["@type"]
+    assert "mns:HardwareBackend" not in backend["@type"]
+    assert "mns:SimulationSpecification" in specification["@type"]
+    assert "mns:PhysicalExperimentSpecification" not in specification["@type"]
     assert dataset["mns:eventCount"]["@value"] == 25
     assert dataset["mns:sha256"] == sha256_file(events_path)
 
@@ -49,7 +81,11 @@ def test_semantic_plan_round_trip_creates_valid_abox_and_hashed_events(tmp_path)
 
 def test_path_traversal_run_identifier_is_rejected_before_writing(tmp_path):
     document = json.loads(PLAN.read_text(encoding="utf-8"))
-    run = next(node for node in document["@graph"] if "mns:SimulationRun" in node.get("@type", []))
+    run = next(
+        node
+        for node in document["@graph"]
+        if "mns:SimulationRun" in node.get("@type", [])
+    )
     run["mns:identifier"] = "../outside/run"
     malicious_plan = tmp_path / "malicious-plan.jsonld"
     malicious_plan.write_text(json.dumps(document), encoding="utf-8")
