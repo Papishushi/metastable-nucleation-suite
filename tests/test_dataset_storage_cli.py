@@ -49,3 +49,12 @@ def test_convert_rejects_in_place_source_and_target(tmp_path):
         )
 
     assert source.read_bytes() == original
+
+
+def test_verify_rejects_missing_registry(tmp_path):
+    missing_registry = tmp_path / "missing.registry.json"
+
+    with pytest.raises(SystemExit, match="2"):
+        main(["verify", str(missing_registry)])
+
+    assert not missing_registry.exists()
