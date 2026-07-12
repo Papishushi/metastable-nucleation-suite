@@ -95,11 +95,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build images
-        run: docker compose build
+        run: docker compose build --quiet
       - name: Start scientific worker
         run: docker compose up -d --wait scientific-worker
+      - name: Smoke test CLI image
+        run: |
+          docker compose run --rm --no-deps platform-cli --version
+          docker compose run --rm --no-deps platform-cli --self-test
       - name: Execute distributed request
-        run: docker compose run --rm --no-deps platform-cli execute compose-smoke-test
+        shell: bash
+        run: |
+          set +e
+          output=$(docker compose run --rm --no-deps platform-cli execute compose-smoke-test 2>&1)
+          status=$?
+          printf '%s\n' "$output"
+          docker compose logs --no-color scientific-worker
+          exit "$status"
       - name: Verify persisted artifact
         run: >-
           docker compose exec -T scientific-worker python -c
