@@ -22,7 +22,7 @@ mns:PlannedExecutionShape
         sh:pattern "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
     ] ;
     sh:property [ sh:path mns:executesSpecification ; sh:minCount 1 ; sh:maxCount 1 ; sh:class mns:ExperimentSpecification ] ;
-    sh:property [ sh:path mns:usesBackend ; sh:minCount 1 ; sh:maxCount 1 ; sh:class mns:HardwareBackend ] ;
+    sh:property [ sh:path mns:usesBackend ; sh:minCount 1 ; sh:maxCount 1 ; sh:class mns:ExecutionBackend ] ;
     sh:property [ sh:path mns:trialCount ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:positiveInteger ] ;
     sh:property [ sh:path mns:startedAt ; sh:maxCount 0 ] ;
     sh:property [ sh:path mns:endedAt ; sh:maxCount 0 ] ;
@@ -40,7 +40,7 @@ mns:CompletedExecutionProvenanceShape
             }
         """
     ] ;
-    sh:property [ sh:path mns:usesBackend ; sh:minCount 1 ; sh:maxCount 1 ; sh:class mns:HardwareBackend ] ;
+    sh:property [ sh:path mns:usesBackend ; sh:minCount 1 ; sh:maxCount 1 ; sh:class mns:ExecutionBackend ] ;
     sh:property [ sh:path mns:usesDataset ; sh:minCount 1 ; sh:class mns:Dataset ] .
 
 mns:EventDatasetShape
