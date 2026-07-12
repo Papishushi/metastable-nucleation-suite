@@ -1,0 +1,102 @@
+name: polyglot
+
+on:
+  pull_request:
+    paths:
+      - "dotnet/**"
+      - "contracts/**"
+      - "services/**"
+      - "deploy/**"
+      - "compose.yaml"
+      - ".github/workflows/polyglot.yml"
+  push:
+    branches: [main]
+
+jobs:
+  build-artifacts:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - rid: win-x64
+            runner: windows-latest
+            smoke: true
+          - rid: win-arm64
+            runner: windows-latest
+            smoke: false
+          - rid: linux-x64
+            runner: ubuntu-latest
+            smoke: true
+          - rid: linux-arm64
+            runner: ubuntu-latest
+            smoke: false
+          - rid: osx-x64
+            runner: macos-13
+            smoke: true
+          - rid: osx-arm64
+            runner: macos-14
+            smoke: true
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Build solution
+        run: dotnet build dotnet/Metastable.Platform.sln -c Release
+      - name: Publish self-contained artifact
+        shell: bash
+        run: >-
+          dotnet publish dotnet/Metastable.Platform.Cli/Metastable.Platform.Cli.csproj
+          -c Release -r ${{ matrix.rid }} --self-contained true
+          -p:PublishSingleFile=true -o artifacts/${{ matrix.rid }}
+      - name: Smoke test Unix artifact
+        if: matrix.smoke && runner.os != 'Windows'
+        shell: bash
+        run: |
+          artifacts/${{ matrix.rid }}/metastable-platform --version
+          artifacts/${{ matrix.rid }}/metastable-platform --self-test
+      - name: Smoke test Windows artifact
+        if: matrix.smoke && runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          artifacts/${{ matrix.rid }}/metastable-platform.exe --version
+          artifacts/${{ matrix.rid }}/metastable-platform.exe --self-test
+      - uses: actions/upload-artifact@v4
+        with:
+          name: metastable-platform-${{ matrix.rid }}
+          path: artifacts/${{ matrix.rid }}
+
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install jsonschema
+      - name: Validate contract fixture
+        run: |
+          python - <<'PY'
+          import json
+          from jsonschema import Draft202012Validator, FormatChecker
+          schema = json.load(open('contracts/v1/experiment-request.schema.json'))
+          fixture = {
+              'schema_version': '1.0.0',
+              'request_id': '11111111-1111-1111-1111-111111111111',
+              'experiment_id': 'contract-smoke',
+              'submitted_at_utc': '2026-07-12T12:00:00Z',
+          }
+          Draft202012Validator(schema, format_checker=FormatChecker()).validate(fixture)
+          PY
+
+  containers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build images
+        run: docker compose build
+      - name: Run distributed smoke test
+        run: |
+          docker compose up --abort-on-container-exit --exit-code-from platform-cli
+          docker compose down -v
