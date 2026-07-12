@@ -17,15 +17,15 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@v7.0.0
+      - uses: actions/setup-python@v6.3.0
         with:
           python-version: '3.12'
       - name: Verify references
         run: python scripts/verify_references.py --report artifacts/reference-verification.json
       - name: Upload verification report
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: reference-verification-${{ github.run_id }}
           path: artifacts/reference-verification.json
