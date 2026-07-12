@@ -4,9 +4,22 @@ from pathlib import Path
 import pytest
 
 from metastable_suite.datasets import read_events, sha256_file
-from metastable_suite.execution import request_from_graph
+from metastable_suite.execution import (
+    BackendRegistry,
+    ExecutionRequest,
+    execute_request,
+    load_event_schema,
+    request_from_graph,
+)
+from metastable_suite.hardware import SimulatorBackend
 from metastable_suite.semantic import MNS, load_abox, load_tbox, validate_abox
-from scripts.semantic_execute import ABOX_SCHEMA, SHAPES, TBOX, execute_plan
+from scripts.semantic_execute import (
+    ABOX_SCHEMA,
+    EVENT_SCHEMA,
+    SHAPES,
+    TBOX,
+    execute_plan,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 PLAN = ROOT / "ontology" / "examples" / "planned-e09.jsonld"
@@ -25,6 +38,39 @@ def test_planned_abox_is_valid_and_materializes_request():
     assert request.trial_count == 25
     assert request.random_seed == 7
     assert request.parameters["noise"] == 0.45
+
+
+def test_simulator_default_seed_is_normalized_before_factory(tmp_path):
+    observed_seeds = []
+    registry = BackendRegistry()
+
+    def factory(request):
+        observed_seeds.append(request.random_seed)
+        return SimulatorBackend(seed=request.random_seed)
+
+    registry.register(
+        "seeded-simulator",
+        factory,
+        backend_kind="simulator",
+    )
+    request = ExecutionRequest(
+        run_id="default-seed",
+        specification_id="E09",
+        backend_id="seeded-simulator",
+        trial_count=1,
+        parameters={},
+        execution_kind="simulator",
+    )
+
+    result = execute_request(
+        request,
+        tmp_path,
+        load_event_schema(EVENT_SCHEMA),
+        registry,
+    )
+
+    assert observed_seeds == [0]
+    assert result.random_seed == 0
 
 
 def test_semantic_plan_round_trip_creates_valid_abox_and_hashed_events(
