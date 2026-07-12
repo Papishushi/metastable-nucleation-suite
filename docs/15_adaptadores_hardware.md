@@ -34,6 +34,55 @@ Respuesta:
 
 Las respuestas deben ser objetos JSON. Una respuesta malformada es un error de protocolo y no se reintenta, porque repetir una orden desconocida puede duplicar una operación física. Los timeouts y fallos de conexión sí pueden reintentarse y fuerzan una reconexión previa.
 
+## Ejecución desde un plan semántico
+
+La ABox describe qué backend lógico debe utilizarse mediante `mns:usesBackend`, pero no contiene direcciones de red, puertos serie, recursos VISA ni credenciales. Esos detalles pertenecen a una configuración externa validada contra `schemas/backend-config.schema.json`.
+
+El ejemplo `ontology/examples/planned-e09-hardware.jsonld` selecciona el backend `lab-counter-tcp`. Su despliegue se configura en `examples/hardware-backends.json`:
+
+```json
+{
+  "schema_version": "1.0.0",
+  "backends": [
+    {
+      "id": "lab-counter-tcp",
+      "transport": "tcp",
+      "host": "127.0.0.1",
+      "port": 9000,
+      "timeout_s": 2.0,
+      "firmware_version": "counter-firmware-1.0.0",
+      "supported_specifications": ["E09"],
+      "retry_policy": {
+        "attempts": 3,
+        "initial_delay_s": 0.05,
+        "backoff": 2.0,
+        "maximum_delay_s": 1.0
+      }
+    }
+  ]
+}
+```
+
+Ejecución:
+
+```bash
+python scripts/semantic_execute.py \
+  ontology/examples/planned-e09-hardware.jsonld \
+  artifacts/hardware-run \
+  --backend-config examples/hardware-backends.json
+```
+
+El ejecutor valida primero el plan, el esquema de configuración, los identificadores únicos y la compatibilidad entre backend y especificación. Solo después crea el adaptador seleccionado. Una configuración que intente redefinir `reference-simulator`, repita identificadores o declare campos desconocidos se rechaza antes de abrir conexiones.
+
+Los mismos backends configurados están disponibles para campañas semánticas. Cada subejecución resuelve el `backend_id` de su ABox contra el registro externo y conserva las políticas de recuperación de campaña existentes.
+
+La materialización final distingue explícitamente:
+
+- simuladores: `mns:SimulationRun`, `mns:SimulationSpecification` y `mns:SimulatorBackend`;
+- dispositivos físicos: `mns:ExperimentRun`, `mns:PhysicalExperimentSpecification` y `mns:HardwareBackend`.
+
+En ambos casos se generan eventos válidos, manifiesto de integridad y ABox completada conforme con SHACL.
+
 ## TCP
 
 ```python
@@ -94,3 +143,5 @@ Los errores de transporte no deben convertirse silenciosamente en resultados cie
 ## Seguridad operacional
 
 Los comandos físicos deben ser idempotentes cuando puedan reintentarse. Operaciones irreversibles, disparos, cambios de potencia o movimientos deben usar identificadores de petición o confirmaciones del dispositivo para evitar duplicados después de una reconexión. El comando `close` debe llevar el sistema a un estado seguro y no depender de que la ejecución haya terminado correctamente.
+
+Los secretos no forman parte del contrato actual y los campos desconocidos están prohibidos por el esquema. Cuando un dispositivo requiera autenticación, debe usarse un proveedor externo de secretos o variables de entorno referenciadas por el despliegue, nunca valores sensibles dentro de la ABox o de archivos versionados.
