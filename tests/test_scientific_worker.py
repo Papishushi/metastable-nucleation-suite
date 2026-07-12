@@ -1,8 +1,11 @@
+from pathlib import Path
+
 import pytest
 
 from services.scientific_worker import (
     capability_manifest,
     canonical_request_id,
+    resolve_artifacts_path,
     validate_request_envelope,
 )
 
@@ -13,6 +16,16 @@ VALID_REQUEST = {
     "experiment_id": "contract-smoke",
     "submitted_at_utc": "2026-07-12T12:00:00Z",
 }
+
+
+def test_default_artifact_path_is_under_user_home():
+    assert resolve_artifacts_path() == (
+        Path.home() / ".metastable-nucleation-suite" / "artifacts"
+    )
+
+
+def test_configured_artifact_path_is_respected(tmp_path):
+    assert resolve_artifacts_path(str(tmp_path)) == tmp_path
 
 
 def test_capability_manifest_advertises_required_active_capabilities():
