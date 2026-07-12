@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime
 import hashlib
@@ -135,7 +136,7 @@ def validate_event(
     event: Mapping[str, object],
     validator: Draft202012Validator | None,
 ) -> dict[str, object]:
-    document = dict(event)
+    document = deepcopy(dict(event))
     if "timestamp_utc" in document:
         validate_rfc3339_datetime(document["timestamp_utc"])
     if validator is not None:
