@@ -1,0 +1,43 @@
+{
+  "@context": {
+    "mns": "https://w3id.org/metastable-nucleation-suite/ontology#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#"
+  },
+  "@graph": [
+    {
+      "@id": "https://w3id.org/metastable-nucleation-suite/resource/specification/E09",
+      "@type": ["mns:ExperimentSpecification", "mns:PhysicalExperimentSpecification"],
+      "mns:identifier": "E09"
+    },
+    {
+      "@id": "https://w3id.org/metastable-nucleation-suite/resource/backend/lab-counter-tcp",
+      "@type": ["mns:Agent", "mns:HardwareBackend"],
+      "mns:identifier": "lab-counter-tcp",
+      "mns:supportsSpecification": {
+        "@id": "https://w3id.org/metastable-nucleation-suite/resource/specification/E09"
+      }
+    },
+    {
+      "@id": "https://w3id.org/metastable-nucleation-suite/resource/parameter/e09-gain",
+      "@type": "mns:Parameter",
+      "mns:parameterName": "gain",
+      "mns:numericValue": {"@value": 2.0, "@type": "xsd:double"}
+    },
+    {
+      "@id": "https://w3id.org/metastable-nucleation-suite/resource/run/planned-e09-hardware-demo",
+      "@type": ["mns:Execution", "mns:ExperimentRun"],
+      "mns:identifier": "planned-e09-hardware-demo",
+      "mns:executesSpecification": {
+        "@id": "https://w3id.org/metastable-nucleation-suite/resource/specification/E09"
+      },
+      "mns:usesBackend": {
+        "@id": "https://w3id.org/metastable-nucleation-suite/resource/backend/lab-counter-tcp"
+      },
+      "mns:hasExecutionStatus": {"@id": "mns:Planned"},
+      "mns:trialCount": {"@value": 2, "@type": "xsd:positiveInteger"},
+      "mns:hasParameter": {
+        "@id": "https://w3id.org/metastable-nucleation-suite/resource/parameter/e09-gain"
+      }
+    }
+  ]
+}
