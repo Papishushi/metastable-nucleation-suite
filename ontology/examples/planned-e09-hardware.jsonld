@@ -11,7 +11,7 @@
     },
     {
       "@id": "https://w3id.org/metastable-nucleation-suite/resource/backend/lab-counter-tcp",
-      "@type": ["mns:Agent", "mns:HardwareBackend"],
+      "@type": ["mns:Agent", "mns:ExecutionBackend", "mns:HardwareBackend"],
       "mns:identifier": "lab-counter-tcp",
       "mns:supportsSpecification": {
         "@id": "https://w3id.org/metastable-nucleation-suite/resource/specification/E09"
