@@ -66,3 +66,67 @@ def test_parquet_writer_snapshots_reused_mutable_payloads(tmp_path):
         {"metastate": 1},
         {"metastate": 2},
     ]
+
+
+def test_verification_rejects_media_type_format_mismatch(tmp_path):
+    manifest = write_events(
+        tmp_path / "events.ndjson",
+        "media-type-mismatch",
+        [_event(0)],
+        EVENT_SCHEMA,
+    )
+
+    inconsistent = replace(manifest, media_type="application/vnd.apache.parquet")
+    with pytest.raises(ValueError, match="media type does not match"):
+        verify_manifest(inconsistent)
+
+
+def test_verification_rejects_non_contiguous_partition_indexes(tmp_path):
+    manifest = write_events(
+        tmp_path / "events.parquet",
+        "bad-indexes",
+        [_event(0), _event(1), _event(2)],
+        EVENT_SCHEMA,
+        storage_format="parquet",
+        partition_size=2,
+    )
+    bad_second = replace(manifest.partitions[1], index=2)
+    inconsistent = replace(manifest, partitions=(manifest.partitions[0], bad_second))
+
+    with pytest.raises(ValueError, match="indexes must be unique and contiguous"):
+        verify_manifest(inconsistent)
+
+
+def test_verification_rejects_duplicate_partition_paths(tmp_path):
+    manifest = write_events(
+        tmp_path / "events.parquet",
+        "duplicate-paths",
+        [_event(0), _event(1), _event(2)],
+        EVENT_SCHEMA,
+        storage_format="parquet",
+        partition_size=2,
+    )
+    duplicate_second = replace(
+        manifest.partitions[1],
+        path=manifest.partitions[0].path,
+    )
+    inconsistent = replace(
+        manifest,
+        partitions=(manifest.partitions[0], duplicate_second),
+    )
+
+    with pytest.raises(ValueError, match="partition paths must be unique"):
+        verify_manifest(inconsistent)
+
+
+def test_verification_rejects_event_schema_version_mismatch(tmp_path):
+    manifest = write_events(
+        tmp_path / "events.ndjson",
+        "schema-version-mismatch",
+        [_event(0)],
+        EVENT_SCHEMA,
+    )
+
+    inconsistent = replace(manifest, schema_version="2.0.0")
+    with pytest.raises(ValueError, match="event schema version mismatch"):
+        verify_manifest(inconsistent)
