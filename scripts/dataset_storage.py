@@ -32,6 +32,8 @@ def main(argv: list[str] | None = None) -> int:
 
     args = parser.parse_args(argv)
     if args.command == "verify":
+        if not args.registry.is_file():
+            parser.error(f"registry does not exist or is not a file: {args.registry}")
         manifests = DatasetRegistry(args.registry).manifests()
         for manifest in manifests:
             verify_manifest(manifest)
