@@ -45,7 +45,17 @@ mns:CompletedExecutionProvenanceShape
 
 mns:EventDatasetShape
     a sh:NodeShape ;
-    sh:targetClass mns:Dataset ;
+    sh:target [
+        a sh:SPARQLTarget ;
+        sh:select """
+            PREFIX mns: <https://w3id.org/metastable-nucleation-suite/ontology#>
+            SELECT ?this WHERE {
+              ?this a mns:Dataset .
+              OPTIONAL { ?this mns:storageFormat ?format . }
+              FILTER (!BOUND(?format) || ?format = "ndjson")
+            }
+        """
+    ] ;
     sh:property [ sh:path mns:datasetPath ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
     sh:property [ sh:path mns:mediaType ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:hasValue "application/x-ndjson" ] ;
     sh:property [ sh:path mns:schemaVersion ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;

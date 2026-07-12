@@ -19,9 +19,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "ruff>=0.5"]
+dev = ["pytest>=8", "ruff>=0.5", "pyarrow>=16"]
 hardware = ["pyserial>=3.5", "pyvisa>=1.14"]
 visa-py = ["pyvisa>=1.14", "pyvisa-py>=0.7"]
+storage = ["pyarrow>=16"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

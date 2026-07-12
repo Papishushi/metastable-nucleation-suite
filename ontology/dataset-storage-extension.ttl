@@ -1,0 +1,45 @@
+@prefix mns: <https://w3id.org/metastable-nucleation-suite/ontology#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+mns:DatasetPartition a owl:Class ;
+    rdfs:subClassOf mns:Entity ;
+    rdfs:label "Dataset partition"@en .
+
+mns:hasDatasetPartition a owl:ObjectProperty ;
+    rdfs:domain mns:Dataset ;
+    rdfs:range mns:DatasetPartition .
+
+mns:datasetRegistryPath a owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain mns:Dataset ;
+    rdfs:range xsd:string .
+
+mns:storageFormat a owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain mns:Dataset ;
+    rdfs:range xsd:string .
+
+mns:partitionCount a owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain mns:Dataset ;
+    rdfs:range xsd:positiveInteger .
+
+mns:partitionIndex a owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain mns:DatasetPartition ;
+    rdfs:range xsd:nonNegativeInteger .
+
+mns:partitionPath a owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain mns:DatasetPartition ;
+    rdfs:range xsd:string .
+
+mns:partitionEventCount a owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain mns:DatasetPartition ;
+    rdfs:range xsd:nonNegativeInteger .
+
+mns:partitionSha256 a owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain mns:DatasetPartition ;
+    rdfs:range xsd:string .
+
+mns:partitionValuesJson a owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain mns:DatasetPartition ;
+    rdfs:range rdf:JSON .

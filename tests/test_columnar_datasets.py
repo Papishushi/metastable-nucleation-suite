@@ -1,0 +1,266 @@
+from dataclasses import replace
+import json
+from pathlib import Path
+import shutil
+
+import pytest
+from jsonschema import Draft202012Validator
+from pyshacl import validate
+from rdflib import Graph
+
+from metastable_suite.dataset_semantics import manifest_to_abox
+from metastable_suite.datasets import (
+    DatasetRegistry,
+    read_events,
+    read_manifest_events,
+    verify_manifest,
+    write_events,
+)
+
+ROOT = Path(__file__).resolve().parents[1]
+EVENT_SCHEMA = json.loads((ROOT / "schemas" / "event.schema.json").read_text(encoding="utf-8"))
+REGISTRY_SCHEMA = json.loads(
+    (ROOT / "schemas" / "dataset-registry.schema.json").read_text(encoding="utf-8")
+)
+
+
+def _event(index: int) -> dict:
+    return {
+        "schema_version": "1.0.0",
+        "event_id": f"event-{index}",
+        "run_id": "run-1",
+        "specification_id": "E09",
+        "trial_index": index,
+        "timestamp_utc": "2026-07-11T02:10:00Z",
+        "backend_id": "reference-simulator",
+        "settings": {"phase": index, "enabled": True},
+        "outcome": {"metastate": index % 2, "score": index + 0.25},
+        "diagnostics": {"temperature": 21.5, "stable": True},
+        "valid": index != 2,
+        "exclusion_reasons": ["synthetic_exclusion"] if index == 2 else [],
+        "firmware_version": "test",
+    }
+
+
+def test_parquet_round_trip_preserves_schema_values_and_partitions(tmp_path):
+    expected = [_event(index) for index in range(5)]
+    manifest = write_events(
+        tmp_path / "events.parquet",
+        "dataset-parquet",
+        expected,
+        EVENT_SCHEMA,
+        storage_format="parquet",
+        partition_size=2,
+    )
+
+    assert list(read_manifest_events(manifest)) == expected
+    assert list(read_events(manifest.path, "parquet")) == expected
+    assert Path(manifest.path).is_dir()
+    assert manifest.storage_format == "parquet"
+    assert manifest.media_type == "application/vnd.apache.parquet"
+    assert [partition.event_count for partition in manifest.partitions] == [2, 2, 1]
+    assert manifest.partitions[0].partition_values["run_id"] == "run-1"
+    verify_manifest(manifest)
+
+
+def test_parquet_multipart_replaces_stale_single_partition_file(tmp_path):
+    target = tmp_path / "events.parquet"
+    single_manifest = write_events(
+        target,
+        "single-parquet",
+        [_event(0)],
+        EVENT_SCHEMA,
+        storage_format="parquet",
+        partition_size=2,
+    )
+    assert Path(single_manifest.path).is_file()
+
+    expected = [_event(index) for index in range(3)]
+    multipart_manifest = write_events(
+        target,
+        "multipart-parquet",
+        expected,
+        EVENT_SCHEMA,
+        storage_format="parquet",
+        partition_size=2,
+    )
+
+    assert Path(multipart_manifest.path).is_dir()
+    assert list(read_events(multipart_manifest.path, "parquet")) == expected
+    assert all(
+        Path(partition.path).parent == Path(multipart_manifest.path)
+        for partition in multipart_manifest.partitions
+    )
+
+
+def test_verification_rejects_unmanifested_parquet_part(tmp_path):
+    manifest = write_events(
+        tmp_path / "events.parquet",
+        "dataset-parquet",
+        [_event(0), _event(1), _event(2)],
+        EVENT_SCHEMA,
+        storage_format="parquet",
+        partition_size=2,
+    )
+    extra_partition = Path(manifest.path) / "part-99999.parquet"
+    shutil.copyfile(manifest.partitions[0].path, extra_partition)
+
+    assert len(list(read_events(manifest.path, "parquet"))) > manifest.event_count
+    with pytest.raises(ValueError, match="unmanifested Parquet partition"):
+        verify_manifest(manifest)
+
+
+def test_verification_rejects_public_path_that_differs_from_partition(tmp_path):
+    manifest = write_events(
+        tmp_path / "events.parquet",
+        "dataset-parquet",
+        [_event(0)],
+        EVENT_SCHEMA,
+        storage_format="parquet",
+    )
+    misleading = tmp_path / "other.parquet"
+    shutil.copyfile(manifest.path, misleading)
+    inconsistent = replace(manifest, path=misleading.as_posix())
+
+    with pytest.raises(ValueError, match="must match its partition path"):
+        verify_manifest(inconsistent)
+
+
+def test_ndjson_manifest_uses_direct_file_hash_and_verifies(tmp_path):
+    manifest = write_events(
+        tmp_path / "events.ndjson",
+        "dataset-ndjson",
+        [_event(0), _event(1)],
+        EVENT_SCHEMA,
+    )
+
+    assert manifest.sha256 == manifest.partitions[0].sha256
+    verify_manifest(manifest)
+
+
+def test_parquet_writer_flushes_before_consuming_full_iterator(tmp_path, monkeypatch):
+    from metastable_suite import parquet_storage
+
+    first_partition_written = False
+    original_write_partition = parquet_storage._write_temporary_partition
+
+    def tracked_write_partition(*args, **kwargs):
+        nonlocal first_partition_written
+        first_partition_written = True
+        return original_write_partition(*args, **kwargs)
+
+    monkeypatch.setattr(
+        parquet_storage,
+        "_write_temporary_partition",
+        tracked_write_partition,
+    )
+
+    def events():
+        yield _event(0)
+        yield _event(1)
+        assert first_partition_written
+        yield _event(2)
+
+    manifest = write_events(
+        tmp_path / "events.parquet",
+        "streaming-parquet",
+        events(),
+        EVENT_SCHEMA,
+        storage_format="parquet",
+        partition_size=2,
+    )
+
+    assert [partition.event_count for partition in manifest.partitions] == [2, 1]
+
+
+def test_registry_records_format_schema_partitions_and_hashes(tmp_path):
+    manifest = write_events(
+        tmp_path / "events.ndjson",
+        "dataset-ndjson",
+        [_event(0), _event(1)],
+        EVENT_SCHEMA,
+    )
+    registry_path = tmp_path / "datasets.registry.json"
+    registry = DatasetRegistry(registry_path)
+    registry.register(manifest)
+
+    document = json.loads(registry_path.read_text(encoding="utf-8"))
+    Draft202012Validator(REGISTRY_SCHEMA).validate(document)
+    assert registry.get(manifest.dataset_id) == manifest
+    assert document["datasets"][manifest.dataset_id]["format"] == "ndjson"
+    assert document["datasets"][manifest.dataset_id]["schema_version"] == "1.0.0"
+    assert len(document["datasets"][manifest.dataset_id]["partitions"]) == 1
+
+
+def test_rdf_manifest_uses_same_dataset_model_for_ndjson_and_parquet(tmp_path):
+    shapes = Graph().parse(ROOT / "ontology" / "dataset-storage-shapes.ttl")
+    shapes.parse(ROOT / "ontology" / "execution-shapes.ttl")
+    ontology = Graph().parse(ROOT / "ontology" / "tbox.ttl")
+    ontology.parse(ROOT / "ontology" / "dataset-storage-extension.ttl")
+
+    for storage_format, suffix in (("ndjson", "ndjson"), ("parquet", "parquet")):
+        manifest = write_events(
+            tmp_path / f"events.{suffix}",
+            f"dataset-{storage_format}",
+            [_event(0), _event(1), _event(2)],
+            EVENT_SCHEMA,
+            storage_format=storage_format,
+            partition_size=2,
+        )
+        document = manifest_to_abox(manifest, "datasets.registry.json")
+        graph = Graph().parse(data=json.dumps(document), format="json-ld")
+        conforms, _, report = validate(
+            graph,
+            shacl_graph=shapes,
+            ont_graph=ontology,
+            advanced=True,
+        )
+        assert conforms, report
+        dataset = document["@graph"][0]
+        assert dataset["@type"] == "mns:Dataset"
+        assert dataset["mns:storageFormat"] == storage_format
+
+
+def test_legacy_ndjson_abox_remains_valid_with_composed_shapes():
+    shapes = Graph().parse(ROOT / "ontology" / "dataset-storage-shapes.ttl")
+    shapes.parse(ROOT / "ontology" / "execution-shapes.ttl")
+    ontology = Graph().parse(ROOT / "ontology" / "tbox.ttl")
+    ontology.parse(ROOT / "ontology" / "dataset-storage-extension.ttl")
+    document = {
+        "@context": {
+            "mns": "https://w3id.org/metastable-nucleation-suite/ontology#",
+            "xsd": "http://www.w3.org/2001/XMLSchema#",
+        },
+        "@id": "https://w3id.org/metastable-nucleation-suite/resource/dataset/legacy",
+        "@type": "mns:Dataset",
+        "mns:datasetPath": "legacy.events.ndjson",
+        "mns:mediaType": "application/x-ndjson",
+        "mns:schemaVersion": "1.0.0",
+        "mns:eventCount": {"@value": 1, "@type": "xsd:nonNegativeInteger"},
+        "mns:sha256": "0" * 64,
+    }
+    graph = Graph().parse(data=json.dumps(document), format="json-ld")
+
+    conforms, _, report = validate(
+        graph,
+        shacl_graph=shapes,
+        ont_graph=ontology,
+        advanced=True,
+    )
+
+    assert conforms, report
+
+
+def test_integrity_verification_detects_partition_tampering(tmp_path):
+    manifest = write_events(
+        tmp_path / "events.parquet",
+        "dataset-parquet",
+        [_event(0)],
+        EVENT_SCHEMA,
+        storage_format="parquet",
+    )
+    partition = Path(manifest.partitions[0].path)
+    partition.write_bytes(partition.read_bytes() + b"tampered")
+
+    with pytest.raises(ValueError, match="hash mismatch"):
+        verify_manifest(manifest)

@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/metastable-nucleation-suite/schema/dataset-registry.schema.json",
+  "title": "Metastable Nucleation Suite dataset registry",
+  "type": "object",
+  "required": ["schema_version", "datasets"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "datasets": {
+      "type": "object",
+      "additionalProperties": {"$ref": "#/$defs/manifest"}
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "partition": {
+      "type": "object",
+      "required": ["partition_id", "index", "path", "event_count", "sha256", "partition_values"],
+      "properties": {
+        "partition_id": {"type": "string", "minLength": 1},
+        "index": {"type": "integer", "minimum": 0},
+        "path": {"type": "string", "minLength": 1},
+        "event_count": {"type": "integer", "minimum": 0},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "partition_values": {
+          "type": "object",
+          "additionalProperties": {"type": ["string", "number", "integer", "boolean", "null"]}
+        }
+      },
+      "additionalProperties": false
+    },
+    "manifest": {
+      "type": "object",
+      "required": [
+        "dataset_id", "path", "format", "media_type", "schema_version",
+        "event_count", "sha256", "generated_at_utc", "partitions"
+      ],
+      "properties": {
+        "dataset_id": {"type": "string", "minLength": 1},
+        "path": {"type": "string", "minLength": 1},
+        "format": {"enum": ["ndjson", "parquet"]},
+        "media_type": {"enum": ["application/x-ndjson", "application/vnd.apache.parquet"]},
+        "schema_version": {"type": "string", "minLength": 1},
+        "event_count": {"type": "integer", "minimum": 0},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "generated_at_utc": {"type": "string", "format": "date-time"},
+        "partitions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/partition"}
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

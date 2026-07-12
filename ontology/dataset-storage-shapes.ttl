@@ -1,0 +1,47 @@
+@prefix mns: <https://w3id.org/metastable-nucleation-suite/ontology#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+mns:RegisteredDatasetShape
+    a sh:NodeShape ;
+    sh:target [
+        a sh:SPARQLTarget ;
+        sh:select """
+            PREFIX mns: <https://w3id.org/metastable-nucleation-suite/ontology#>
+            SELECT ?this WHERE {
+              ?this a mns:Dataset ; mns:storageFormat ?format .
+            }
+        """
+    ] ;
+    sh:property [ sh:path mns:identifier ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path mns:datasetPath ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path mns:datasetRegistryPath ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path mns:storageFormat ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:in ("ndjson" "parquet") ] ;
+    sh:property [ sh:path mns:mediaType ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:in ("application/x-ndjson" "application/vnd.apache.parquet") ] ;
+    sh:property [ sh:path mns:schemaVersion ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path mns:eventCount ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:nonNegativeInteger ] ;
+    sh:property [ sh:path mns:partitionCount ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:positiveInteger ] ;
+    sh:property [ sh:path mns:sha256 ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:pattern "^[0-9a-f]{64}$" ] ;
+    sh:property [ sh:path mns:hasDatasetPartition ; sh:minCount 1 ; sh:class mns:DatasetPartition ] ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "storageFormat and mediaType must agree." ;
+        sh:select """
+            PREFIX mns: <https://w3id.org/metastable-nucleation-suite/ontology#>
+            SELECT $this WHERE {
+              $this mns:storageFormat ?format ; mns:mediaType ?media .
+              FILTER ((?format = "ndjson" && ?media != "application/x-ndjson") ||
+                      (?format = "parquet" && ?media != "application/vnd.apache.parquet"))
+            }
+        """
+    ] .
+
+mns:DatasetPartitionShape
+    a sh:NodeShape ;
+    sh:targetClass mns:DatasetPartition ;
+    sh:property [ sh:path mns:identifier ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path mns:partitionIndex ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:nonNegativeInteger ] ;
+    sh:property [ sh:path mns:partitionPath ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path mns:partitionEventCount ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:nonNegativeInteger ] ;
+    sh:property [ sh:path mns:partitionSha256 ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:pattern "^[0-9a-f]{64}$" ] ;
+    sh:property [ sh:path mns:partitionValuesJson ; sh:minCount 1 ; sh:maxCount 1 ] .
