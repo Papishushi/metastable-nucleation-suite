@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 from typing import Any, Mapping
@@ -69,6 +70,32 @@ def validate_backend_configuration(
                 f"duplicate backend id {backend_id!r}"
             )
         identifiers.add(backend_id)
+
+
+def load_backend_configuration(
+    configuration_path: str | Path,
+    schema_path: str | Path,
+) -> dict[str, Any]:
+    document = _read_json_object(
+        configuration_path,
+        label="backend configuration",
+    )
+    schema = _read_json_object(
+        schema_path,
+        label="backend configuration schema",
+    )
+    validate_backend_configuration(document, schema)
+    return document
+
+
+def backend_configuration_fingerprint(document: Mapping[str, Any]) -> str:
+    encoded = json.dumps(
+        document,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
 
 
 def _retry_policy(definition: Mapping[str, Any]) -> RetryPolicy:
@@ -157,13 +184,5 @@ def load_backend_registry(
     *,
     registry: BackendRegistry | None = None,
 ) -> BackendRegistry:
-    document = _read_json_object(
-        configuration_path,
-        label="backend configuration",
-    )
-    schema = _read_json_object(
-        schema_path,
-        label="backend configuration schema",
-    )
-    validate_backend_configuration(document, schema)
+    document = load_backend_configuration(configuration_path, schema_path)
     return build_backend_registry(document, registry=registry)
