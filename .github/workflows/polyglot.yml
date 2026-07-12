@@ -99,14 +99,22 @@ jobs:
                   'contracts/v1/server-capabilities.schema.json',
                   {
                       'schema_version': '1.0.0',
-                      'server_version': '0.1.0',
+                      'server_version': '0.2.0',
                       'generated_at_utc': '2026-07-12T12:00:00Z',
                       'capabilities': [
                           {
                               'id': 'experiments.execute.v1',
                               'status': 'active',
                               'since_version': '0.1.0',
-                          }
+                          },
+                          {
+                              'id': 'experiments.plan.v1',
+                              'status': 'deprecated',
+                              'since_version': '0.1.0',
+                              'deprecated_since_version': '0.2.0',
+                              'sunset_at_utc': '2027-01-01T00:00:00Z',
+                              'replacement': 'experiments.execute.v1',
+                          },
                       ],
                   },
               ),
@@ -127,11 +135,12 @@ jobs:
         run: docker compose build --quiet
       - name: Start scientific worker
         run: docker compose up -d --wait scientific-worker
-      - name: Smoke test CLI image
+      - name: Smoke test CLI image and capability discovery
         run: |
           docker compose run --rm --no-deps platform-cli --version
           docker compose run --rm --no-deps platform-cli --self-test
-      - name: Execute distributed request
+          docker compose run --rm --no-deps platform-cli capabilities
+      - name: Execute capability-gated distributed request
         id: distributed-request
         shell: bash
         run: |
