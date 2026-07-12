@@ -12,7 +12,6 @@ from uuid import UUID
 
 HOST = os.environ.get("METASTABLE_WORKER_HOST", "0.0.0.0")
 PORT = int(os.environ.get("METASTABLE_WORKER_PORT", "8081"))
-ARTIFACTS = Path(os.environ.get("METASTABLE_ARTIFACTS", "/artifacts"))
 SERVER_VERSION = "0.1.0"
 CAPABILITY_SCHEMA_VERSION = "1.0.0"
 REQUEST_FIELDS = frozenset(
@@ -33,6 +32,15 @@ CAPABILITIES = (
         "since_version": "0.1.0",
     },
 )
+
+
+def resolve_artifacts_path(configured_path: str | None = None) -> Path:
+    if configured_path:
+        return Path(configured_path).expanduser()
+    return Path.home() / ".metastable-nucleation-suite" / "artifacts"
+
+
+ARTIFACTS = resolve_artifacts_path(os.environ.get("METASTABLE_ARTIFACTS"))
 
 
 def utc_now_rfc3339() -> str:
