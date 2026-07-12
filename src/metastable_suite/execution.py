@@ -195,6 +195,9 @@ def execute_request(
         raise ValueError(
             f"backend {request.backend_id!r} declares unsupported kind {backend_kind!r}"
         )
+    effective_random_seed = request.random_seed
+    if backend_kind == "simulator" and effective_random_seed is None:
+        effective_random_seed = 0
     dataset_path = safe_output_path(output_dir, f"{run_id}.events.ndjson")
     dataset_id = f"{run_id}-events"
 
@@ -256,7 +259,7 @@ def execute_request(
         diagnostics=diagnostics,
         valid_trials=valid_trials,
         invalid_trials=invalid_trials,
-        random_seed=request.random_seed,
+        random_seed=effective_random_seed,
     )
 
 
@@ -284,9 +287,10 @@ def result_to_abox(result: ExecutionResult) -> dict[str, Any]:
             else "mns:PhysicalExperimentSpecification"
         ),
     ]
-    backend_types = ["mns:Agent", "mns:HardwareBackend"]
-    if simulator:
-        backend_types.append("mns:SimulatorBackend")
+    backend_types = ["mns:Agent", "mns:ExecutionBackend"]
+    backend_types.append(
+        "mns:SimulatorBackend" if simulator else "mns:HardwareBackend"
+    )
 
     run_node: dict[str, Any] = {
         "@id": run_iri,
