@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+import shutil
 
 import pytest
 from jsonschema import Draft202012Validator
@@ -89,6 +90,23 @@ def test_parquet_multipart_replaces_stale_single_partition_file(tmp_path):
         Path(partition.path).parent == Path(multipart_manifest.path)
         for partition in multipart_manifest.partitions
     )
+
+
+def test_verification_rejects_unmanifested_parquet_part(tmp_path):
+    manifest = write_events(
+        tmp_path / "events.parquet",
+        "dataset-parquet",
+        [_event(0), _event(1), _event(2)],
+        EVENT_SCHEMA,
+        storage_format="parquet",
+        partition_size=2,
+    )
+    extra_partition = Path(manifest.path) / "part-99999.parquet"
+    shutil.copyfile(manifest.partitions[0].path, extra_partition)
+
+    assert len(list(read_events(manifest.path, "parquet"))) > manifest.event_count
+    with pytest.raises(ValueError, match="unmanifested Parquet partition"):
+        verify_manifest(manifest)
 
 
 def test_ndjson_manifest_uses_direct_file_hash_and_verifies(tmp_path):
