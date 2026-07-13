@@ -97,9 +97,13 @@ class BackendRegistry:
         except KeyError as exc:
             raise ValueError(f"unknown backend {request.backend_id!r}") from exc
 
+        if request.execution_kind is not None and registered_kind is None:
+            raise ValueError(
+                f"semantic execution {request.run_id!r} requires backend "
+                f"{request.backend_id!r} to be registered with explicit backend_kind"
+            )
         if (
             request.execution_kind is not None
-            and registered_kind is not None
             and request.execution_kind != registered_kind
         ):
             raise ValueError(
@@ -107,9 +111,8 @@ class BackendRegistry:
                 f"but backend {request.backend_id!r} is {registered_kind!r}"
             )
 
-        kind_hint = registered_kind or request.execution_kind
         factory_request = request
-        if kind_hint == "simulator" and request.random_seed is None:
+        if registered_kind == "simulator" and request.random_seed is None:
             factory_request = replace(request, random_seed=0)
 
         backend = factory(factory_request)
@@ -255,7 +258,7 @@ def execute_request(
     backend_kind = (
         str(declared_backend_kind)
         if declared_backend_kind is not None
-        else registered_kind or request.execution_kind or "hardware"
+        else registered_kind or "hardware"
     )
     if backend_kind not in BACKEND_KINDS:
         raise ValueError(
