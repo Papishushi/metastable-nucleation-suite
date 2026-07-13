@@ -20,6 +20,6 @@ cargo fmt --check
 cargo clippy --locked --all-targets -- -D warnings
 cargo clippy --locked --target wasm32-unknown-unknown --lib --tests -- -D warnings
 cargo test --locked
-wasm-pack test visualizer --headless --chrome -- --locked --test wasm
+wasm-pack test --headless --chrome visualizer -- --locked --test wasm
 cargo build --locked --release --target wasm32-unknown-unknown
 ```

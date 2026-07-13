@@ -39,7 +39,7 @@ jobs:
       - name: Install pinned WASM browser test runner
         run: cargo install wasm-pack --version 0.13.1 --locked
       - name: Run contract validation through generated bindings in headless Chrome
-        run: wasm-pack test visualizer --headless --chrome -- --locked --test wasm
+        run: wasm-pack test --headless --chrome visualizer -- --locked --test wasm
       - name: Build the browser target
         run: cargo build --locked --release --target wasm32-unknown-unknown
 
