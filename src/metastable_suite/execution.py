@@ -67,7 +67,7 @@ class BackendRegistry:
             str,
             tuple[
                 Callable[[ExecutionRequest], ExperimentalBackend],
-                str | None,
+                str,
             ],
         ] = {}
 
@@ -76,15 +76,15 @@ class BackendRegistry:
         backend_id: str,
         factory: Callable[[ExecutionRequest], ExperimentalBackend],
         *,
-        backend_kind: str | None = None,
+        backend_kind: str,
     ) -> None:
         if not backend_id or backend_id in self._factories:
             raise ValueError(f"backend already registered or invalid: {backend_id!r}")
-        if backend_kind not in BACKEND_KINDS | {None}:
+        if backend_kind not in BACKEND_KINDS:
             raise ValueError(f"unsupported backend kind {backend_kind!r}")
         self._factories[backend_id] = (factory, backend_kind)
 
-    def registered_kind(self, backend_id: str) -> str | None:
+    def registered_kind(self, backend_id: str) -> str:
         try:
             _, backend_kind = self._factories[backend_id]
         except KeyError as exc:
@@ -97,11 +97,6 @@ class BackendRegistry:
         except KeyError as exc:
             raise ValueError(f"unknown backend {request.backend_id!r}") from exc
 
-        if request.execution_kind is not None and registered_kind is None:
-            raise ValueError(
-                f"semantic execution {request.run_id!r} requires backend "
-                f"{request.backend_id!r} to be registered with explicit backend_kind"
-            )
         if (
             request.execution_kind is not None
             and request.execution_kind != registered_kind
@@ -110,6 +105,10 @@ class BackendRegistry:
                 f"execution {request.run_id!r} expects {request.execution_kind!r} "
                 f"but backend {request.backend_id!r} is {registered_kind!r}"
             )
+        if registered_kind == "hardware" and request.random_seed is not None:
+            raise ValueError(
+                f"hardware execution {request.run_id!r} must not declare random_seed"
+            )
 
         factory_request = request
         if registered_kind == "simulator" and request.random_seed is None:
@@ -117,11 +116,7 @@ class BackendRegistry:
 
         backend = factory(factory_request)
         declared_kind = getattr(backend, "backend_kind", None)
-        if (
-            declared_kind is not None
-            and registered_kind is not None
-            and declared_kind != registered_kind
-        ):
+        if declared_kind is not None and declared_kind != registered_kind:
             raise ValueError(
                 f"backend {request.backend_id!r} was registered as "
                 f"{registered_kind!r} but declares {declared_kind!r}"
@@ -258,11 +253,16 @@ def execute_request(
     backend_kind = (
         str(declared_backend_kind)
         if declared_backend_kind is not None
-        else registered_kind or "hardware"
+        else registered_kind
     )
     if backend_kind not in BACKEND_KINDS:
         raise ValueError(
             f"backend {request.backend_id!r} declares unsupported kind {backend_kind!r}"
+        )
+    if backend_kind != registered_kind:
+        raise ValueError(
+            f"backend {request.backend_id!r} was registered as {registered_kind!r} "
+            f"but declares {backend_kind!r}"
         )
     if (
         request.execution_kind is not None
@@ -276,10 +276,6 @@ def execute_request(
     effective_random_seed = request.random_seed
     if backend_kind == "simulator" and effective_random_seed is None:
         effective_random_seed = 0
-    if backend_kind == "hardware" and effective_random_seed is not None:
-        raise ValueError(
-            f"hardware execution {run_id!r} must not declare random_seed"
-        )
 
     dataset_path = safe_output_path(output_dir, f"{run_id}.events.ndjson")
     dataset_id = f"{run_id}-events"
