@@ -16,6 +16,7 @@ El repositorio separa explícitamente tres cosas que suelen mezclarse:
 
 ## Qué contiene
 
+- `INSTALL.md`: instalación y verificación de releases sin clonar el repositorio.
 - `docs/01_marco_cientifico.md`: términos, supuestos y límites.
 - `docs/02_matriz_hipotesis.md`: hipótesis ordenadas desde química ordinaria hasta nueva física.
 - `docs/03_suite_experimentos.md`: desarrollo científico de los 15 experimentos.
