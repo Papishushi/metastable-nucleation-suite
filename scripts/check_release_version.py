@@ -6,6 +6,7 @@ import re
 import sys
 import tomllib
 from pathlib import Path
+from xml.etree import ElementTree
 
 ROOT = Path(__file__).resolve().parents[1]
 SEMVER = re.compile(
@@ -29,6 +30,14 @@ def citation_version() -> str:
     return match.group(1)
 
 
+def dotnet_version() -> str:
+    document = ElementTree.parse(ROOT / "dotnet" / "Directory.Build.props")
+    version = document.findtext("./PropertyGroup/Version")
+    if version is None or not version.strip():
+        raise ValueError("dotnet/Directory.Build.props has no Version property")
+    return version.strip()
+
+
 def validate_metadata(tag: str | None = None) -> str:
     version = canonical_version()
     pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
@@ -39,6 +48,8 @@ def validate_metadata(tag: str | None = None) -> str:
         raise ValueError("pyproject.toml must declare dynamic version metadata")
     if citation_version() != version:
         raise ValueError("CITATION.cff version does not match VERSION")
+    if dotnet_version() != version:
+        raise ValueError("dotnet/Directory.Build.props version does not match VERSION")
     if tag is not None:
         normalized = tag.removeprefix("refs/tags/")
         if normalized != f"v{version}":
@@ -55,7 +66,7 @@ def main() -> int:
     args = parser.parse_args()
     try:
         version = validate_metadata(args.tag)
-    except (KeyError, OSError, ValueError) as exc:
+    except (ElementTree.ParseError, KeyError, OSError, ValueError) as exc:
         print(f"release metadata validation failed: {exc}", file=sys.stderr)
         return 1
     print(version)
