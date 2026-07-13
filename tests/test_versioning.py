@@ -3,6 +3,8 @@ import re
 import subprocess
 import sys
 
+import pytest
+
 from metastable_suite import __version__
 from scripts.check_release_version import (
     canonical_version,
@@ -43,3 +45,8 @@ def test_python_distribution_version_normalizes_semver_prerelease():
     assert python_distribution_version("0.3.0-rc.1") == "0.3.0rc1"
     assert python_distribution_version("0.3.0-beta.2") == "0.3.0b2"
     assert python_distribution_version("0.3.0-alpha.4") == "0.3.0a4"
+
+
+def test_python_distribution_version_rejects_numeric_semver_prerelease():
+    with pytest.raises(ValueError, match="does not map to a PEP 440 prerelease"):
+        python_distribution_version("0.3.0-1")
