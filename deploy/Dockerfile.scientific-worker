@@ -1,14 +1,25 @@
 FROM python:3.14-slim AS runtime
+ARG VERSION=0.0.0-dev
+ARG REVISION=unknown
+
+LABEL org.opencontainers.image.title="Metastable Scientific Worker" \
+      org.opencontainers.image.description="Scientific execution worker for the Metastable Nucleation Suite" \
+      org.opencontainers.image.source="https://github.com/Papishushi/metastable-nucleation-suite" \
+      org.opencontainers.image.version="$VERSION" \
+      org.opencontainers.image.revision="$REVISION" \
+      org.opencontainers.image.licenses="MIT"
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    METASTABLE_ARTIFACTS=/artifacts
+    METASTABLE_ARTIFACTS=/artifacts \
+    METASTABLE_VERSION=$VERSION
 
 RUN useradd --create-home --uid 10001 worker \
     && mkdir -p /app /artifacts \
     && chown -R worker:worker /app /artifacts
 
 WORKDIR /app
+COPY VERSION /app/VERSION
 COPY services/scientific_worker.py /app/scientific_worker.py
 
 USER worker
