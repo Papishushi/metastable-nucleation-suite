@@ -135,6 +135,12 @@ jobs:
         run: docker compose build --quiet
       - name: Start scientific worker
         run: docker compose up -d --wait scientific-worker
+      - name: Verify compose worker canonical version
+        shell: bash
+        run: |
+          expected="$(tr -d '\r\n' < VERSION)"
+          actual="$(docker compose exec -T scientific-worker python -c "import json, urllib.request; print(json.load(urllib.request.urlopen('http://127.0.0.1:8081/v1/capabilities'))['server_version'])")"
+          test "$actual" = "$expected"
       - name: Smoke test CLI image and capability discovery
         run: |
           docker compose run --rm --no-deps platform-cli --version
