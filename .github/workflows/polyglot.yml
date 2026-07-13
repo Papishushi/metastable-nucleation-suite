@@ -4,6 +4,10 @@ on:
   pull_request:
     paths:
       - "dotnet/**"
+      - "visualizer/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
       - "global.json"
       - "contracts/**"
       - "services/**"
@@ -14,6 +18,23 @@ on:
     branches: [main]
 
 jobs:
+  rust-wasm-visualizer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.0
+      - name: Show pinned Rust toolchain
+        run: |
+          rustc --version
+          cargo --version
+      - name: Check formatting
+        run: cargo fmt --check
+      - name: Lint native targets
+        run: cargo clippy --all-targets -- -D warnings
+      - name: Run native contract and invariant tests
+        run: cargo test
+      - name: Build the browser target
+        run: cargo build --release --target wasm32-unknown-unknown
+
   build-artifacts:
     strategy:
       fail-fast: false
@@ -117,6 +138,12 @@ jobs:
                           },
                       ],
                   },
+              ),
+              (
+                  'contracts/v1/visualization-scene.schema.json',
+                  json.load(open(
+                      'contracts/v1/fixtures/visualization-scene-e09.json'
+                  )),
               ),
           ]
 

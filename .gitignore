@@ -8,3 +8,4 @@ dist/
 *.egg-info/
 artifacts/*.json
 .DS_Store
+/target/

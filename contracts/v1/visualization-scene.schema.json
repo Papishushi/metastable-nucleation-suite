@@ -1,0 +1,203 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/metastable-nucleation-suite/contracts/v1/visualization-scene.schema.json",
+  "title": "Scientific visualization scene",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "scene_id",
+    "generated_at_utc",
+    "experiment_id",
+    "projection_kind",
+    "coordinate_system",
+    "provenance",
+    "layers",
+    "entities",
+    "transitions"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "scene_id": {"$ref": "#/$defs/identifier"},
+    "generated_at_utc": {"type": "string", "format": "date-time"},
+    "experiment_id": {
+      "type": "string",
+      "pattern": "^E(0[1-9]|1[0-5])$"
+    },
+    "projection_kind": {
+      "enum": ["physical", "abstract", "hybrid"]
+    },
+    "coordinate_system": {"$ref": "#/$defs/coordinateSystem"},
+    "provenance": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/sourceArtifact"}
+    },
+    "layers": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/layer"}
+    },
+    "entities": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/entity"}
+    },
+    "transitions": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/transition"}
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+    },
+    "vector3": {
+      "type": "array",
+      "prefixItems": [
+        {"type": "number"},
+        {"type": "number"},
+        {"type": "number"}
+      ],
+      "items": false
+    },
+    "coordinateSystem": {
+      "type": "object",
+      "required": [
+        "frame_id",
+        "kind",
+        "handedness",
+        "abstract_space",
+        "origin_description",
+        "axes"
+      ],
+      "properties": {
+        "frame_id": {"$ref": "#/$defs/identifier"},
+        "kind": {"const": "cartesian_3d"},
+        "handedness": {"enum": ["right", "left"]},
+        "abstract_space": {"type": "boolean"},
+        "origin_description": {"type": "string", "minLength": 1},
+        "axes": {
+          "type": "object",
+          "required": ["x", "y", "z"],
+          "properties": {
+            "x": {"$ref": "#/$defs/axis"},
+            "y": {"$ref": "#/$defs/axis"},
+            "z": {"$ref": "#/$defs/axis"}
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "axis": {
+      "type": "object",
+      "required": ["label", "unit"],
+      "properties": {
+        "label": {"type": "string", "minLength": 1},
+        "unit": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    },
+    "sourceArtifact": {
+      "type": "object",
+      "required": ["id", "uri", "sha256", "semantic_role"],
+      "properties": {
+        "id": {"$ref": "#/$defs/identifier"},
+        "uri": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "semantic_role": {
+          "enum": ["raw", "calibration", "derived", "semantic", "model"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "layer": {
+      "type": "object",
+      "required": ["id", "label", "scientific_role", "visible_by_default"],
+      "properties": {
+        "id": {"$ref": "#/$defs/identifier"},
+        "label": {"type": "string", "minLength": 1},
+        "scientific_role": {
+          "enum": ["measured", "derived", "inferred", "illustrative"]
+        },
+        "visible_by_default": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    },
+    "entity": {
+      "type": "object",
+      "required": [
+        "id",
+        "layer_id",
+        "entity_type",
+        "label",
+        "position",
+        "provenance_refs"
+      ],
+      "properties": {
+        "id": {"$ref": "#/$defs/identifier"},
+        "layer_id": {"$ref": "#/$defs/identifier"},
+        "entity_type": {"$ref": "#/$defs/identifier"},
+        "label": {"type": "string", "minLength": 1},
+        "position": {"$ref": "#/$defs/vector3"},
+        "provenance_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/identifier"}
+        },
+        "uncertainty": {"$ref": "#/$defs/uncertainty"},
+        "attributes": {"$ref": "#/$defs/attributes"}
+      },
+      "additionalProperties": false
+    },
+    "transition": {
+      "type": "object",
+      "required": [
+        "id",
+        "layer_id",
+        "from_entity_id",
+        "to_entity_id",
+        "timestamp_utc",
+        "interpolation",
+        "provenance_refs"
+      ],
+      "properties": {
+        "id": {"$ref": "#/$defs/identifier"},
+        "layer_id": {"$ref": "#/$defs/identifier"},
+        "from_entity_id": {"$ref": "#/$defs/identifier"},
+        "to_entity_id": {"$ref": "#/$defs/identifier"},
+        "timestamp_utc": {"type": "string", "format": "date-time"},
+        "interpolation": {"enum": ["none", "linear", "model"]},
+        "provenance_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/identifier"}
+        },
+        "attributes": {"$ref": "#/$defs/attributes"}
+      },
+      "additionalProperties": false
+    },
+    "uncertainty": {
+      "type": "object",
+      "required": ["standard_deviation", "confidence_level"],
+      "properties": {
+        "standard_deviation": {"$ref": "#/$defs/vector3"},
+        "confidence_level": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "attributes": {
+      "type": "object",
+      "additionalProperties": {
+        "type": ["string", "number", "integer", "boolean", "null"]
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0.0",
+  "event_id": "e09-reference-trial-000042-node-a",
+  "run_id": "reference-seed-7",
+  "specification_id": "E09",
+  "trial_index": 42,
+  "timestamp_utc": "2026-07-13T19:00:01Z",
+  "backend_id": "reference-simulator",
+  "outcome": {
+    "node_id": "A",
+    "binary_metastate": 1,
+    "commit_time_ns": 1842
+  },
+  "valid": true,
+  "exclusion_reasons": []
+}

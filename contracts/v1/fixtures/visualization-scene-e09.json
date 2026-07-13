@@ -1,0 +1,97 @@
+{
+  "schema_version": "1.0.0",
+  "scene_id": "e09-reference-scene",
+  "generated_at_utc": "2026-07-13T19:00:00Z",
+  "experiment_id": "E09",
+  "projection_kind": "abstract",
+  "coordinate_system": {
+    "frame_id": "e09-abstract-state-space",
+    "kind": "cartesian_3d",
+    "handedness": "right",
+    "abstract_space": true,
+    "origin_description": "Dimensionless layout separating node identity and binary metastable state; not measured physical geometry.",
+    "axes": {
+      "x": {"label": "node separation", "unit": "dimensionless"},
+      "y": {"label": "metastable state", "unit": "dimensionless"},
+      "z": {"label": "trial ordering", "unit": "dimensionless"}
+    }
+  },
+  "provenance": [
+    {
+      "id": "completed-abox",
+      "uri": "ontology/examples/reference-run.jsonld",
+      "sha256": "a241775a48e3866e27378ad2e9cc1ab29a19937fc94077f06f92b233ada028d0",
+      "semantic_role": "semantic"
+    },
+    {
+      "id": "event-chunk-0001",
+      "uri": "contracts/v1/fixtures/e09-event-000042.json",
+      "sha256": "b3bb75b06009d75c3941d0eb1d0773ce7ea1b8cab4818b978f85f62a7bb17a6e",
+      "semantic_role": "raw"
+    }
+  ],
+  "layers": [
+    {
+      "id": "state-space",
+      "label": "Derived state-space layout",
+      "scientific_role": "derived",
+      "visible_by_default": true
+    },
+    {
+      "id": "observed-events",
+      "label": "Measured transition events",
+      "scientific_role": "measured",
+      "visible_by_default": true
+    }
+  ],
+  "entities": [
+    {
+      "id": "node-a-state-0",
+      "layer_id": "state-space",
+      "entity_type": "metastable_state",
+      "label": "Node A state 0",
+      "position": [-1.0, -1.0, 0.0],
+      "provenance_refs": ["completed-abox"],
+      "attributes": {"node_id": "A", "state": 0}
+    },
+    {
+      "id": "node-a-state-1",
+      "layer_id": "state-space",
+      "entity_type": "metastable_state",
+      "label": "Node A state 1",
+      "position": [-1.0, 1.0, 0.0],
+      "provenance_refs": ["completed-abox"],
+      "attributes": {"node_id": "A", "state": 1}
+    },
+    {
+      "id": "node-b-state-0",
+      "layer_id": "state-space",
+      "entity_type": "metastable_state",
+      "label": "Node B state 0",
+      "position": [1.0, -1.0, 0.0],
+      "provenance_refs": ["completed-abox"],
+      "attributes": {"node_id": "B", "state": 0}
+    },
+    {
+      "id": "node-b-state-1",
+      "layer_id": "state-space",
+      "entity_type": "metastable_state",
+      "label": "Node B state 1",
+      "position": [1.0, 1.0, 0.0],
+      "provenance_refs": ["completed-abox"],
+      "attributes": {"node_id": "B", "state": 1}
+    }
+  ],
+  "transitions": [
+    {
+      "id": "trial-000042-node-a",
+      "layer_id": "observed-events",
+      "from_entity_id": "node-a-state-0",
+      "to_entity_id": "node-a-state-1",
+      "timestamp_utc": "2026-07-13T19:00:01Z",
+      "interpolation": "none",
+      "provenance_refs": ["event-chunk-0001"],
+      "attributes": {"trial_index": 42, "commit_time_ns": 1842, "valid": true}
+    }
+  ]
+}
