@@ -57,6 +57,6 @@ def test_release_workflow_marks_unstable_versions_as_github_prereleases():
         encoding="utf-8"
     )
 
-    assert 'needs.metadata.outputs.stable != "true"' in workflow
+    assert "needs.metadata.outputs.stable }}' != \"true\"" in workflow
     assert "release_flags+=(--prerelease)" in workflow
     assert '"${release_flags[@]}"' in workflow
