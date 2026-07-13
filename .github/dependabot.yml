@@ -59,3 +59,12 @@ updates:
       day: "monday"
       time: "07:15"
       timezone: "Europe/Madrid"
+
+  # Rust crates used by the WebAssembly visualizer
+  - package-ecosystem: "cargo"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "07:30"
+      timezone: "Europe/Madrid"

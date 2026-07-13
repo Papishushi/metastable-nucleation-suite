@@ -1,0 +1,295 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/metastable-nucleation-suite/contracts/v1/visualization-scene.schema.json",
+  "title": "Scientific visualization scene",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "scene_id",
+    "generated_at_utc",
+    "experiment_id",
+    "projection_kind",
+    "coordinate_system",
+    "provenance",
+    "layers",
+    "entities",
+    "transitions"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "scene_id": {"$ref": "#/$defs/identifier"},
+    "generated_at_utc": {"type": "string", "format": "date-time"},
+    "experiment_id": {
+      "type": "string",
+      "description": "Stable experiment identifier. Adapter capabilities advertise which identifiers have visualization mappings.",
+      "pattern": "^E[0-9]{2,}$"
+    },
+    "projection_kind": {"enum": ["physical", "abstract", "hybrid"]},
+    "coordinate_system": {"$ref": "#/$defs/coordinateSystem"},
+    "provenance": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/sourceArtifact"}
+    },
+    "layers": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/layer"}
+    },
+    "entities": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/entity"}
+    },
+    "transitions": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/transition"}
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+    },
+    "vector3": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "prefixItems": [
+        {"type": "number"},
+        {"type": "number"},
+        {"type": "number"}
+      ],
+      "items": false
+    },
+    "nonnegativeVector3": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "prefixItems": [
+        {"type": "number", "minimum": 0},
+        {"type": "number", "minimum": 0},
+        {"type": "number", "minimum": 0}
+      ],
+      "items": false
+    },
+    "coordinateSystem": {
+      "type": "object",
+      "required": ["frame_id", "kind", "handedness", "abstract_space", "origin_description", "axes"],
+      "properties": {
+        "frame_id": {"$ref": "#/$defs/identifier"},
+        "kind": {"const": "cartesian_3d"},
+        "handedness": {"enum": ["right", "left"]},
+        "abstract_space": {"type": "boolean"},
+        "origin_description": {"type": "string", "minLength": 1},
+        "axes": {
+          "type": "object",
+          "required": ["x", "y", "z"],
+          "properties": {
+            "x": {"$ref": "#/$defs/axis"},
+            "y": {"$ref": "#/$defs/axis"},
+            "z": {"$ref": "#/$defs/axis"}
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "axis": {
+      "type": "object",
+      "required": ["label", "unit"],
+      "properties": {
+        "label": {"type": "string", "minLength": 1},
+        "unit": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    },
+    "sourceArtifact": {
+      "type": "object",
+      "required": ["id", "uri", "sha256", "semantic_role"],
+      "properties": {
+        "id": {"$ref": "#/$defs/identifier"},
+        "uri": {
+          "type": "string",
+          "description": "Normalized bundle-relative path resolved below the scene bundle root; never a remote URI.",
+          "pattern": "^[A-Za-z0-9_-][A-Za-z0-9._-]*(/[A-Za-z0-9_-][A-Za-z0-9._-]*)*$"
+        },
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "semantic_role": {"enum": ["raw", "calibration", "derived", "semantic", "model"]}
+      },
+      "additionalProperties": false
+    },
+    "sourceReference": {
+      "type": "object",
+      "required": ["artifact_id", "run_id", "record_id"],
+      "properties": {
+        "artifact_id": {"$ref": "#/$defs/identifier"},
+        "run_id": {"$ref": "#/$defs/identifier"},
+        "record_id": {"$ref": "#/$defs/identifier"},
+        "event_id": {"$ref": "#/$defs/identifier"},
+        "partition": {"type": "string", "minLength": 1},
+        "row_group": {"type": "integer", "minimum": 0}
+      },
+      "additionalProperties": false
+    },
+    "sourceReferences": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/sourceReference"}
+    },
+    "scientificRole": {"enum": ["measured", "derived", "inferred", "illustrative"]},
+    "layer": {
+      "type": "object",
+      "required": ["id", "label", "scientific_role", "visible_by_default"],
+      "properties": {
+        "id": {"$ref": "#/$defs/identifier"},
+        "label": {"type": "string", "minLength": 1},
+        "scientific_role": {"$ref": "#/$defs/scientificRole"},
+        "visible_by_default": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    },
+    "entity": {
+      "type": "object",
+      "required": ["id", "layer_id", "entity_type", "label", "position", "source_refs"],
+      "properties": {
+        "id": {"$ref": "#/$defs/identifier"},
+        "layer_id": {"$ref": "#/$defs/identifier"},
+        "entity_type": {"$ref": "#/$defs/identifier"},
+        "label": {"type": "string", "minLength": 1},
+        "position": {"$ref": "#/$defs/vector3"},
+        "source_refs": {"$ref": "#/$defs/sourceReferences"},
+        "uncertainty": {"$ref": "#/$defs/uncertainty"},
+        "attributes": {"$ref": "#/$defs/attributes"}
+      },
+      "additionalProperties": false
+    },
+    "geometryMapping": {
+      "type": "object",
+      "required": ["scientific_role", "method_id", "source_refs"],
+      "properties": {
+        "scientific_role": {"$ref": "#/$defs/scientificRole"},
+        "method_id": {"$ref": "#/$defs/identifier"},
+        "source_refs": {"$ref": "#/$defs/sourceReferences"}
+      },
+      "additionalProperties": false
+    },
+    "transition": {
+      "type": "object",
+      "required": [
+        "id", "layer_id", "from_entity_id", "to_entity_id", "timestamp_utc",
+        "interpolation", "observation_role", "geometry_mapping", "trial_id",
+        "correlation_id", "trial_index", "node_id", "valid", "exclusion_reasons",
+        "source_refs"
+      ],
+      "properties": {
+        "id": {"$ref": "#/$defs/identifier"},
+        "layer_id": {"$ref": "#/$defs/identifier"},
+        "from_entity_id": {"$ref": "#/$defs/identifier"},
+        "to_entity_id": {"$ref": "#/$defs/identifier"},
+        "timestamp_utc": {"type": "string", "format": "date-time"},
+        "interpolation": {"enum": ["none", "linear", "model"]},
+        "observation_role": {"$ref": "#/$defs/scientificRole"},
+        "geometry_mapping": {"$ref": "#/$defs/geometryMapping"},
+        "trial_id": {"$ref": "#/$defs/identifier"},
+        "correlation_id": {"$ref": "#/$defs/identifier"},
+        "trial_index": {"type": "integer", "minimum": 0},
+        "node_id": {"$ref": "#/$defs/identifier"},
+        "device_id": {"$ref": "#/$defs/identifier"},
+        "valid": {"type": "boolean"},
+        "exclusion_reasons": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^[a-z0-9_]+$"}
+        },
+        "source_refs": {"$ref": "#/$defs/sourceReferences"},
+        "uncertainty": {"$ref": "#/$defs/uncertainty"},
+        "attributes": {"$ref": "#/$defs/attributes"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"observation_role": {"const": "measured"}}, "required": ["observation_role"]},
+          "then": {"properties": {"interpolation": {"const": "none"}}}
+        },
+        {
+          "if": {"properties": {"valid": {"const": false}}, "required": ["valid"]},
+          "then": {"properties": {"exclusion_reasons": {"minItems": 1}}}
+        },
+        {
+          "if": {"properties": {"valid": {"const": true}}, "required": ["valid"]},
+          "then": {"properties": {"exclusion_reasons": {"maxItems": 0}}}
+        }
+      ],
+      "additionalProperties": false
+    },
+    "uncertainty": {
+      "type": "object",
+      "required": ["standard_deviation", "confidence_level"],
+      "properties": {
+        "standard_deviation": {"$ref": "#/$defs/nonnegativeVector3"},
+        "confidence_level": {"type": "number", "exclusiveMinimum": 0, "maximum": 1}
+      },
+      "additionalProperties": false
+    },
+    "attributes": {
+      "type": "object",
+      "additionalProperties": {"type": ["string", "number", "integer", "boolean", "null"]}
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"projection_kind": {"const": "physical"}}, "required": ["projection_kind"]},
+      "then": {
+        "properties": {
+          "coordinate_system": {
+            "properties": {"abstract_space": {"const": false}},
+            "required": ["abstract_space"]
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"projection_kind": {"const": "abstract"}}, "required": ["projection_kind"]},
+      "then": {
+        "properties": {
+          "coordinate_system": {
+            "properties": {"abstract_space": {"const": true}},
+            "required": ["abstract_space"]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "coordinate_system": {
+            "properties": {"abstract_space": {"const": true}},
+            "required": ["abstract_space"]
+          }
+        },
+        "required": ["coordinate_system"]
+      },
+      "then": {
+        "properties": {
+          "transitions": {
+            "items": {
+              "if": {
+                "properties": {"observation_role": {"const": "measured"}},
+                "required": ["observation_role"]
+              },
+              "then": {
+                "properties": {
+                  "geometry_mapping": {
+                    "properties": {"scientific_role": {"not": {"const": "measured"}}},
+                    "required": ["scientific_role"]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "additionalProperties": false
+}

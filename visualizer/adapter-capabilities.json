@@ -1,0 +1,12 @@
+{
+  "schema_version": "1.0.0",
+  "adapter_id": "metastable.visualizer.reference",
+  "scene_contract_versions": ["1.0.0"],
+  "experiment_mappings": [
+    {
+      "experiment_id": "E09",
+      "mapping_id": "e09.abstract-state-space.v1",
+      "status": "experimental"
+    }
+  ]
+}

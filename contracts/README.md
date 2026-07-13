@@ -26,3 +26,18 @@ Clients must gate every optional or remotely versioned operation against a stabl
 - removal of an advertised capability is a compatibility event and requires the documented deprecation policy or a new API major version.
 
 Python and .NET code validate against these files and never share internal classes as a contract.
+
+## Visualization scenes
+
+`v1/visualization-scene.schema.json` defines the derived, hash-linked scene consumed by the
+Rust/WASM visualizer. It makes coordinate meaning and the measured, derived, inferred or
+illustrative status of each layer explicit. JSON-LD/RDF and Arrow/Parquet remain the
+canonical semantic and event sources; a visualization scene is never a replacement source
+of scientific truth.
+
+`experiment_id` follows the stable `E` plus digits syntax; adapters advertise their actual
+supported experiment mappings through `visualizer/adapter-capabilities.json`. Source-artifact `uri` values are normalized
+bundle-relative paths, and every entity, transition and geometry mapping carries typed
+record-level source references. Observation and geometry roles are independent so an event
+measured in the laboratory cannot be presented as a measured path after projection into an
+abstract coordinate system.

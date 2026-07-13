@@ -4,6 +4,10 @@ on:
   pull_request:
     paths:
       - "dotnet/**"
+      - "visualizer/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
       - "global.json"
       - "contracts/**"
       - "services/**"
@@ -14,6 +18,35 @@ on:
     branches: [main]
 
 jobs:
+  rust-wasm-visualizer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.0
+      - name: Show pinned Rust toolchain
+        run: |
+          rustc --version
+          cargo --version
+      - name: Check formatting
+        run: cargo fmt --check
+      - name: Enforce the Rust/WASM-only application boundary
+        run: python scripts/check_visualizer_language_policy.py
+      - name: Lint native targets
+        run: cargo clippy --locked --all-targets -- -D warnings
+      - name: Lint the browser target
+        run: cargo clippy --locked --target wasm32-unknown-unknown --lib --tests -- -D warnings
+      - name: Run native contract and invariant tests
+        run: cargo test --locked
+      - name: Install pinned WASM browser test runner
+        run: cargo install wasm-bindgen-cli --version 0.2.126 --locked
+      - name: Run contract validation through generated bindings in headless Chrome
+        env:
+          CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER: wasm-bindgen-test-runner
+          CHROMEDRIVER: /usr/bin/chromedriver
+          WASM_BINDGEN_TEST_ONLY_WEB: "1"
+        run: cargo test --locked --target wasm32-unknown-unknown --test wasm
+      - name: Build the browser target
+        run: cargo build --locked --release --target wasm32-unknown-unknown
+
   build-artifacts:
     strategy:
       fail-fast: false
@@ -78,7 +111,7 @@ jobs:
       - uses: actions/setup-python@v6.3.0
         with:
           python-version: "3.12"
-      - run: pip install jsonschema
+      - run: pip install jsonschema rfc3339-validator
       - name: Validate contract fixtures
         run: |
           python - <<'PY'
@@ -117,6 +150,12 @@ jobs:
                           },
                       ],
                   },
+              ),
+              (
+                  'contracts/v1/visualization-scene.schema.json',
+                  json.load(open(
+                      'contracts/v1/fixtures/visualization-scene-e09.json'
+                  )),
               ),
           ]
 

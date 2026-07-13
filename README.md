@@ -43,6 +43,8 @@ El repositorio separa explícitamente tres cosas que suelen mezclarse:
 - `ontology/context.jsonld`: contexto JSON-LD reutilizable.
 - `ontology/queries/`: biblioteca de consultas SPARQL para humanos y agentes.
 - `schemas/event.schema.json`: contrato de datos evento a evento.
+- `contracts/v1/visualization-scene.schema.json`: proyección 3D versionada con coordenadas, capas científicas y procedencia explícitas.
+- `visualizer/`: núcleo Rust/WASM WebGPU con fallback WebGL2, sin lógica de aplicación JavaScript o TypeScript.
 - `src/metastable_suite/hardware.py`: interfaz común de backends físicos y simulados.
 - `src/metastable_suite/transports.py`: transportes JSON Serial, TCP y VISA.
 - `src/metastable_suite/hardware_adapters.py`: backends concretos sobre cada transporte.

@@ -1,0 +1,127 @@
+{
+  "base_scene": "contracts/v1/fixtures/visualization-scene-e09.json",
+  "cases": [
+    {"name": "reference-e09", "valid": true, "operations": []},
+    {
+      "name": "future-experiment-e16",
+      "valid": true,
+      "operations": [{"op": "replace", "path": "/experiment_id", "value": "E16"}]
+    },
+    {
+      "name": "empty-provenance",
+      "valid": false,
+      "operations": [{"op": "replace", "path": "/provenance", "value": []}]
+    },
+    {
+      "name": "empty-layers",
+      "valid": false,
+      "operations": [{"op": "replace", "path": "/layers", "value": []}]
+    },
+    {
+      "name": "invalid-generated-timestamp",
+      "valid": false,
+      "operations": [{"op": "replace", "path": "/generated_at_utc", "value": "yesterday"}]
+    },
+    {
+      "name": "unknown-coordinate-kind",
+      "valid": false,
+      "operations": [{"op": "replace", "path": "/coordinate_system/kind", "value": "banana"}]
+    },
+    {
+      "name": "confidence-above-one",
+      "valid": false,
+      "operations": [{"op": "replace", "path": "/transitions/1/uncertainty/confidence_level", "value": 2}]
+    },
+    {
+      "name": "empty-record-source-refs",
+      "valid": false,
+      "operations": [{"op": "replace", "path": "/transitions/0/source_refs", "value": []}]
+    },
+    {
+      "name": "nested-attributes",
+      "valid": false,
+      "operations": [{"op": "replace", "path": "/entities/0/attributes/state", "value": {"nested": true}}]
+    },
+    {
+      "name": "absolute-artifact-path",
+      "valid": false,
+      "operations": [{"op": "replace", "path": "/provenance/0/uri", "value": "/etc/passwd"}]
+    },
+    {
+      "name": "remote-artifact-uri",
+      "valid": false,
+      "operations": [{"op": "replace", "path": "/provenance/0/uri", "value": "https://example.invalid/data.json"}]
+    },
+    {
+      "name": "artifact-parent-traversal",
+      "valid": false,
+      "operations": [{"op": "replace", "path": "/provenance/0/uri", "value": "contracts/../secret.json"}]
+    },
+    {
+      "name": "invalid-experiment-syntax",
+      "valid": false,
+      "operations": [{"op": "replace", "path": "/experiment_id", "value": "experiment-16"}]
+    },
+    {
+      "name": "measured-trajectory-in-abstract-space",
+      "valid": false,
+      "operations": [{"op": "replace", "path": "/transitions/0/geometry_mapping/scientific_role", "value": "measured"}]
+    },
+    {
+      "name": "invalid-observation-without-reason",
+      "valid": false,
+      "operations": [{"op": "replace", "path": "/transitions/2/exclusion_reasons", "value": []}]
+    },
+    {
+      "name": "empty-layer-label",
+      "valid": false,
+      "operations": [{"op": "replace", "path": "/layers/0/label", "value": ""}]
+    },
+    {
+      "name": "invalid-layer-identifier",
+      "valid": false,
+      "operations": [{"op": "replace", "path": "/layers/0/id", "value": "invalid layer"}]
+    },
+    {
+      "name": "invalid-sha256",
+      "valid": false,
+      "operations": [{"op": "replace", "path": "/provenance/0/sha256", "value": "ABC"}]
+    },
+    {
+      "name": "empty-source-run-id",
+      "valid": false,
+      "operations": [{"op": "replace", "path": "/transitions/0/source_refs/0/run_id", "value": ""}]
+    },
+    {
+      "name": "measured-observation-with-interpolation",
+      "valid": false,
+      "operations": [{"op": "replace", "path": "/transitions/0/interpolation", "value": "linear"}]
+    },
+    {
+      "name": "physical-projection-with-abstract-coordinates",
+      "valid": false,
+      "operations": [{"op": "replace", "path": "/projection_kind", "value": "physical"}]
+    },
+    {
+      "name": "short-position-vector",
+      "valid": false,
+      "operations": [{"op": "replace", "path": "/entities/0/position", "value": [0, 1]}]
+    },
+    {
+      "name": "short-standard-deviation-vector",
+      "valid": false,
+      "operations": [{"op": "replace", "path": "/transitions/1/uncertainty/standard_deviation", "value": [0]}]
+    },
+    {
+      "name": "negative-standard-deviation",
+      "valid": false,
+      "operations": [{"op": "replace", "path": "/transitions/1/uncertainty/standard_deviation", "value": [-0.1, 0, 0]}]
+    },
+    {
+      "name": "trailing-second-document",
+      "valid": false,
+      "operations": [],
+      "suffix": "{}"
+    }
+  ]
+}

@@ -15,7 +15,8 @@ dependencies = [
   "PyYAML>=6",
   "rdflib>=7",
   "pyshacl>=0.29",
-  "jsonschema>=4"
+  "jsonschema>=4",
+  "rfc3339-validator>=0.1.4"
 ]
 
 [project.optional-dependencies]
