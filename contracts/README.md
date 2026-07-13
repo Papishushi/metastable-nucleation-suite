@@ -34,3 +34,10 @@ Rust/WASM visualizer. It makes coordinate meaning and the measured, derived, inf
 illustrative status of each layer explicit. JSON-LD/RDF and Arrow/Parquet remain the
 canonical semantic and event sources; a visualization scene is never a replacement source
 of scientific truth.
+
+`experiment_id` follows the stable `E` plus digits syntax; adapters advertise their actual
+supported experiment mappings through `visualizer/adapter-capabilities.json`. Source-artifact `uri` values are normalized
+bundle-relative paths, and every entity, transition and geometry mapping carries typed
+record-level source references. Observation and geometry roles are independent so an event
+measured in the laboratory cannot be presented as a measured path after projection into an
+abstract coordinate system.

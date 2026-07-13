@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0.0",
+  "event_id": "e09-reference-trial-000043-node-b",
+  "run_id": "reference-seed-7",
+  "specification_id": "E09",
+  "trial_index": 43,
+  "timestamp_utc": "2026-07-13T19:00:02Z",
+  "backend_id": "reference-simulator",
+  "outcome": {
+    "node_id": "B",
+    "binary_metastate": 1,
+    "commit_time_ns": 2055
+  },
+  "valid": false,
+  "exclusion_reasons": ["missing_peer_event"],
+  "clock_uncertainty_ns": 11
+}

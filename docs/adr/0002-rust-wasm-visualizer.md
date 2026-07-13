@@ -34,9 +34,22 @@ The boundary is intentionally strict:
 - .NET 10 launches and serves the packaged viewer and integrates distributed APIs;
 - neither Python, .NET nor Rust imports another component's internal models.
 
+CI enforces this boundary for tracked `.js`, `.mjs`, `.cjs`, `.ts` and `.tsx` files.
+The only allowlisted paths are the exact `wasm-bindgen` outputs
+`visualizer/generated/metastable_visualizer.js` and
+`visualizer/generated/metastable_visualizer.d.ts`; they must be regenerated rather than
+edited. No handwritten browser application code is allowlisted.
+
 The visualization scene is a derived projection. JSON-LD/RDF remains canonical for
 semantics and provenance, and Arrow/Parquet remains canonical for high-volume events.
-Every renderable item links back to immutable source-artifact identifiers and hashes.
+Every renderable item links back to an immutable source artifact and a stable record in
+that artifact. Artifact paths are normalized and bundle-relative; the viewer must never
+resolve them as remote URLs or outside the bundle root.
+
+Observation role and rendered geometry role are separate. A measured event can be mapped
+into a derived abstract state space, but its arrow or path cannot thereby be labelled as a
+measured trajectory. Render/upload entry points accept only the opaque `ValidatedScene`
+returned by the single Rust `parse_and_validate` boundary.
 
 ## Scientific constraints
 

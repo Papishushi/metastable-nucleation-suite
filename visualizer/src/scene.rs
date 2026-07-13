@@ -1,27 +1,64 @@
+#![allow(
+    dead_code,
+    reason = "validated scene fields are retained for the upcoming renderer boundary"
+)]
+
 use std::collections::{HashMap, HashSet};
 
-use serde::Deserialize;
-use serde_json::Value;
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
+use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct Scene {
-    pub schema_version: String,
-    pub scene_id: String,
-    pub generated_at_utc: String,
-    pub experiment_id: String,
-    pub projection_kind: ProjectionKind,
-    pub coordinate_system: CoordinateSystem,
-    pub provenance: Vec<SourceArtifact>,
-    pub layers: Vec<Layer>,
-    pub entities: Vec<Entity>,
-    pub transitions: Vec<Transition>,
+struct Scene {
+    schema_version: String,
+    #[serde(rename = "scene_id")]
+    id: String,
+    generated_at_utc: String,
+    experiment_id: String,
+    projection_kind: ProjectionKind,
+    coordinate_system: CoordinateSystem,
+    provenance: Vec<SourceArtifact>,
+    layers: Vec<Layer>,
+    entities: Vec<Entity>,
+    transitions: Vec<Transition>,
 }
 
-#[derive(Debug, Deserialize)]
+/// A scene that has been parsed and passed every contract and scientific invariant.
+///
+/// The inner scene is deliberately private: GPU upload and rendering code can only receive
+/// this validated, immutable boundary rather than a freely constructed scene.
+#[derive(Debug)]
+pub struct ValidatedScene {
+    scene: Scene,
+}
+
+impl ValidatedScene {
+    #[must_use]
+    pub fn scene_id(&self) -> &str {
+        &self.scene.id
+    }
+
+    #[must_use]
+    pub fn experiment_id(&self) -> &str {
+        &self.scene.experiment_id
+    }
+
+    #[must_use]
+    pub fn entity_count(&self) -> usize {
+        self.scene.entities.len()
+    }
+
+    #[must_use]
+    pub fn transition_count(&self) -> usize {
+        self.scene.transitions.len()
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub enum ProjectionKind {
+enum ProjectionKind {
     Physical,
     Abstract,
     Hybrid,
@@ -29,49 +66,55 @@ pub enum ProjectionKind {
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct CoordinateSystem {
-    pub frame_id: String,
-    pub kind: String,
-    pub handedness: Handedness,
-    pub abstract_space: bool,
-    pub origin_description: String,
-    pub axes: Axes,
+struct CoordinateSystem {
+    frame_id: String,
+    kind: CoordinateKind,
+    handedness: Handedness,
+    abstract_space: bool,
+    origin_description: String,
+    axes: Axes,
+}
+
+#[derive(Debug, Deserialize)]
+enum CoordinateKind {
+    #[serde(rename = "cartesian_3d")]
+    Cartesian3d,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub enum Handedness {
+enum Handedness {
     Right,
     Left,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct Axes {
-    pub x: Axis,
-    pub y: Axis,
-    pub z: Axis,
+struct Axes {
+    x: Axis,
+    y: Axis,
+    z: Axis,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct Axis {
-    pub label: String,
-    pub unit: String,
+struct Axis {
+    label: String,
+    unit: String,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct SourceArtifact {
-    pub id: String,
-    pub uri: String,
-    pub sha256: String,
-    pub semantic_role: ArtifactRole,
+struct SourceArtifact {
+    id: String,
+    uri: String,
+    sha256: String,
+    semantic_role: ArtifactRole,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub enum ArtifactRole {
+enum ArtifactRole {
     Raw,
     Calibration,
     Derived,
@@ -81,7 +124,7 @@ pub enum ArtifactRole {
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
 #[serde(rename_all = "snake_case")]
-pub enum ScientificRole {
+enum ScientificRole {
     Measured,
     Derived,
     Inferred,
@@ -90,237 +133,445 @@ pub enum ScientificRole {
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct Layer {
-    pub id: String,
-    pub label: String,
-    pub scientific_role: ScientificRole,
-    pub visible_by_default: bool,
+struct Layer {
+    id: String,
+    label: String,
+    scientific_role: ScientificRole,
+    visible_by_default: bool,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct Entity {
-    pub id: String,
-    pub layer_id: String,
+struct Entity {
+    id: String,
+    layer_id: String,
     #[serde(rename = "entity_type")]
-    pub kind: String,
-    pub label: String,
-    pub position: [f64; 3],
-    pub provenance_refs: Vec<String>,
-    pub uncertainty: Option<Uncertainty>,
+    kind: String,
+    label: String,
+    position: [f64; 3],
+    source_refs: Vec<SourceReference>,
+    uncertainty: Option<Uncertainty>,
     #[serde(default)]
-    pub attributes: HashMap<String, Value>,
+    attributes: HashMap<String, AttributeValue>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq)]
+#[serde(deny_unknown_fields)]
+struct SourceReference {
+    artifact_id: String,
+    run_id: String,
+    record_id: String,
+    event_id: Option<String>,
+    partition: Option<String>,
+    row_group: Option<u64>,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct Uncertainty {
-    pub standard_deviation: [f64; 3],
-    pub confidence_level: f64,
+struct Uncertainty {
+    standard_deviation: [f64; 3],
+    confidence_level: f64,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct Transition {
-    pub id: String,
-    pub layer_id: String,
-    pub from_entity_id: String,
-    pub to_entity_id: String,
-    pub timestamp_utc: String,
-    pub interpolation: Interpolation,
-    pub provenance_refs: Vec<String>,
+struct GeometryMapping {
+    scientific_role: ScientificRole,
+    method_id: String,
+    source_refs: Vec<SourceReference>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Transition {
+    id: String,
+    layer_id: String,
+    from_entity_id: String,
+    to_entity_id: String,
+    timestamp_utc: String,
+    interpolation: Interpolation,
+    observation_role: ScientificRole,
+    geometry_mapping: GeometryMapping,
+    trial_id: String,
+    correlation_id: String,
+    trial_index: u64,
+    node_id: String,
+    device_id: Option<String>,
+    valid: bool,
+    exclusion_reasons: Vec<String>,
+    source_refs: Vec<SourceReference>,
+    uncertainty: Option<Uncertainty>,
     #[serde(default)]
-    pub attributes: HashMap<String, Value>,
+    attributes: HashMap<String, AttributeValue>,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
 #[serde(rename_all = "snake_case")]
-pub enum Interpolation {
+enum Interpolation {
     None,
     Linear,
     Model,
 }
 
-#[derive(Debug, Error, Eq, PartialEq)]
-pub enum SceneValidationError {
-    #[error("unsupported scene schema version '{0}'")]
-    UnsupportedSchemaVersion(String),
-    #[error("duplicate {kind} identifier '{id}'")]
-    DuplicateIdentifier { kind: &'static str, id: String },
-    #[error("{owner_kind} '{owner_id}' references unknown {target_kind} '{target_id}'")]
-    UnknownReference {
-        owner_kind: &'static str,
-        owner_id: String,
-        target_kind: &'static str,
-        target_id: String,
-    },
-    #[error("source artifact '{0}' does not contain a lowercase SHA-256 digest")]
-    InvalidSha256(String),
-    #[error("measured transition '{0}' must use interpolation 'none'")]
-    MeasuredTransitionInterpolation(String),
-    #[error("physical projection cannot declare an abstract coordinate system")]
-    PhysicalProjectionUsesAbstractCoordinates,
-    #[error("abstract projection must declare an abstract coordinate system")]
-    AbstractProjectionUsesPhysicalCoordinates,
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+enum AttributeValue {
+    String(String),
+    Number(serde_json::Number),
+    Boolean(bool),
+    Null(()),
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct ValidationError {
+    pub code: &'static str,
+    pub path: String,
+    pub message: String,
+}
+
+impl ValidationError {
+    fn new(code: &'static str, path: impl Into<String>, message: impl Into<String>) -> Self {
+        Self {
+            code,
+            path: path.into(),
+            message: message.into(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, Error, PartialEq, Serialize)]
+#[error("visualization scene validation failed")]
+pub struct ValidationReport {
+    pub errors: Vec<ValidationError>,
+}
+
+impl ValidationReport {
+    /// # Panics
+    ///
+    /// Panics only if Serde cannot serialize this fixed, data-only report structure.
+    #[must_use]
+    pub fn to_json(&self) -> String {
+        serde_json::to_string(self).expect("validation report must serialize")
+    }
+}
+
+/// Parse and validate a scene exactly once, returning the only scene type accepted by renderers.
+///
+/// # Errors
+///
+/// Returns stable error codes and paths for JSON shape, contract and scientific failures.
+pub fn parse_and_validate(scene_json: &str) -> Result<ValidatedScene, ValidationReport> {
+    let mut deserializer = serde_json::Deserializer::from_str(scene_json);
+    let scene: Scene =
+        serde_path_to_error::deserialize(&mut deserializer).map_err(|error| ValidationReport {
+            errors: vec![ValidationError::new(
+                "scene.json.invalid",
+                serde_path_to_json_path(&error.path().to_string()),
+                error.inner().to_string(),
+            )],
+        })?;
+
+    let errors = scene.validation_errors();
+    if errors.is_empty() {
+        Ok(ValidatedScene { scene })
+    } else {
+        Err(ValidationReport { errors })
+    }
 }
 
 impl Scene {
-    /// Validate cross-document invariants that JSON Schema cannot express.
-    ///
-    /// # Errors
-    ///
-    /// Returns every detected identifier, reference, provenance and scientific-integrity
-    /// error so a caller can repair a scene in one pass.
-    pub fn validate(&self) -> Result<(), Vec<SceneValidationError>> {
+    fn validation_errors(&self) -> Vec<ValidationError> {
         let mut errors = Vec::new();
 
-        if self.schema_version != "1.0.0" {
-            errors.push(SceneValidationError::UnsupportedSchemaVersion(
-                self.schema_version.clone(),
-            ));
-        }
-
+        self.validate_document_fields(&mut errors);
         self.validate_projection(&mut errors);
 
         let provenance_ids = self.validate_artifacts(&mut errors);
-        let layer_ids = unique_ids(&self.layers, |layer| &layer.id, "layer", &mut errors);
-        let layer_roles: HashMap<&str, ScientificRole> = self
-            .layers
-            .iter()
-            .map(|layer| (layer.id.as_str(), layer.scientific_role))
-            .collect();
-        let entity_ids = unique_ids(&self.entities, |entity| &entity.id, "entity", &mut errors);
+        let layer_ids = self.validate_layers(&mut errors);
+        let entity_ids = unique_ids(
+            &self.entities,
+            |entity| &entity.id,
+            "entity",
+            "/entities",
+            &mut errors,
+        );
         unique_ids(
             &self.transitions,
             |transition| &transition.id,
             "transition",
+            "/transitions",
             &mut errors,
         );
 
         self.validate_entities(&layer_ids, &provenance_ids, &mut errors);
-        self.validate_transitions(
-            &layer_ids,
-            &layer_roles,
-            &entity_ids,
-            &provenance_ids,
-            &mut errors,
-        );
+        self.validate_transitions(&layer_ids, &entity_ids, &provenance_ids, &mut errors);
+        errors
+    }
 
-        if errors.is_empty() {
-            Ok(())
-        } else {
-            Err(errors)
+    fn validate_document_fields(&self, errors: &mut Vec<ValidationError>) {
+        require_equal(
+            &self.schema_version,
+            "1.0.0",
+            "/schema_version",
+            "scene.schema_version.unsupported",
+            errors,
+        );
+        validate_identifier(&self.id, "/scene_id", errors);
+        validate_timestamp(&self.generated_at_utc, "/generated_at_utc", errors);
+        if !is_experiment_identifier(&self.experiment_id) {
+            errors.push(ValidationError::new(
+                "scene.experiment_id.invalid",
+                "/experiment_id",
+                "experiment identifier must match E followed by at least two digits",
+            ));
+        }
+        if self.provenance.is_empty() {
+            errors.push(ValidationError::new(
+                "scene.provenance.empty",
+                "/provenance",
+                "at least one source artifact is required",
+            ));
+        }
+        if self.layers.is_empty() {
+            errors.push(ValidationError::new(
+                "scene.layers.empty",
+                "/layers",
+                "at least one layer is required",
+            ));
+        }
+
+        let coordinate = &self.coordinate_system;
+        validate_identifier(
+            coordinate.frame_id.as_str(),
+            "/coordinate_system/frame_id",
+            errors,
+        );
+        require_non_empty(
+            &coordinate.origin_description,
+            "/coordinate_system/origin_description",
+            errors,
+        );
+        for (name, axis) in [
+            ("x", &coordinate.axes.x),
+            ("y", &coordinate.axes.y),
+            ("z", &coordinate.axes.z),
+        ] {
+            require_non_empty(
+                &axis.label,
+                &format!("/coordinate_system/axes/{name}/label"),
+                errors,
+            );
+            require_non_empty(
+                &axis.unit,
+                &format!("/coordinate_system/axes/{name}/unit"),
+                errors,
+            );
         }
     }
 
-    fn validate_projection(&self, errors: &mut Vec<SceneValidationError>) {
+    fn validate_projection(&self, errors: &mut Vec<ValidationError>) {
         match self.projection_kind {
             ProjectionKind::Physical if self.coordinate_system.abstract_space => {
-                errors.push(SceneValidationError::PhysicalProjectionUsesAbstractCoordinates);
+                errors.push(ValidationError::new(
+                    "scene.projection.physical_abstract",
+                    "/coordinate_system/abstract_space",
+                    "physical projection cannot use abstract coordinates",
+                ));
             }
             ProjectionKind::Abstract if !self.coordinate_system.abstract_space => {
-                errors.push(SceneValidationError::AbstractProjectionUsesPhysicalCoordinates);
+                errors.push(ValidationError::new(
+                    "scene.projection.abstract_physical",
+                    "/coordinate_system/abstract_space",
+                    "abstract projection must use abstract coordinates",
+                ));
             }
             ProjectionKind::Physical | ProjectionKind::Abstract | ProjectionKind::Hybrid => {}
         }
     }
 
-    fn validate_artifacts<'a>(
-        &'a self,
-        errors: &mut Vec<SceneValidationError>,
-    ) -> HashSet<&'a str> {
-        let provenance_ids = unique_ids(
+    fn validate_artifacts<'a>(&'a self, errors: &mut Vec<ValidationError>) -> HashSet<&'a str> {
+        let ids = unique_ids(
             &self.provenance,
             |artifact| &artifact.id,
-            "provenance",
+            "source artifact",
+            "/provenance",
             errors,
         );
-        for artifact in &self.provenance {
-            if artifact.sha256.len() != 64
-                || !artifact
-                    .sha256
-                    .bytes()
-                    .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
-            {
-                errors.push(SceneValidationError::InvalidSha256(artifact.id.clone()));
+        for (index, artifact) in self.provenance.iter().enumerate() {
+            let base = format!("/provenance/{index}");
+            validate_identifier(&artifact.id, &format!("{base}/id"), errors);
+            if !is_bundle_relative_path(&artifact.uri) {
+                errors.push(ValidationError::new(
+                    "scene.artifact.path.invalid",
+                    format!("{base}/uri"),
+                    "artifact path must be normalized, bundle-relative and scheme-free",
+                ));
+            }
+            if !is_lowercase_sha256(&artifact.sha256) {
+                errors.push(ValidationError::new(
+                    "scene.artifact.sha256.invalid",
+                    format!("{base}/sha256"),
+                    "SHA-256 digest must contain exactly 64 lowercase hexadecimal characters",
+                ));
             }
         }
-        provenance_ids
+        ids
+    }
+
+    fn validate_layers<'a>(&'a self, errors: &mut Vec<ValidationError>) -> HashSet<&'a str> {
+        let ids = unique_ids(&self.layers, |layer| &layer.id, "layer", "/layers", errors);
+        for (index, layer) in self.layers.iter().enumerate() {
+            validate_identifier(&layer.id, &format!("/layers/{index}/id"), errors);
+            require_non_empty(&layer.label, &format!("/layers/{index}/label"), errors);
+        }
+        ids
     }
 
     fn validate_entities(
         &self,
         layer_ids: &HashSet<&str>,
         provenance_ids: &HashSet<&str>,
-        errors: &mut Vec<SceneValidationError>,
+        errors: &mut Vec<ValidationError>,
     ) {
-        for entity in &self.entities {
+        for (index, entity) in self.entities.iter().enumerate() {
+            let base = format!("/entities/{index}");
+            validate_identifier(&entity.id, &format!("{base}/id"), errors);
+            validate_identifier(&entity.layer_id, &format!("{base}/layer_id"), errors);
+            validate_identifier(&entity.kind, &format!("{base}/entity_type"), errors);
+            require_non_empty(&entity.label, &format!("{base}/label"), errors);
             require_reference(
                 layer_ids,
-                "entity",
-                &entity.id,
-                "layer",
                 &entity.layer_id,
+                &format!("{base}/layer_id"),
+                "scene.reference.layer_unknown",
                 errors,
             );
-            validate_provenance_refs(
+            validate_source_refs(
+                &entity.source_refs,
                 provenance_ids,
-                "entity",
-                &entity.id,
-                &entity.provenance_refs,
+                &format!("{base}/source_refs"),
                 errors,
             );
+            if let Some(uncertainty) = &entity.uncertainty {
+                validate_uncertainty(uncertainty, &format!("{base}/uncertainty"), errors);
+            }
         }
     }
 
     fn validate_transitions(
         &self,
         layer_ids: &HashSet<&str>,
-        layer_roles: &HashMap<&str, ScientificRole>,
         entity_ids: &HashSet<&str>,
         provenance_ids: &HashSet<&str>,
-        errors: &mut Vec<SceneValidationError>,
+        errors: &mut Vec<ValidationError>,
     ) {
-        for transition in &self.transitions {
+        for (index, transition) in self.transitions.iter().enumerate() {
+            let base = format!("/transitions/{index}");
+            Self::validate_transition_shape(transition, &base, errors);
             require_reference(
                 layer_ids,
-                "transition",
-                &transition.id,
-                "layer",
                 &transition.layer_id,
+                &format!("{base}/layer_id"),
+                "scene.reference.layer_unknown",
                 errors,
             );
             require_reference(
                 entity_ids,
-                "transition",
-                &transition.id,
-                "entity",
                 &transition.from_entity_id,
+                &format!("{base}/from_entity_id"),
+                "scene.reference.entity_unknown",
                 errors,
             );
             require_reference(
                 entity_ids,
-                "transition",
-                &transition.id,
-                "entity",
                 &transition.to_entity_id,
+                &format!("{base}/to_entity_id"),
+                "scene.reference.entity_unknown",
                 errors,
             );
-            validate_provenance_refs(
+            validate_source_refs(
+                &transition.source_refs,
                 provenance_ids,
-                "transition",
-                &transition.id,
-                &transition.provenance_refs,
+                &format!("{base}/source_refs"),
                 errors,
             );
+            validate_source_refs(
+                &transition.geometry_mapping.source_refs,
+                provenance_ids,
+                &format!("{base}/geometry_mapping/source_refs"),
+                errors,
+            );
+            self.validate_transition_roles(transition, &base, errors);
+        }
+    }
 
-            if layer_roles.get(transition.layer_id.as_str()) == Some(&ScientificRole::Measured)
-                && transition.interpolation != Interpolation::None
-            {
-                errors.push(SceneValidationError::MeasuredTransitionInterpolation(
-                    transition.id.clone(),
-                ));
-            }
+    fn validate_transition_shape(
+        transition: &Transition,
+        base: &str,
+        errors: &mut Vec<ValidationError>,
+    ) {
+        validate_identifier(&transition.id, &format!("{base}/id"), errors);
+        validate_identifier(&transition.layer_id, &format!("{base}/layer_id"), errors);
+        validate_identifier(
+            &transition.from_entity_id,
+            &format!("{base}/from_entity_id"),
+            errors,
+        );
+        validate_identifier(
+            &transition.to_entity_id,
+            &format!("{base}/to_entity_id"),
+            errors,
+        );
+        validate_timestamp(
+            &transition.timestamp_utc,
+            &format!("{base}/timestamp_utc"),
+            errors,
+        );
+        validate_identifier(&transition.trial_id, &format!("{base}/trial_id"), errors);
+        validate_identifier(
+            &transition.correlation_id,
+            &format!("{base}/correlation_id"),
+            errors,
+        );
+        validate_identifier(&transition.node_id, &format!("{base}/node_id"), errors);
+        if let Some(device_id) = &transition.device_id {
+            validate_identifier(device_id, &format!("{base}/device_id"), errors);
+        }
+        validate_identifier(
+            &transition.geometry_mapping.method_id,
+            &format!("{base}/geometry_mapping/method_id"),
+            errors,
+        );
+        validate_exclusion_reasons(transition, base, errors);
+        if let Some(uncertainty) = &transition.uncertainty {
+            validate_uncertainty(uncertainty, &format!("{base}/uncertainty"), errors);
+        }
+    }
+
+    fn validate_transition_roles(
+        &self,
+        transition: &Transition,
+        base: &str,
+        errors: &mut Vec<ValidationError>,
+    ) {
+        if transition.observation_role == ScientificRole::Measured
+            && transition.interpolation != Interpolation::None
+        {
+            errors.push(ValidationError::new(
+                "scene.transition.measured_interpolation",
+                format!("{base}/interpolation"),
+                "measured observations cannot be interpolated",
+            ));
+        }
+        if self.coordinate_system.abstract_space
+            && transition.observation_role == ScientificRole::Measured
+            && transition.geometry_mapping.scientific_role == ScientificRole::Measured
+        {
+            errors.push(ValidationError::new(
+                "scene.transition.abstract_measured_geometry",
+                format!("{base}/geometry_mapping/scientific_role"),
+                "measured observations in abstract coordinates require non-measured geometry",
+            ));
         }
     }
 }
@@ -328,36 +579,65 @@ impl Scene {
 fn unique_ids<'a, T>(
     values: &'a [T],
     id: impl Fn(&'a T) -> &'a str,
-    kind: &'static str,
-    errors: &mut Vec<SceneValidationError>,
+    kind: &str,
+    base: &str,
+    errors: &mut Vec<ValidationError>,
 ) -> HashSet<&'a str> {
     let mut ids = HashSet::new();
-    for value in values {
+    for (index, value) in values.iter().enumerate() {
         let value_id = id(value);
         if !ids.insert(value_id) {
-            errors.push(SceneValidationError::DuplicateIdentifier {
-                kind,
-                id: value_id.to_owned(),
-            });
+            errors.push(ValidationError::new(
+                "scene.identifier.duplicate",
+                format!("{base}/{index}/id"),
+                format!("duplicate {kind} identifier '{value_id}'"),
+            ));
         }
     }
     ids
 }
 
-fn validate_provenance_refs(
+fn validate_source_refs(
+    references: &[SourceReference],
     provenance_ids: &HashSet<&str>,
-    owner_kind: &'static str,
-    owner_id: &str,
-    references: &[String],
-    errors: &mut Vec<SceneValidationError>,
+    base: &str,
+    errors: &mut Vec<ValidationError>,
 ) {
-    for reference in references {
+    if references.is_empty() {
+        errors.push(ValidationError::new(
+            "scene.source_refs.empty",
+            base,
+            "at least one record-level source reference is required",
+        ));
+    }
+    let mut unique = HashSet::new();
+    for (index, reference) in references.iter().enumerate() {
+        let path = format!("{base}/{index}");
+        if !unique.insert(reference) {
+            errors.push(ValidationError::new(
+                "scene.source_ref.duplicate",
+                &path,
+                "record-level source reference must be unique",
+            ));
+        }
+        validate_identifier(
+            &reference.artifact_id,
+            &format!("{path}/artifact_id"),
+            errors,
+        );
+        validate_identifier(&reference.run_id, &format!("{path}/run_id"), errors);
+        validate_identifier(&reference.record_id, &format!("{path}/record_id"), errors);
+        if let Some(event_id) = &reference.event_id {
+            validate_identifier(event_id, &format!("{path}/event_id"), errors);
+        }
+        if let Some(partition) = &reference.partition {
+            require_non_empty(partition, &format!("{path}/partition"), errors);
+        }
         require_reference(
             provenance_ids,
-            owner_kind,
-            owner_id,
-            "provenance",
-            reference,
+            &reference.artifact_id,
+            &format!("{path}/artifact_id"),
+            "scene.reference.artifact_unknown",
             errors,
         );
     }
@@ -365,61 +645,222 @@ fn validate_provenance_refs(
 
 fn require_reference(
     known_ids: &HashSet<&str>,
-    owner_kind: &'static str,
-    owner_id: &str,
-    target_kind: &'static str,
     target_id: &str,
-    errors: &mut Vec<SceneValidationError>,
+    path: &str,
+    code: &'static str,
+    errors: &mut Vec<ValidationError>,
 ) {
     if !known_ids.contains(target_id) {
-        errors.push(SceneValidationError::UnknownReference {
-            owner_kind,
-            owner_id: owner_id.to_owned(),
-            target_kind,
-            target_id: target_id.to_owned(),
-        });
+        errors.push(ValidationError::new(
+            code,
+            path,
+            format!("unknown reference '{target_id}'"),
+        ));
     }
+}
+
+fn validate_uncertainty(uncertainty: &Uncertainty, base: &str, errors: &mut Vec<ValidationError>) {
+    if !(uncertainty.confidence_level > 0.0 && uncertainty.confidence_level <= 1.0) {
+        errors.push(ValidationError::new(
+            "scene.uncertainty.confidence.invalid",
+            format!("{base}/confidence_level"),
+            "confidence level must be greater than zero and at most one",
+        ));
+    }
+}
+
+fn validate_exclusion_reasons(
+    transition: &Transition,
+    base: &str,
+    errors: &mut Vec<ValidationError>,
+) {
+    let path = format!("{base}/exclusion_reasons");
+    if transition.valid && !transition.exclusion_reasons.is_empty() {
+        errors.push(ValidationError::new(
+            "scene.transition.valid_with_exclusions",
+            &path,
+            "valid observation cannot have exclusion reasons",
+        ));
+    }
+    if !transition.valid && transition.exclusion_reasons.is_empty() {
+        errors.push(ValidationError::new(
+            "scene.transition.invalid_without_exclusion",
+            &path,
+            "invalid observation requires at least one exclusion reason",
+        ));
+    }
+    let mut unique = HashSet::new();
+    for (index, reason) in transition.exclusion_reasons.iter().enumerate() {
+        if !is_exclusion_reason(reason) {
+            errors.push(ValidationError::new(
+                "scene.transition.exclusion_reason.invalid",
+                format!("{path}/{index}"),
+                "exclusion reason must contain only lowercase letters, digits and underscores",
+            ));
+        }
+        if !unique.insert(reason) {
+            errors.push(ValidationError::new(
+                "scene.transition.exclusion_reason.duplicate",
+                format!("{path}/{index}"),
+                "exclusion reasons must be unique",
+            ));
+        }
+    }
+}
+
+fn validate_identifier(value: &str, path: &str, errors: &mut Vec<ValidationError>) {
+    if !is_identifier(value) {
+        errors.push(ValidationError::new(
+            "scene.identifier.invalid",
+            path,
+            "identifier must match [A-Za-z0-9][A-Za-z0-9._:-]{0,127}",
+        ));
+    }
+}
+
+fn require_non_empty(value: &str, path: &str, errors: &mut Vec<ValidationError>) {
+    if value.is_empty() {
+        errors.push(ValidationError::new(
+            "scene.string.empty",
+            path,
+            "string must not be empty",
+        ));
+    }
+}
+
+fn require_equal(
+    value: &str,
+    expected: &str,
+    path: &str,
+    code: &'static str,
+    errors: &mut Vec<ValidationError>,
+) {
+    if value != expected {
+        errors.push(ValidationError::new(
+            code,
+            path,
+            format!("expected '{expected}'"),
+        ));
+    }
+}
+
+fn validate_timestamp(value: &str, path: &str, errors: &mut Vec<ValidationError>) {
+    if OffsetDateTime::parse(value, &Rfc3339).is_err() {
+        errors.push(ValidationError::new(
+            "scene.timestamp.invalid",
+            path,
+            "timestamp must use RFC 3339 date-time syntax",
+        ));
+    }
+}
+
+fn is_identifier(value: &str) -> bool {
+    let bytes = value.as_bytes();
+    (1..=128).contains(&bytes.len())
+        && bytes[0].is_ascii_alphanumeric()
+        && bytes[1..]
+            .iter()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(*byte, b'.' | b'_' | b':' | b'-'))
+}
+
+fn is_experiment_identifier(value: &str) -> bool {
+    let bytes = value.as_bytes();
+    bytes.len() >= 3 && bytes[0] == b'E' && bytes[1..].iter().all(u8::is_ascii_digit)
+}
+
+fn is_bundle_relative_path(value: &str) -> bool {
+    !value.is_empty()
+        && value.split('/').all(|segment| {
+            !segment.is_empty()
+                && segment != "."
+                && segment != ".."
+                && !segment.starts_with('.')
+                && segment
+                    .bytes()
+                    .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-'))
+        })
+}
+
+fn is_lowercase_sha256(value: &str) -> bool {
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+}
+
+fn is_exclusion_reason(value: &str) -> bool {
+    !value.is_empty()
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'_')
+}
+
+fn serde_path_to_json_path(path: &str) -> String {
+    if path == "." {
+        return "/".to_owned();
+    }
+    let mut pointer = String::from("/");
+    let mut chars = path.trim_start_matches('.').chars().peekable();
+    while let Some(character) = chars.next() {
+        match character {
+            '.' => pointer.push('/'),
+            '[' => {
+                pointer.push('/');
+                for next in chars.by_ref() {
+                    if next == ']' {
+                        break;
+                    }
+                    pointer.push(next);
+                }
+            }
+            _ => pointer.push(character),
+        }
+    }
+    pointer
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    fn scene() -> Scene {
-        serde_json::from_str(include_str!(
-            "../../contracts/v1/fixtures/visualization-scene-e09.json"
-        ))
-        .expect("reference scene must deserialize")
+    const E09_FIXTURE: &str =
+        include_str!("../../contracts/v1/fixtures/visualization-scene-e09.json");
+
+    #[test]
+    fn produces_an_opaque_validated_scene() {
+        let scene = parse_and_validate(E09_FIXTURE).expect("reference scene must be valid");
+
+        assert_eq!(scene.scene_id(), "e09-reference-scene");
+        assert_eq!(scene.experiment_id(), "E09");
+        assert_eq!(scene.entity_count(), 4);
+        assert_eq!(scene.transition_count(), 3);
     }
 
     #[test]
-    fn rejects_unknown_entity_reference() {
-        let mut scene = scene();
-        scene.transitions[0].to_entity_id = "missing-state".to_owned();
+    fn rejects_unknown_entity_reference_with_a_path() {
+        let mut changed: serde_json::Value =
+            serde_json::from_str(E09_FIXTURE).expect("fixture must parse");
+        changed["transitions"][0]["to_entity_id"] = "missing-state".into();
+        let report = parse_and_validate(&changed.to_string()).expect_err("scene must fail");
 
-        let errors = scene.validate().expect_err("scene must fail validation");
-
-        assert!(errors.iter().any(|error| matches!(
-            error,
-            SceneValidationError::UnknownReference {
-                target_kind: "entity",
-                target_id,
-                ..
-            } if target_id == "missing-state"
-        )));
+        assert!(report.errors.iter().any(|error| {
+            error.code == "scene.reference.entity_unknown"
+                && error.path == "/transitions/0/to_entity_id"
+        }));
     }
 
     #[test]
-    fn rejects_interpolated_measured_transition() {
-        let mut scene = scene();
-        scene.transitions[0].interpolation = Interpolation::Linear;
-
-        let errors = scene.validate().expect_err("scene must fail validation");
+    fn rejects_measured_geometry_in_abstract_coordinates() {
+        let mut changed: serde_json::Value =
+            serde_json::from_str(E09_FIXTURE).expect("fixture must parse");
+        changed["transitions"][0]["geometry_mapping"]["scientific_role"] = "measured".into();
+        let report = parse_and_validate(&changed.to_string()).expect_err("scene must fail");
 
         assert!(
-            errors.contains(&SceneValidationError::MeasuredTransitionInterpolation(
-                "trial-000042-node-a".to_owned(),
-            ))
+            report
+                .errors
+                .iter()
+                .any(|error| { error.code == "scene.transition.abstract_measured_geometry" })
         );
     }
 }

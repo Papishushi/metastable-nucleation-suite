@@ -21,11 +21,10 @@
     "generated_at_utc": {"type": "string", "format": "date-time"},
     "experiment_id": {
       "type": "string",
-      "pattern": "^E(0[1-9]|1[0-5])$"
+      "description": "Stable experiment identifier. Adapter capabilities advertise which identifiers have visualization mappings.",
+      "pattern": "^E[0-9]{2,}$"
     },
-    "projection_kind": {
-      "enum": ["physical", "abstract", "hybrid"]
-    },
+    "projection_kind": {"enum": ["physical", "abstract", "hybrid"]},
     "coordinate_system": {"$ref": "#/$defs/coordinateSystem"},
     "provenance": {
       "type": "array",
@@ -62,14 +61,7 @@
     },
     "coordinateSystem": {
       "type": "object",
-      "required": [
-        "frame_id",
-        "kind",
-        "handedness",
-        "abstract_space",
-        "origin_description",
-        "axes"
-      ],
+      "required": ["frame_id", "kind", "handedness", "abstract_space", "origin_description", "axes"],
       "properties": {
         "frame_id": {"$ref": "#/$defs/identifier"},
         "kind": {"const": "cartesian_3d"},
@@ -103,64 +95,79 @@
       "required": ["id", "uri", "sha256", "semantic_role"],
       "properties": {
         "id": {"$ref": "#/$defs/identifier"},
-        "uri": {"type": "string", "minLength": 1},
+        "uri": {
+          "type": "string",
+          "description": "Normalized bundle-relative path resolved below the scene bundle root; never a remote URI.",
+          "pattern": "^[A-Za-z0-9_-][A-Za-z0-9._-]*(/[A-Za-z0-9_-][A-Za-z0-9._-]*)*$"
+        },
         "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
-        "semantic_role": {
-          "enum": ["raw", "calibration", "derived", "semantic", "model"]
-        }
+        "semantic_role": {"enum": ["raw", "calibration", "derived", "semantic", "model"]}
       },
       "additionalProperties": false
     },
+    "sourceReference": {
+      "type": "object",
+      "required": ["artifact_id", "run_id", "record_id"],
+      "properties": {
+        "artifact_id": {"$ref": "#/$defs/identifier"},
+        "run_id": {"$ref": "#/$defs/identifier"},
+        "record_id": {"$ref": "#/$defs/identifier"},
+        "event_id": {"$ref": "#/$defs/identifier"},
+        "partition": {"type": "string", "minLength": 1},
+        "row_group": {"type": "integer", "minimum": 0}
+      },
+      "additionalProperties": false
+    },
+    "sourceReferences": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/sourceReference"}
+    },
+    "scientificRole": {"enum": ["measured", "derived", "inferred", "illustrative"]},
     "layer": {
       "type": "object",
       "required": ["id", "label", "scientific_role", "visible_by_default"],
       "properties": {
         "id": {"$ref": "#/$defs/identifier"},
         "label": {"type": "string", "minLength": 1},
-        "scientific_role": {
-          "enum": ["measured", "derived", "inferred", "illustrative"]
-        },
+        "scientific_role": {"$ref": "#/$defs/scientificRole"},
         "visible_by_default": {"type": "boolean"}
       },
       "additionalProperties": false
     },
     "entity": {
       "type": "object",
-      "required": [
-        "id",
-        "layer_id",
-        "entity_type",
-        "label",
-        "position",
-        "provenance_refs"
-      ],
+      "required": ["id", "layer_id", "entity_type", "label", "position", "source_refs"],
       "properties": {
         "id": {"$ref": "#/$defs/identifier"},
         "layer_id": {"$ref": "#/$defs/identifier"},
         "entity_type": {"$ref": "#/$defs/identifier"},
         "label": {"type": "string", "minLength": 1},
         "position": {"$ref": "#/$defs/vector3"},
-        "provenance_refs": {
-          "type": "array",
-          "minItems": 1,
-          "uniqueItems": true,
-          "items": {"$ref": "#/$defs/identifier"}
-        },
+        "source_refs": {"$ref": "#/$defs/sourceReferences"},
         "uncertainty": {"$ref": "#/$defs/uncertainty"},
         "attributes": {"$ref": "#/$defs/attributes"}
+      },
+      "additionalProperties": false
+    },
+    "geometryMapping": {
+      "type": "object",
+      "required": ["scientific_role", "method_id", "source_refs"],
+      "properties": {
+        "scientific_role": {"$ref": "#/$defs/scientificRole"},
+        "method_id": {"$ref": "#/$defs/identifier"},
+        "source_refs": {"$ref": "#/$defs/sourceReferences"}
       },
       "additionalProperties": false
     },
     "transition": {
       "type": "object",
       "required": [
-        "id",
-        "layer_id",
-        "from_entity_id",
-        "to_entity_id",
-        "timestamp_utc",
-        "interpolation",
-        "provenance_refs"
+        "id", "layer_id", "from_entity_id", "to_entity_id", "timestamp_utc",
+        "interpolation", "observation_role", "geometry_mapping", "trial_id",
+        "correlation_id", "trial_index", "node_id", "valid", "exclusion_reasons",
+        "source_refs"
       ],
       "properties": {
         "id": {"$ref": "#/$defs/identifier"},
@@ -169,14 +176,37 @@
         "to_entity_id": {"$ref": "#/$defs/identifier"},
         "timestamp_utc": {"type": "string", "format": "date-time"},
         "interpolation": {"enum": ["none", "linear", "model"]},
-        "provenance_refs": {
+        "observation_role": {"$ref": "#/$defs/scientificRole"},
+        "geometry_mapping": {"$ref": "#/$defs/geometryMapping"},
+        "trial_id": {"$ref": "#/$defs/identifier"},
+        "correlation_id": {"$ref": "#/$defs/identifier"},
+        "trial_index": {"type": "integer", "minimum": 0},
+        "node_id": {"$ref": "#/$defs/identifier"},
+        "device_id": {"$ref": "#/$defs/identifier"},
+        "valid": {"type": "boolean"},
+        "exclusion_reasons": {
           "type": "array",
-          "minItems": 1,
           "uniqueItems": true,
-          "items": {"$ref": "#/$defs/identifier"}
+          "items": {"type": "string", "pattern": "^[a-z0-9_]+$"}
         },
+        "source_refs": {"$ref": "#/$defs/sourceReferences"},
+        "uncertainty": {"$ref": "#/$defs/uncertainty"},
         "attributes": {"$ref": "#/$defs/attributes"}
       },
+      "allOf": [
+        {
+          "if": {"properties": {"observation_role": {"const": "measured"}}, "required": ["observation_role"]},
+          "then": {"properties": {"interpolation": {"const": "none"}}}
+        },
+        {
+          "if": {"properties": {"valid": {"const": false}}, "required": ["valid"]},
+          "then": {"properties": {"exclusion_reasons": {"minItems": 1}}}
+        },
+        {
+          "if": {"properties": {"valid": {"const": true}}, "required": ["valid"]},
+          "then": {"properties": {"exclusion_reasons": {"maxItems": 0}}}
+        }
+      ],
       "additionalProperties": false
     },
     "uncertainty": {
@@ -184,20 +214,69 @@
       "required": ["standard_deviation", "confidence_level"],
       "properties": {
         "standard_deviation": {"$ref": "#/$defs/vector3"},
-        "confidence_level": {
-          "type": "number",
-          "exclusiveMinimum": 0,
-          "maximum": 1
-        }
+        "confidence_level": {"type": "number", "exclusiveMinimum": 0, "maximum": 1}
       },
       "additionalProperties": false
     },
     "attributes": {
       "type": "object",
-      "additionalProperties": {
-        "type": ["string", "number", "integer", "boolean", "null"]
-      }
+      "additionalProperties": {"type": ["string", "number", "integer", "boolean", "null"]}
     }
   },
+  "allOf": [
+    {
+      "if": {"properties": {"projection_kind": {"const": "physical"}}, "required": ["projection_kind"]},
+      "then": {
+        "properties": {
+          "coordinate_system": {
+            "properties": {"abstract_space": {"const": false}},
+            "required": ["abstract_space"]
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"projection_kind": {"const": "abstract"}}, "required": ["projection_kind"]},
+      "then": {
+        "properties": {
+          "coordinate_system": {
+            "properties": {"abstract_space": {"const": true}},
+            "required": ["abstract_space"]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "coordinate_system": {
+            "properties": {"abstract_space": {"const": true}},
+            "required": ["abstract_space"]
+          }
+        },
+        "required": ["coordinate_system"]
+      },
+      "then": {
+        "properties": {
+          "transitions": {
+            "items": {
+              "if": {
+                "properties": {"observation_role": {"const": "measured"}},
+                "required": ["observation_role"]
+              },
+              "then": {
+                "properties": {
+                  "geometry_mapping": {
+                    "properties": {"scientific_role": {"not": {"const": "measured"}}},
+                    "required": ["scientific_role"]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
   "additionalProperties": false
 }
