@@ -1,5 +1,5 @@
 FROM python:3.14-slim AS runtime
-ARG VERSION=0.0.0-dev
+ARG VERSION
 ARG REVISION=unknown
 
 LABEL org.opencontainers.image.title="Metastable Scientific Worker" \
