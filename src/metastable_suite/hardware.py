@@ -33,6 +33,7 @@ class ExperimentalBackend(ABC):
     """Lifecycle contract for simulators and physical hardware adapters."""
 
     backend_id: str
+    backend_kind: str | None = None
     firmware_version: str = "unknown"
 
     @abstractmethod
@@ -64,6 +65,7 @@ class SimulatorBackend(ExperimentalBackend):
     """Reference backend implementing a subset of E02, E09, E11, E12 and E13."""
 
     backend_id = "reference-simulator"
+    backend_kind = "simulator"
     firmware_version = "python-reference-1"
 
     def __init__(self, seed: int = 0) -> None:
@@ -92,11 +94,17 @@ class SimulatorBackend(ExperimentalBackend):
         if request.specification_id == "E02":
             sample = sample_competing_hazards(
                 1,
-                rates=(float(self.parameters.get("rate_0", 1.0)), float(self.parameters.get("rate_1", 0.7))),
+                rates=(
+                    float(self.parameters.get("rate_0", 1.0)),
+                    float(self.parameters.get("rate_1", 0.7)),
+                ),
                 seed_bias=float(self.parameters.get("seed_bias", 1.0)),
                 rng=self.rng,
             )
-            outcome = {"state": int(sample.states[0]), "transition_time": float(sample.times[0])}
+            outcome = {
+                "state": int(sample.states[0]),
+                "transition_time": float(sample.times[0]),
+            }
         elif request.specification_id == "E09":
             result = simulate_double_well(
                 1,
@@ -117,8 +125,17 @@ class SimulatorBackend(ExperimentalBackend):
             if request.specification_id == "E12":
                 x, y, a, b = simulate_local_chsh(1, self.rng)
             else:
-                x, y, a, b = simulate_quantum_chsh(1, visibility=visibility, rng=self.rng)
-            outcome = {"x": int(x[0]), "y": int(y[0]), "a": int(a[0]), "b": int(b[0])}
+                x, y, a, b = simulate_quantum_chsh(
+                    1,
+                    visibility=visibility,
+                    rng=self.rng,
+                )
+            outcome = {
+                "x": int(x[0]),
+                "y": int(y[0]),
+                "a": int(a[0]),
+                "b": int(b[0]),
+            }
 
         return TrialResponse(
             timestamp_utc=datetime.now(timezone.utc).isoformat(),
@@ -132,7 +149,10 @@ class SimulatorBackend(ExperimentalBackend):
         return {"reset_ok": True}
 
     def collect_diagnostics(self) -> Mapping[str, Any]:
-        return {"prepared": self.prepared, "specification_id": self.specification_id}
+        return {
+            "prepared": self.prepared,
+            "specification_id": self.specification_id,
+        }
 
     def close(self) -> None:
         self.prepared = False
@@ -148,6 +168,7 @@ class CommandBackend(ExperimentalBackend):
     """
 
     backend_id = "command-backend"
+    backend_kind = "hardware"
 
     def __init__(self, firmware_version: str = "unknown") -> None:
         self.firmware_version = firmware_version
@@ -155,11 +176,21 @@ class CommandBackend(ExperimentalBackend):
         self.parameters: dict[str, Any] = {}
 
     @abstractmethod
-    def _exchange(self, command: str, payload: Mapping[str, Any]) -> Mapping[str, Any]:
+    def _exchange(
+        self,
+        command: str,
+        payload: Mapping[str, Any],
+    ) -> Mapping[str, Any]:
         raise NotImplementedError
 
     def prepare(self, specification_id: str, parameters: Mapping[str, Any]) -> None:
-        response = self._exchange("prepare", {"specification_id": specification_id, "parameters": dict(parameters)})
+        response = self._exchange(
+            "prepare",
+            {
+                "specification_id": specification_id,
+                "parameters": dict(parameters),
+            },
+        )
         if not response.get("ok", False):
             raise RuntimeError(f"hardware prepare failed: {response}")
         self.specification_id = specification_id
@@ -179,7 +210,12 @@ class CommandBackend(ExperimentalBackend):
             },
         )
         return TrialResponse(
-            timestamp_utc=str(response.get("timestamp_utc", datetime.now(timezone.utc).isoformat())),
+            timestamp_utc=str(
+                response.get(
+                    "timestamp_utc",
+                    datetime.now(timezone.utc).isoformat(),
+                )
+            ),
             outcome=dict(response.get("outcome", {})),
             diagnostics=dict(response.get("diagnostics", {})),
             valid=bool(response.get("valid", True)),

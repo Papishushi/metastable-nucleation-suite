@@ -61,6 +61,7 @@
     {
       "@id": "https://w3id.org/metastable-nucleation-suite/resource/parameter/reference-visibility",
       "@type": "mns:Parameter",
+      "identifier": "reference-visibility",
       "parameterName": "visibility",
       "numericValue": 0.98,
       "unit": "1"

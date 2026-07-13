@@ -11,7 +11,7 @@
     },
     {
       "@id": "https://w3id.org/metastable-nucleation-suite/resource/backend/reference-simulator",
-      "@type": ["mns:Agent", "mns:HardwareBackend", "mns:SimulatorBackend"],
+      "@type": ["mns:Agent", "mns:ExecutionBackend", "mns:SimulatorBackend"],
       "mns:identifier": "reference-simulator"
     },
     {

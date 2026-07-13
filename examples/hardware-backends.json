@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0.0",
+  "backends": [
+    {
+      "id": "lab-counter-tcp",
+      "transport": "tcp",
+      "host": "127.0.0.1",
+      "port": 9000,
+      "timeout_s": 2.0,
+      "firmware_version": "counter-firmware-1.0.0",
+      "supported_specifications": ["E09"],
+      "retry_policy": {
+        "attempts": 3,
+        "initial_delay_s": 0.05,
+        "backoff": 2.0,
+        "maximum_delay_s": 1.0
+      }
+    }
+  ]
+}

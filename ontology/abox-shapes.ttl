@@ -19,7 +19,7 @@ mns:ExecutionShape
     sh:property [ sh:path mns:gitCommit ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:pattern "^[0-9a-f]{7,40}$|^unavailable$" ] ;
     sh:property [ sh:path mns:softwareVersion ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
     sh:property [ sh:path mns:wasExecutedBy ; sh:class mns:Agent ] ;
-    sh:property [ sh:path mns:usesBackend ; sh:maxCount 1 ; sh:class mns:HardwareBackend ] ;
+    sh:property [ sh:path mns:usesBackend ; sh:maxCount 1 ; sh:class mns:ExecutionBackend ] ;
     sh:property [ sh:path mns:partOfSuiteRun ; sh:maxCount 1 ; sh:class mns:SuiteRun ] ;
     sh:property [ sh:path mns:dependsOnExecution ; sh:class mns:Execution ] ;
     sh:property [ sh:path mns:hasParameter ; sh:class mns:Parameter ] ;
@@ -69,6 +69,7 @@ mns:ParameterShape
     sh:targetClass mns:Parameter ;
     sh:closed true ;
     sh:ignoredProperties (rdf:type) ;
+    sh:property [ sh:path mns:identifier ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1 ] ;
     sh:property [ sh:path mns:parameterName ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1 ] ;
     sh:property [ sh:path mns:numericValue ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
     sh:property [ sh:path mns:stringValue ; sh:maxCount 1 ; sh:datatype xsd:string ] ;

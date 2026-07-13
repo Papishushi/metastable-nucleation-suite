@@ -23,12 +23,16 @@ mns:Running a mns:CampaignStatus .
 mns:Completed a mns:CampaignStatus .
 mns:Failed a mns:CampaignStatus .
 
-mns:HardwareBackend a owl:Class ;
+mns:ExecutionBackend a owl:Class ;
     rdfs:subClassOf mns:Agent ;
+    rdfs:label "Execution backend"@en .
+
+mns:HardwareBackend a owl:Class ;
+    rdfs:subClassOf mns:ExecutionBackend ;
     rdfs:label "Hardware backend"@en .
 
 mns:SimulatorBackend a owl:Class ;
-    rdfs:subClassOf mns:HardwareBackend, mns:SoftwareAgent ;
+    rdfs:subClassOf mns:ExecutionBackend, mns:SoftwareAgent ;
     rdfs:label "Simulator backend"@en .
 
 mns:ExecutionSummary a owl:Class ;
@@ -74,11 +78,11 @@ mns:summarizesDependency a owl:ObjectProperty ;
 
 mns:usesBackend a owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:domain mns:Execution ;
-    rdfs:range mns:HardwareBackend ;
+    rdfs:range mns:ExecutionBackend ;
     rdfs:subPropertyOf prov:wasAssociatedWith .
 
 mns:supportsSpecification a owl:ObjectProperty ;
-    rdfs:domain mns:HardwareBackend ;
+    rdfs:domain mns:ExecutionBackend ;
     rdfs:range mns:ExperimentSpecification .
 
 mns:datasetPath a owl:DatatypeProperty, owl:FunctionalProperty ;
