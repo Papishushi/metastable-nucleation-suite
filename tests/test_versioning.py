@@ -4,7 +4,11 @@ import subprocess
 import sys
 
 from metastable_suite import __version__
-from scripts.check_release_version import canonical_version, validate_metadata
+from scripts.check_release_version import (
+    canonical_version,
+    python_distribution_version,
+    validate_metadata,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -33,3 +37,9 @@ def test_release_metadata_rejects_mismatched_tag():
 
 def test_canonical_version_is_semver_without_build_metadata():
     assert re.fullmatch(r"\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?", __version__)
+
+
+def test_python_distribution_version_normalizes_semver_prerelease():
+    assert python_distribution_version("0.3.0-rc.1") == "0.3.0rc1"
+    assert python_distribution_version("0.3.0-beta.2") == "0.3.0b2"
+    assert python_distribution_version("0.3.0-alpha.4") == "0.3.0a4"
