@@ -4,7 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Iterable
 
 from rdflib import Graph, URIRef
 
@@ -101,12 +101,24 @@ def _write_json_atomic(path: Path, document: dict) -> None:
     temporary.replace(path)
 
 
+def _has_reusable_campaign_artifacts(
+    output_dir: Path,
+    run_ids: Iterable[str],
+) -> bool:
+    return any(
+        safe_output_path(output_dir, f"{run_id}.abox.jsonld").exists()
+        and safe_output_path(output_dir, f"{run_id}.events.ndjson").exists()
+        for run_id in run_ids
+    )
+
+
 def _guard_campaign_execution_context(
     output_dir: Path,
     campaign_id: str,
     backend_registry_fingerprint: str,
     *,
     resume: bool,
+    run_ids: Iterable[str] = (),
 ) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
     context_path = safe_output_path(
@@ -118,7 +130,15 @@ def _guard_campaign_execution_context(
         f"{campaign_id}.campaign-state.json",
     )
 
-    if resume and state_path.exists() and not context_path.exists():
+    reusable_artifacts_exist = _has_reusable_campaign_artifacts(
+        output_dir,
+        run_ids,
+    )
+    if (
+        resume
+        and not context_path.exists()
+        and (state_path.exists() or reusable_artifacts_exist)
+    ):
         raise CampaignStateError(
             "campaign execution context is missing; use --no-resume to start "
             "with the current backend configuration"
@@ -232,6 +252,7 @@ def execute_campaign_plan(
         campaign_plan.campaign_id,
         registry_fingerprint,
         resume=resume,
+        run_ids=(request.run_id for request in campaign_plan.runs.values()),
     )
 
     result = execute_campaign(
@@ -260,88 +281,57 @@ def main(argv: list[str] | None = None) -> int:
         description="Execute SHACL-valid semantic experiment plans"
     )
     parser.add_argument("plan", type=Path)
-    parser.add_argument("output_dir", type=Path)
-    parser.add_argument("--run-iri", help="execute only the selected planned execution")
-    parser.add_argument("--campaign-iri", help="execute the selected campaign")
-    parser.add_argument(
-        "--backend-config",
-        type=Path,
-        help=(
-            "versioned external configuration for TCP, Serial or VISA backends; "
-            "connection details are never read from the semantic ABox"
-        ),
-    )
+    parser.add_argument("output", type=Path)
+    parser.add_argument("--run-iri")
+    parser.add_argument("--campaign-iri")
     parser.add_argument(
         "--failure-policy",
         choices=[policy.value for policy in FailurePolicy],
-        help="override the campaign failure policy",
     )
     parser.add_argument(
         "--no-resume",
         action="store_true",
-        help="start a campaign without using persisted completed runs",
+        help="start a new campaign instead of reusing persisted state",
     )
-    args = parser.parse_args(argv)
-
-    if args.run_iri is not None:
-        if args.campaign_iri or args.failure_policy or args.no_resume:
-            parser.error(
-                "--run-iri cannot be combined with --campaign-iri, "
-                "--failure-policy or --no-resume"
-            )
-        documents = execute_plan(
-            args.plan,
-            args.output_dir,
-            args.run_iri,
-            backend_config=args.backend_config,
+    parser.add_argument(
+        "--backend-config",
+        type=Path,
+        help="validated external Serial/TCP/VISA backend configuration",
+    )
+    arguments = parser.parse_args(argv)
+    if arguments.run_iri and arguments.campaign_iri:
+        parser.error("--run-iri and --campaign-iri are mutually exclusive")
+    if arguments.run_iri and (
+        arguments.failure_policy or arguments.no_resume
+    ):
+        parser.error(
+            "--failure-policy and --no-resume require campaign execution"
         )
-        print(
-            json.dumps(
-                {
-                    "executed_runs": len(documents),
-                    "output_dir": args.output_dir.as_posix(),
-                },
-                indent=2,
-            )
-        )
-        return 0
 
-    if args.campaign_iri or find_campaigns(load_abox(args.plan, ABOX_SCHEMA)):
+    plan_graph, _ = _validated_plan(arguments.plan)
+    campaigns = find_campaigns(plan_graph)
+    campaign_mode = arguments.campaign_iri is not None or (
+        arguments.run_iri is None and len(campaigns) == 1
+    )
+    if campaign_mode:
         result = execute_campaign_plan(
-            args.plan,
-            args.output_dir,
-            args.campaign_iri,
-            args.failure_policy,
-            resume=not args.no_resume,
-            backend_config=args.backend_config,
+            arguments.plan,
+            arguments.output,
+            campaign_iri=arguments.campaign_iri,
+            failure_policy=arguments.failure_policy,
+            resume=not arguments.no_resume,
+            backend_config=arguments.backend_config,
         )
-        print(
-            json.dumps(
-                {
-                    "campaign_id": result.campaign_id,
-                    "status": result.status,
-                    "failure_policy": result.failure_policy.value,
-                    "run_statuses": result.run_statuses,
-                    "output_dir": args.output_dir.as_posix(),
-                },
-                indent=2,
-            )
-        )
-    else:
-        documents = execute_plan(
-            args.plan,
-            args.output_dir,
-            backend_config=args.backend_config,
-        )
-        print(
-            json.dumps(
-                {
-                    "executed_runs": len(documents),
-                    "output_dir": args.output_dir.as_posix(),
-                },
-                indent=2,
-            )
-        )
+        print(json.dumps(result.run_statuses, indent=2, sort_keys=True))
+        return 0 if result.status == "Completed" else 1
+
+    documents = execute_plan(
+        arguments.plan,
+        arguments.output,
+        arguments.run_iri,
+        backend_config=arguments.backend_config,
+    )
+    print(json.dumps(documents, indent=2, sort_keys=True))
     return 0
 
 
