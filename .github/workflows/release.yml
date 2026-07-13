@@ -27,6 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.metadata.outputs.version }}
+      python-version: ${{ steps.metadata.outputs.python_version }}
       source-date-epoch: ${{ steps.metadata.outputs.source_date_epoch }}
       image-prefix: ${{ steps.metadata.outputs.image_prefix }}
       publish: ${{ steps.metadata.outputs.publish }}
@@ -53,6 +54,7 @@ jobs:
         shell: bash
         run: |
           version="$(cat VERSION)"
+          python_version="$(python -c 'from scripts.check_release_version import python_distribution_version; print(python_distribution_version(open("VERSION", encoding="utf-8").read().strip()))')"
           repository="${GITHUB_REPOSITORY,,}"
           publish=false
           if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
@@ -63,6 +65,7 @@ jobs:
             stable=false
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "python_version=$python_version" >> "$GITHUB_OUTPUT"
           echo "source_date_epoch=$(git show -s --format=%ct HEAD)" >> "$GITHUB_OUTPUT"
           echo "image_prefix=ghcr.io/$repository" >> "$GITHUB_OUTPUT"
           echo "publish=$publish" >> "$GITHUB_OUTPUT"
@@ -244,12 +247,12 @@ jobs:
         if: needs.metadata.outputs.publish == 'true'
         uses: actions/attest@v4.1.1
         with:
-          subject-path: dist/metastable_nucleation_suite-${{ needs.metadata.outputs.version }}*
+          subject-path: dist/metastable_nucleation_suite-${{ needs.metadata.outputs.python-version }}*
       - name: Attest Python package SBOM
         if: needs.metadata.outputs.publish == 'true'
         uses: actions/attest@v4.1.1
         with:
-          subject-path: dist/metastable_nucleation_suite-${{ needs.metadata.outputs.version }}*
+          subject-path: dist/metastable_nucleation_suite-${{ needs.metadata.outputs.python-version }}*
           sbom-path: dist/metastable-nucleation-suite-${{ needs.metadata.outputs.version }}.spdx.json
       - uses: actions/upload-artifact@v7.0.1
         with:
