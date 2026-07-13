@@ -118,6 +118,7 @@ def registry(activations, failures=()):
     result.register(
         "test-backend",
         lambda request: RecordingBackend(request.run_id, activations, failed),
+        backend_kind="simulator",
     )
     return result
 
@@ -158,7 +159,6 @@ def test_cycle_is_rejected_before_any_backend_is_created(tmp_path):
 
     with pytest.raises(CampaignCycleError, match="cycle"):
         execute_campaign(graph, CAMPAIGN, tmp_path, event_schema(), registry(activations))
-
     assert activations == []
     assert not any(tmp_path.iterdir())
 
