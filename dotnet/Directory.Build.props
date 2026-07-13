@@ -1,7 +1,7 @@
 <Project>
   <PropertyGroup>
-    <VersionFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../VERSION'))</VersionFile>
-    <Version>$([System.IO.File]::ReadAllText('$(VersionFile)').Trim())</Version>
+    <!-- Mirrored from the canonical root VERSION file and enforced by check_release_version.py. -->
+    <Version>0.2.0</Version>
     <PackageVersion>$(Version)</PackageVersion>
     <InformationalVersion>$(Version)</InformationalVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
