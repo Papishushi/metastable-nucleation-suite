@@ -26,6 +26,15 @@ def canonical_version() -> str:
     return version
 
 
+def python_distribution_version(version: str) -> str:
+    from packaging.version import InvalidVersion, Version
+
+    try:
+        return Version(version).public
+    except InvalidVersion as exc:
+        raise ValueError(f"version cannot be represented as PEP 440: {version!r}") from exc
+
+
 def citation_version() -> str:
     text = (ROOT / "CITATION.cff").read_text(encoding="utf-8")
     match = re.search(r"(?m)^version:\s*([^\s]+)\s*$", text)
@@ -44,6 +53,7 @@ def dotnet_version() -> str:
 
 def validate_metadata(tag: str | None = None) -> str:
     version = canonical_version()
+    python_distribution_version(version)
     pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     project = pyproject["project"]
     if "version" in project:
