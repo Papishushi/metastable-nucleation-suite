@@ -44,7 +44,7 @@ ABOX_SCHEMA = ROOT / "ontology" / "abox.schema.json"
 EVENT_SCHEMA = ROOT / "schemas" / "event.schema.json"
 BACKEND_CONFIG_SCHEMA = ROOT / "schemas" / "backend-config.schema.json"
 DEFAULT_BACKEND_CONTEXT = "default-registry-v1"
-INJECTED_BACKEND_CONTEXT = "injected-registry-v1"
+UNFINGERPRINTED_INJECTED_BACKEND_CONTEXT = "injected-registry-unfingerprinted-v1"
 
 
 def _validated_plan(plan_path: Path):
@@ -70,11 +70,28 @@ def _completed_artifact_validator(ontology: Graph) -> Callable[[Path], bool]:
 def _resolve_registry(
     backend_config: Path | None,
     registry: BackendRegistry | None,
-) -> tuple[BackendRegistry, str]:
+    *,
+    injected_registry_fingerprint: str | None = None,
+) -> tuple[BackendRegistry, str | None]:
     if backend_config is not None and registry is not None:
         raise ValueError("backend_config and registry cannot be supplied together")
+    if injected_registry_fingerprint is not None and registry is None:
+        raise ValueError(
+            "injected_registry_fingerprint requires an injected registry"
+        )
     if registry is not None:
-        return registry, INJECTED_BACKEND_CONTEXT
+        if injected_registry_fingerprint is None:
+            return registry, None
+        if not isinstance(injected_registry_fingerprint, str):
+            raise ValueError("injected registry fingerprint must be a string")
+        fingerprint = injected_registry_fingerprint.strip()
+        if not fingerprint:
+            raise ValueError("injected registry fingerprint must not be empty")
+        if len(fingerprint) > 256:
+            raise ValueError(
+                "injected registry fingerprint must not exceed 256 characters"
+            )
+        return registry, f"injected-registry:{fingerprint}"
 
     default = BackendRegistry.default()
     if backend_config is None:
@@ -226,6 +243,7 @@ def execute_campaign_plan(
     *,
     backend_config: Path | None = None,
     registry: BackendRegistry | None = None,
+    registry_fingerprint: str | None = None,
 ):
     plan_graph, ontology = _validated_plan(plan_path)
     campaigns = find_campaigns(plan_graph)
@@ -243,14 +261,23 @@ def execute_campaign_plan(
         plan_graph,
         selected_campaign,
     )
-    resolved_registry, registry_fingerprint = _resolve_registry(
+    resolved_registry, registry_context = _resolve_registry(
         backend_config,
         registry,
+        injected_registry_fingerprint=registry_fingerprint,
     )
+    if registry is not None and resume and registry_context is None:
+        raise CampaignStateError(
+            "resuming a campaign with an injected registry requires an explicit "
+            "registry_fingerprint"
+        )
+    if registry_context is None:
+        registry_context = UNFINGERPRINTED_INJECTED_BACKEND_CONTEXT
+
     _guard_campaign_execution_context(
         output_dir,
         campaign_plan.campaign_id,
-        registry_fingerprint,
+        registry_context,
         resume=resume,
         run_ids=(request.run_id for request in campaign_plan.runs.values()),
     )
