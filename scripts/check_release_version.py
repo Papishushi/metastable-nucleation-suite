@@ -30,9 +30,16 @@ def python_distribution_version(version: str) -> str:
     from packaging.version import InvalidVersion, Version
 
     try:
-        return Version(version).public
+        parsed = Version(version)
     except InvalidVersion as exc:
         raise ValueError(f"version cannot be represented as PEP 440: {version!r}") from exc
+
+    if "-" in version and not parsed.is_prerelease:
+        raise ValueError(
+            "SemVer prerelease does not map to a PEP 440 prerelease: "
+            f"{version!r} -> {parsed.public!r}"
+        )
+    return parsed.public
 
 
 def citation_version() -> str:
