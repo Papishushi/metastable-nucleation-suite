@@ -12,6 +12,7 @@ on:
       - "services/**"
       - "scripts/check_release_version.py"
       - "scripts/package_release.py"
+      - "tests/test_versioning.py"
       - ".github/workflows/release.yml"
   push:
     tags:
@@ -64,6 +65,28 @@ jobs:
           echo "image_prefix=ghcr.io/$repository" >> "$GITHUB_OUTPUT"
           echo "publish=$publish" >> "$GITHUB_OUTPUT"
           echo "stable=$stable" >> "$GITHUB_OUTPUT"
+
+  version-compatibility:
+    needs: metadata
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.14"]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.0
+      - uses: actions/setup-python@v6.3.0
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install minimum release test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e . --no-deps
+          python -m pip install pytest "tomli>=2; python_version < '3.11'"
+      - name: Validate release metadata and version tests
+        run: |
+          python scripts/check_release_version.py
+          pytest -q tests/test_versioning.py
 
   dotnet-artifacts:
     needs: metadata
@@ -196,12 +219,14 @@ jobs:
         shell: bash
         run: |
           python -m venv .release-venv
-          .release-venv/bin/python -m pip install --upgrade pip
+          .release-venv/bin/python -m pip install --upgrade pip packaging
           .release-venv/bin/python -m pip install dist/*.whl
           .release-venv/bin/python - <<'PY'
           import importlib.metadata
+          from packaging.version import Version
           import metastable_suite
-          expected = open("VERSION", encoding="utf-8").read().strip()
+          raw_version = open("VERSION", encoding="utf-8").read().strip()
+          expected = Version(raw_version).public
           assert metastable_suite.__version__ == expected
           assert importlib.metadata.version("metastable-nucleation-suite") == expected
           PY
@@ -292,6 +317,7 @@ jobs:
     if: needs.metadata.outputs.publish == 'true'
     needs:
       - metadata
+      - version-compatibility
       - dotnet-artifacts
       - python-artifacts
       - container-images
