@@ -6,6 +6,7 @@ from services.scientific_worker import (
     capability_manifest,
     canonical_request_id,
     resolve_artifacts_path,
+    resolve_server_version,
     validate_request_envelope,
 )
 
@@ -26,6 +27,31 @@ def test_default_artifact_path_is_under_user_home():
 
 def test_configured_artifact_path_is_respected(tmp_path):
     assert resolve_artifacts_path(str(tmp_path)) == tmp_path
+
+
+def test_configured_server_version_takes_precedence(tmp_path):
+    version_file = tmp_path / "VERSION"
+    version_file.write_text("0.2.0\n", encoding="utf-8")
+
+    assert (
+        resolve_server_version("0.3.0-rc.1", version_paths=(version_file,))
+        == "0.3.0-rc.1"
+    )
+
+
+def test_server_version_falls_back_to_canonical_version_file(tmp_path):
+    missing = tmp_path / "missing" / "VERSION"
+    version_file = tmp_path / "VERSION"
+    version_file.write_text("0.2.0\n", encoding="utf-8")
+
+    assert resolve_server_version("", version_paths=(missing, version_file)) == "0.2.0"
+
+
+def test_server_version_uses_placeholder_only_without_configuration_or_file(tmp_path):
+    assert (
+        resolve_server_version(None, version_paths=(tmp_path / "missing",))
+        == "0.0.0+unknown"
+    )
 
 
 def test_capability_manifest_advertises_required_active_capabilities():
