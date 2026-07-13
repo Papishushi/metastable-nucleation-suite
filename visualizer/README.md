@@ -20,6 +20,8 @@ cargo fmt --check
 cargo clippy --locked --all-targets -- -D warnings
 cargo clippy --locked --target wasm32-unknown-unknown --lib --tests -- -D warnings
 cargo test --locked
-wasm-pack test --headless --chrome visualizer -- --locked --test wasm
+CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER=wasm-bindgen-test-runner \
+  CHROMEDRIVER=/usr/bin/chromedriver WASM_BINDGEN_TEST_ONLY_WEB=1 \
+  cargo test --locked --target wasm32-unknown-unknown --test wasm
 cargo build --locked --release --target wasm32-unknown-unknown
 ```

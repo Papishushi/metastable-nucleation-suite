@@ -37,9 +37,13 @@ jobs:
       - name: Run native contract and invariant tests
         run: cargo test --locked
       - name: Install pinned WASM browser test runner
-        run: cargo install wasm-pack --version 0.13.1 --locked
+        run: cargo install wasm-bindgen-cli --version 0.2.126 --locked
       - name: Run contract validation through generated bindings in headless Chrome
-        run: wasm-pack test --headless --chrome visualizer -- --locked --test wasm
+        env:
+          CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER: wasm-bindgen-test-runner
+          CHROMEDRIVER: /usr/bin/chromedriver
+          WASM_BINDGEN_TEST_ONLY_WEB: "1"
+        run: cargo test --locked --target wasm32-unknown-unknown --test wasm
       - name: Build the browser target
         run: cargo build --locked --release --target wasm32-unknown-unknown
 
