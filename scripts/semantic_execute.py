@@ -291,7 +291,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--no-resume",
         action="store_true",
-        help="start a new campaign instead of reusing persisted state",
+        help=(
+            "start a new campaign, replace backend execution context, and ignore "
+            "persisted or orphaned completed artifacts"
+        ),
     )
     parser.add_argument(
         "--backend-config",
