@@ -353,9 +353,16 @@ jobs:
       - name: Create immutable GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: >-
-          gh release create "$GITHUB_REF_NAME"
-          release-assets/*
-          --verify-tag
-          --generate-notes
-          --title "Metastable Nucleation Suite ${{ needs.metadata.outputs.version }}"
+        shell: bash
+        run: |
+          release_flags=(
+            --verify-tag
+            --generate-notes
+            --title "Metastable Nucleation Suite ${{ needs.metadata.outputs.version }}"
+          )
+          if [[ '${{ needs.metadata.outputs.stable }}' != "true" ]]; then
+            release_flags+=(--prerelease)
+          fi
+          gh release create "$GITHUB_REF_NAME" \
+            release-assets/* \
+            "${release_flags[@]}"
