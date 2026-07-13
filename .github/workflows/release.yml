@@ -1,0 +1,370 @@
+name: release
+
+on:
+  pull_request:
+    paths:
+      - "VERSION"
+      - "pyproject.toml"
+      - "MANIFEST.in"
+      - "src/metastable_suite/**"
+      - "dotnet/**"
+      - "deploy/**"
+      - "services/**"
+      - "scripts/check_release_version.py"
+      - "scripts/package_release.py"
+      - "tests/test_versioning.py"
+      - ".github/workflows/release.yml"
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  metadata:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.metadata.outputs.version }}
+      python-version: ${{ steps.metadata.outputs.python_version }}
+      source-date-epoch: ${{ steps.metadata.outputs.source_date_epoch }}
+      image-prefix: ${{ steps.metadata.outputs.image_prefix }}
+      publish: ${{ steps.metadata.outputs.publish }}
+      stable: ${{ steps.metadata.outputs.stable }}
+    steps:
+      - uses: actions/checkout@v7.0.0
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v6.3.0
+        with:
+          python-version: "3.14"
+      - name: Install release metadata dependencies
+        run: python -m pip install packaging
+      - name: Validate canonical version
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            python scripts/check_release_version.py --tag "$GITHUB_REF_NAME"
+          else
+            python scripts/check_release_version.py
+          fi
+      - name: Export release metadata
+        id: metadata
+        shell: bash
+        run: |
+          version="$(cat VERSION)"
+          python_version="$(python -c 'from scripts.check_release_version import python_distribution_version; print(python_distribution_version(open("VERSION", encoding="utf-8").read().strip()))')"
+          repository="${GITHUB_REPOSITORY,,}"
+          publish=false
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            publish=true
+          fi
+          stable=true
+          if [[ "$version" == *-* ]]; then
+            stable=false
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "python_version=$python_version" >> "$GITHUB_OUTPUT"
+          echo "source_date_epoch=$(git show -s --format=%ct HEAD)" >> "$GITHUB_OUTPUT"
+          echo "image_prefix=ghcr.io/$repository" >> "$GITHUB_OUTPUT"
+          echo "publish=$publish" >> "$GITHUB_OUTPUT"
+          echo "stable=$stable" >> "$GITHUB_OUTPUT"
+
+  version-compatibility:
+    needs: metadata
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.14"]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.0
+      - uses: actions/setup-python@v6.3.0
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install minimum release test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e . --no-deps
+          python -m pip install pytest packaging "tomli>=2; python_version < '3.11'"
+      - name: Validate release metadata and version tests
+        run: |
+          python scripts/check_release_version.py
+          pytest -q tests/test_versioning.py
+
+  dotnet-artifacts:
+    needs: metadata
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - rid: win-x64
+            runner: windows-latest
+            archive: zip
+            smoke: true
+          - rid: win-arm64
+            runner: windows-latest
+            archive: zip
+            smoke: false
+          - rid: linux-x64
+            runner: ubuntu-latest
+            archive: tar.gz
+            smoke: true
+          - rid: linux-arm64
+            runner: ubuntu-latest
+            archive: tar.gz
+            smoke: false
+          - rid: osx-x64
+            runner: macos-15-intel
+            archive: tar.gz
+            smoke: true
+          - rid: osx-arm64
+            runner: macos-15
+            archive: tar.gz
+            smoke: true
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    env:
+      SOURCE_DATE_EPOCH: ${{ needs.metadata.outputs.source-date-epoch }}
+    steps:
+      - uses: actions/checkout@v7.0.0
+      - uses: actions/setup-dotnet@v5.4.0
+        with:
+          dotnet-version: "10.0.x"
+          global-json-file: global.json
+      - uses: actions/setup-python@v6.3.0
+        with:
+          python-version: "3.14"
+      - name: Publish self-contained CLI
+        shell: bash
+        run: >-
+          dotnet publish dotnet/Metastable.Platform.Cli/Metastable.Platform.Cli.csproj
+          -c Release -r ${{ matrix.rid }} --self-contained true
+          -p:PublishSingleFile=true -o publish/${{ matrix.rid }}
+      - name: Build deterministic archive
+        shell: bash
+        run: |
+          mkdir -p release
+          extension="${{ matrix.archive }}"
+          python scripts/package_release.py \
+            "publish/${{ matrix.rid }}" \
+            "release/metastable-platform-${{ needs.metadata.outputs.version }}-${{ matrix.rid }}.$extension"
+      - name: Extract archive for smoke test
+        if: matrix.smoke
+        shell: bash
+        run: |
+          python - <<'PY'
+          import shutil
+          from pathlib import Path
+          archive = next(Path("release").glob("metastable-platform-*"))
+          shutil.unpack_archive(archive, "extracted")
+          PY
+      - name: Smoke test extracted Unix artifact
+        if: matrix.smoke && runner.os != 'Windows'
+        shell: bash
+        run: |
+          test "$(extracted/metastable-platform --version)" = "metastable-platform ${{ needs.metadata.outputs.version }}"
+          extracted/metastable-platform --self-test
+      - name: Smoke test extracted Windows artifact
+        if: matrix.smoke && runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $actual = & extracted/metastable-platform.exe --version
+          if ($actual -ne "metastable-platform ${{ needs.metadata.outputs.version }}") { throw "unexpected version: $actual" }
+          & extracted/metastable-platform.exe --self-test
+      - name: Generate CLI SBOM
+        uses: anchore/sbom-action@v0.24.0
+        with:
+          path: publish/${{ matrix.rid }}
+          format: spdx-json
+          output-file: release/metastable-platform-${{ needs.metadata.outputs.version }}-${{ matrix.rid }}.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+      - name: Attest CLI archive provenance
+        if: needs.metadata.outputs.publish == 'true'
+        uses: actions/attest@v4.1.1
+        with:
+          subject-path: release/metastable-platform-${{ needs.metadata.outputs.version }}-${{ matrix.rid }}.${{ matrix.archive }}
+      - name: Attest CLI archive SBOM
+        if: needs.metadata.outputs.publish == 'true'
+        uses: actions/attest@v4.1.1
+        with:
+          subject-path: release/metastable-platform-${{ needs.metadata.outputs.version }}-${{ matrix.rid }}.${{ matrix.archive }}
+          sbom-path: release/metastable-platform-${{ needs.metadata.outputs.version }}-${{ matrix.rid }}.spdx.json
+      - uses: actions/upload-artifact@v7.0.1
+        with:
+          name: release-dotnet-${{ matrix.rid }}
+          path: release/
+          if-no-files-found: error
+
+  python-artifacts:
+    needs: metadata
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    env:
+      SOURCE_DATE_EPOCH: ${{ needs.metadata.outputs.source-date-epoch }}
+    steps:
+      - uses: actions/checkout@v7.0.0
+      - uses: actions/setup-python@v6.3.0
+        with:
+          python-version: "3.14"
+      - name: Build wheel and source distribution
+        run: |
+          python -m pip install --upgrade build twine
+          python -m build
+          python -m twine check dist/*
+      - name: Smoke test wheel in a clean environment
+        shell: bash
+        run: |
+          python -m venv .release-venv
+          .release-venv/bin/python -m pip install --upgrade pip packaging
+          .release-venv/bin/python -m pip install dist/*.whl
+          .release-venv/bin/python - <<'PY'
+          import importlib.metadata
+          import metastable_suite
+          from scripts.check_release_version import python_distribution_version
+          raw_version = open("VERSION", encoding="utf-8").read().strip()
+          expected = python_distribution_version(raw_version)
+          assert metastable_suite.__version__ == expected
+          assert importlib.metadata.version("metastable-nucleation-suite") == expected
+          PY
+      - name: Generate Python environment SBOM
+        uses: anchore/sbom-action@v0.24.0
+        with:
+          path: .release-venv
+          format: spdx-json
+          output-file: dist/metastable-nucleation-suite-${{ needs.metadata.outputs.version }}.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+      - name: Attest Python package provenance
+        if: needs.metadata.outputs.publish == 'true'
+        uses: actions/attest@v4.1.1
+        with:
+          subject-path: dist/metastable_nucleation_suite-${{ needs.metadata.outputs.python-version }}*
+      - name: Attest Python package SBOM
+        if: needs.metadata.outputs.publish == 'true'
+        uses: actions/attest@v4.1.1
+        with:
+          subject-path: dist/metastable_nucleation_suite-${{ needs.metadata.outputs.python-version }}*
+          sbom-path: dist/metastable-nucleation-suite-${{ needs.metadata.outputs.version }}.spdx.json
+      - uses: actions/upload-artifact@v7.0.1
+        with:
+          name: release-python
+          path: dist/
+          if-no-files-found: error
+
+  container-images:
+    needs: metadata
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: platform-cli
+            dockerfile: deploy/Dockerfile.platform-cli
+          - name: scientific-worker
+            dockerfile: deploy/Dockerfile.scientific-worker
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    steps:
+      - uses: actions/checkout@v7.0.0
+      - uses: docker/setup-qemu-action@v4.2.0
+      - uses: docker/setup-buildx-action@v4.2.0
+      - name: Login to GHCR
+        if: needs.metadata.outputs.publish == 'true'
+        uses: docker/login-action@v4.4.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and optionally push multi-architecture image
+        id: image
+        uses: docker/build-push-action@v7.3.0
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          platforms: linux/amd64,linux/arm64
+          push: ${{ needs.metadata.outputs.publish == 'true' }}
+          tags: |
+            ${{ needs.metadata.outputs.image-prefix }}-${{ matrix.name }}:${{ needs.metadata.outputs.version }}
+            ${{ needs.metadata.outputs.stable == 'true' && format('{0}-{1}:latest', needs.metadata.outputs.image-prefix, matrix.name) || '' }}
+          labels: |
+            org.opencontainers.image.version=${{ needs.metadata.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          build-args: |
+            VERSION=${{ needs.metadata.outputs.version }}
+            REVISION=${{ github.sha }}
+          sbom: true
+          provenance: mode=max
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Attest pushed image
+        if: needs.metadata.outputs.publish == 'true'
+        uses: actions/attest@v4.1.1
+        with:
+          subject-name: ${{ needs.metadata.outputs.image-prefix }}-${{ matrix.name }}
+          subject-digest: ${{ steps.image.outputs.digest }}
+          push-to-registry: true
+
+  publish-release:
+    if: needs.metadata.outputs.publish == 'true'
+    needs:
+      - metadata
+      - version-compatibility
+      - dotnet-artifacts
+      - python-artifacts
+      - container-images
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    steps:
+      - uses: actions/checkout@v7.0.0
+      - uses: actions/download-artifact@v8.0.1
+        with:
+          pattern: release-*
+          path: release-assets
+          merge-multiple: true
+      - name: Generate checksums
+        shell: bash
+        run: |
+          cd release-assets
+          find . -maxdepth 1 -type f ! -name SHA256SUMS -printf '%f\n' | sort | xargs sha256sum > SHA256SUMS
+          cat SHA256SUMS
+      - name: Attest release checksums
+        uses: actions/attest@v4.1.1
+        with:
+          subject-checksums: release-assets/SHA256SUMS
+      - name: Create immutable GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          release_flags=(
+            --verify-tag
+            --generate-notes
+            --title "Metastable Nucleation Suite ${{ needs.metadata.outputs.version }}"
+          )
+          if [[ '${{ needs.metadata.outputs.stable }}' != "true" ]]; then
+            release_flags+=(--prerelease)
+          fi
+          gh release create "$GITHUB_REF_NAME" \
+            release-assets/* \
+            "${release_flags[@]}"

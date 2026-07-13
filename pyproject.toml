@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "metastable-nucleation-suite"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Reference experiments and models for nucleation, metastability, polymorphs and optical nonlocality tests"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -19,10 +19,20 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "ruff>=0.5", "pyarrow>=16"]
+dev = [
+  "pytest>=8",
+  "ruff>=0.5",
+  "pyarrow>=16",
+  "build>=1.2",
+  "packaging>=24",
+  "tomli>=2; python_version < '3.11'"
+]
 hardware = ["pyserial>=3.5", "pyvisa>=1.14"]
 visa-py = ["pyvisa>=1.14", "pyvisa-py>=0.7"]
 storage = ["pyarrow>=16"]
+
+[tool.setuptools.dynamic]
+version = {attr = "metastable_suite.__version__"}
 
 [tool.setuptools.packages.find]
 where = ["src"]

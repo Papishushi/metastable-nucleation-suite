@@ -12,7 +12,6 @@ from uuid import UUID
 
 HOST = os.environ.get("METASTABLE_WORKER_HOST", "0.0.0.0")
 PORT = int(os.environ.get("METASTABLE_WORKER_PORT", "8081"))
-SERVER_VERSION = "0.1.0"
 CAPABILITY_SCHEMA_VERSION = "1.0.0"
 REQUEST_FIELDS = frozenset(
     {"schema_version", "request_id", "experiment_id", "submitted_at_utc"}
@@ -32,6 +31,33 @@ CAPABILITIES = (
         "since_version": "0.1.0",
     },
 )
+
+
+def resolve_server_version(
+    configured_version: str | None = None,
+    *,
+    version_paths: tuple[Path, ...] | None = None,
+) -> str:
+    configured = (configured_version or "").strip()
+    if configured:
+        return configured
+
+    candidates = version_paths or (
+        Path(__file__).resolve().parent / "VERSION",
+        Path(__file__).resolve().parents[1] / "VERSION",
+    )
+    for candidate in dict.fromkeys(candidates):
+        try:
+            version = candidate.read_text(encoding="utf-8").strip()
+        except OSError:
+            continue
+        if version:
+            return version
+
+    return "0.0.0+unknown"
+
+
+SERVER_VERSION = resolve_server_version(os.environ.get("METASTABLE_VERSION"))
 
 
 def resolve_artifacts_path(configured_path: str | None = None) -> Path:

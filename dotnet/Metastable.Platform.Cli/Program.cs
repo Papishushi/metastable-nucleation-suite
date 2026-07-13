@@ -1,15 +1,20 @@
 using System.Globalization;
 using System.Net.Http.Headers;
+using System.Reflection;
 using System.Text.Json;
 using Metastable.Domain;
 using Metastable.Platform.Cli;
 
-const string Version = "0.1.0";
 const string ExecuteCapability = "experiments.execute.v1";
+var version = Assembly.GetExecutingAssembly()
+    .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+    .InformationalVersion
+    ?? Assembly.GetExecutingAssembly().GetName().Version?.ToString()
+    ?? "0.0.0+unknown";
 
 if (args is ["--version"])
 {
-    Console.WriteLine($"metastable-platform {Version}");
+    Console.WriteLine($"metastable-platform {version}");
     return 0;
 }
 
