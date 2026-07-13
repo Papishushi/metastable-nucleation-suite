@@ -50,3 +50,13 @@ def test_python_distribution_version_normalizes_semver_prerelease():
 def test_python_distribution_version_rejects_numeric_semver_prerelease():
     with pytest.raises(ValueError, match="does not map to a PEP 440 prerelease"):
         python_distribution_version("0.3.0-1")
+
+
+def test_release_workflow_marks_unstable_versions_as_github_prereleases():
+    workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(
+        encoding="utf-8"
+    )
+
+    assert 'needs.metadata.outputs.stable != "true"' in workflow
+    assert "release_flags+=(--prerelease)" in workflow
+    assert '"${release_flags[@]}"' in workflow
