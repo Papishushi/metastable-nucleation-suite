@@ -12,7 +12,7 @@ from uuid import UUID
 
 HOST = os.environ.get("METASTABLE_WORKER_HOST", "0.0.0.0")
 PORT = int(os.environ.get("METASTABLE_WORKER_PORT", "8081"))
-SERVER_VERSION = "0.1.0"
+SERVER_VERSION = os.environ.get("METASTABLE_VERSION", "0.0.0+unknown")
 CAPABILITY_SCHEMA_VERSION = "1.0.0"
 REQUEST_FIELDS = frozenset(
     {"schema_version", "request_id", "experiment_id", "submitted_at_utc"}
