@@ -210,6 +210,8 @@ jobs:
       id-token: write
       attestations: write
       artifact-metadata: write
+    env:
+      SOURCE_DATE_EPOCH: ${{ needs.metadata.outputs.source-date-epoch }}
     steps:
       - uses: actions/checkout@v7.0.0
       - uses: actions/setup-python@v6.3.0
