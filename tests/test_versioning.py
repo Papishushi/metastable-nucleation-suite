@@ -1,0 +1,35 @@
+from pathlib import Path
+import re
+import subprocess
+import sys
+
+from metastable_suite import __version__
+from scripts.check_release_version import canonical_version, validate_metadata
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_python_version_matches_canonical_version():
+    assert __version__ == canonical_version()
+
+
+def test_release_metadata_is_consistent():
+    version = validate_metadata()
+    assert version == __version__
+    assert validate_metadata(f"v{version}") == version
+
+
+def test_release_metadata_rejects_mismatched_tag():
+    result = subprocess.run(
+        [sys.executable, "scripts/check_release_version.py", "--tag", "v9.9.9"],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 1
+    assert "does not match canonical version" in result.stderr
+
+
+def test_canonical_version_is_semver_without_build_metadata():
+    assert re.fullmatch(r"\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?", __version__)
