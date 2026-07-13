@@ -341,7 +341,7 @@ def main(argv: list[str] | None = None) -> int:
     plan_graph, _ = _validated_plan(arguments.plan)
     campaigns = find_campaigns(plan_graph)
     campaign_mode = arguments.campaign_iri is not None or (
-        arguments.run_iri is None and len(campaigns) == 1
+        arguments.run_iri is None and bool(campaigns)
     )
     if campaign_mode:
         result = execute_campaign_plan(
