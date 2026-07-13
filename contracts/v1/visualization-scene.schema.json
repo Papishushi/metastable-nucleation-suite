@@ -52,10 +52,23 @@
     },
     "vector3": {
       "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
       "prefixItems": [
         {"type": "number"},
         {"type": "number"},
         {"type": "number"}
+      ],
+      "items": false
+    },
+    "nonnegativeVector3": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "prefixItems": [
+        {"type": "number", "minimum": 0},
+        {"type": "number", "minimum": 0},
+        {"type": "number", "minimum": 0}
       ],
       "items": false
     },
@@ -213,7 +226,7 @@
       "type": "object",
       "required": ["standard_deviation", "confidence_level"],
       "properties": {
-        "standard_deviation": {"$ref": "#/$defs/vector3"},
+        "standard_deviation": {"$ref": "#/$defs/nonnegativeVector3"},
         "confidence_level": {"type": "number", "exclusiveMinimum": 0, "maximum": 1}
       },
       "additionalProperties": false

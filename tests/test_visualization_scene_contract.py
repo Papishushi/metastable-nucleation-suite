@@ -78,4 +78,12 @@ def test_python_json_schema_validator_matches_shared_conformance_corpus():
             else:
                 target[final] = operation["value"]
 
-        assert validator.is_valid(scene) is case["valid"], case["name"]
+        document = json.dumps(scene) + case.get("suffix", "")
+        try:
+            parsed_scene = json.loads(document)
+        except json.JSONDecodeError:
+            accepted = False
+        else:
+            accepted = validator.is_valid(parsed_scene)
+
+        assert accepted is case["valid"], case["name"]

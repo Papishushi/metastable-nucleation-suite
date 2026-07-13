@@ -101,6 +101,27 @@
       "name": "physical-projection-with-abstract-coordinates",
       "valid": false,
       "operations": [{"op": "replace", "path": "/projection_kind", "value": "physical"}]
+    },
+    {
+      "name": "short-position-vector",
+      "valid": false,
+      "operations": [{"op": "replace", "path": "/entities/0/position", "value": [0, 1]}]
+    },
+    {
+      "name": "short-standard-deviation-vector",
+      "valid": false,
+      "operations": [{"op": "replace", "path": "/transitions/1/uncertainty/standard_deviation", "value": [0]}]
+    },
+    {
+      "name": "negative-standard-deviation",
+      "valid": false,
+      "operations": [{"op": "replace", "path": "/transitions/1/uncertainty/standard_deviation", "value": [-0.1, 0, 0]}]
+    },
+    {
+      "name": "trailing-second-document",
+      "valid": false,
+      "operations": [],
+      "suffix": "{}"
     }
   ]
 }

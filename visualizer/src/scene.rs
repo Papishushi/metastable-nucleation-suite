@@ -270,6 +270,13 @@ pub fn parse_and_validate(scene_json: &str) -> Result<ValidatedScene, Validation
                 error.inner().to_string(),
             )],
         })?;
+    deserializer.end().map_err(|error| ValidationReport {
+        errors: vec![ValidationError::new(
+            "scene.json.trailing_data",
+            "/",
+            error.to_string(),
+        )],
+    })?;
 
     let errors = scene.validation_errors();
     if errors.is_empty() {
@@ -660,6 +667,15 @@ fn require_reference(
 }
 
 fn validate_uncertainty(uncertainty: &Uncertainty, base: &str, errors: &mut Vec<ValidationError>) {
+    for (index, value) in uncertainty.standard_deviation.iter().enumerate() {
+        if *value < 0.0 {
+            errors.push(ValidationError::new(
+                "scene.uncertainty.standard_deviation.negative",
+                format!("{base}/standard_deviation/{index}"),
+                "standard deviation components must be nonnegative",
+            ));
+        }
+    }
     if !(uncertainty.confidence_level > 0.0 && uncertainty.confidence_level <= 1.0) {
         errors.push(ValidationError::new(
             "scene.uncertainty.confidence.invalid",
@@ -862,5 +878,14 @@ mod tests {
                 .iter()
                 .any(|error| { error.code == "scene.transition.abstract_measured_geometry" })
         );
+    }
+
+    #[test]
+    fn rejects_trailing_json_after_the_scene() {
+        let changed = format!("{E09_FIXTURE}{{}}");
+        let report = parse_and_validate(&changed).expect_err("concatenated JSON must fail");
+
+        assert_eq!(report.errors[0].code, "scene.json.trailing_data");
+        assert_eq!(report.errors[0].path, "/");
     }
 }

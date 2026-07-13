@@ -17,6 +17,8 @@ struct Case {
     name: String,
     valid: bool,
     operations: Vec<Operation>,
+    #[serde(default)]
+    suffix: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -46,11 +48,9 @@ pub fn scenes() -> Vec<(String, String, bool)> {
                     .unwrap_or_else(|| panic!("unknown JSON pointer {}", operation.path));
                 *target = operation.value;
             }
-            (
-                case.name,
-                serde_json::to_string(&scene).expect("scene must serialize"),
-                case.valid,
-            )
+            let mut document = serde_json::to_string(&scene).expect("scene must serialize");
+            document.push_str(&case.suffix);
+            (case.name, document, case.valid)
         })
         .collect()
 }
