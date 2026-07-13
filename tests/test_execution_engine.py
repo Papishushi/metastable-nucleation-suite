@@ -59,7 +59,6 @@ def test_simulator_default_seed_is_normalized_before_factory(tmp_path):
         backend_id="seeded-simulator",
         trial_count=1,
         parameters={},
-        execution_kind="simulator",
     )
 
     result = execute_request(
@@ -70,10 +69,22 @@ def test_simulator_default_seed_is_normalized_before_factory(tmp_path):
     )
 
     assert observed_seeds == [0]
+    assert result.backend_kind == "simulator"
     assert result.random_seed == 0
 
 
-def test_semantic_request_rejects_untyped_registry_before_factory(tmp_path):
+def test_registry_rejects_missing_backend_kind():
+    registry = BackendRegistry()
+
+    with pytest.raises(ValueError, match="unsupported backend kind"):
+        registry.register(
+            "legacy-untyped",
+            lambda request: SimulatorBackend(seed=0),
+            backend_kind=None,
+        )
+
+
+def test_seeded_hardware_request_is_rejected_before_factory(tmp_path):
     activations = []
     registry = BackendRegistry()
 
@@ -81,17 +92,22 @@ def test_semantic_request_rejects_untyped_registry_before_factory(tmp_path):
         activations.append(request.run_id)
         return SimulatorBackend(seed=0)
 
-    registry.register("legacy-untyped", factory)
+    registry.register(
+        "hardware-with-side-effects",
+        factory,
+        backend_kind="hardware",
+    )
     request = ExecutionRequest(
-        run_id="semantic-kind-guard",
+        run_id="invalid-seeded-hardware",
         specification_id="E09",
-        backend_id="legacy-untyped",
+        backend_id="hardware-with-side-effects",
         trial_count=1,
         parameters={},
-        execution_kind="simulator",
+        random_seed=7,
+        execution_kind="hardware",
     )
 
-    with pytest.raises(ValueError, match="explicit backend_kind"):
+    with pytest.raises(ValueError, match="must not declare random_seed"):
         execute_request(
             request,
             tmp_path,
@@ -101,32 +117,6 @@ def test_semantic_request_rejects_untyped_registry_before_factory(tmp_path):
 
     assert activations == []
     assert not any(tmp_path.iterdir())
-
-
-def test_untyped_direct_request_uses_backend_declared_kind(tmp_path):
-    registry = BackendRegistry()
-    registry.register(
-        "direct-simulator",
-        lambda request: SimulatorBackend(seed=request.random_seed or 0),
-    )
-    request = ExecutionRequest(
-        run_id="direct-untyped",
-        specification_id="E09",
-        backend_id="direct-simulator",
-        trial_count=1,
-        parameters={},
-        random_seed=9,
-    )
-
-    result = execute_request(
-        request,
-        tmp_path,
-        load_event_schema(EVENT_SCHEMA),
-        registry,
-    )
-
-    assert result.backend_kind == "simulator"
-    assert result.random_seed == 9
 
 
 def test_semantic_plan_round_trip_creates_valid_abox_and_hashed_events(
