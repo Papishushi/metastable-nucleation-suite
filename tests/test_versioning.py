@@ -60,3 +60,16 @@ def test_release_workflow_marks_unstable_versions_as_github_prereleases():
     assert "needs.metadata.outputs.stable }}' != \"true\"" in workflow
     assert "release_flags+=(--prerelease)" in workflow
     assert '"${release_flags[@]}"' in workflow
+
+def test_python_release_build_uses_canonical_source_date_epoch():
+    workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(
+        encoding="utf-8"
+    )
+    python_job = workflow.split("\n  python-artifacts:\n", 1)[1].split(
+        "\n  container-images:\n", 1
+    )[0]
+
+    assert (
+        "SOURCE_DATE_EPOCH: ${{ needs.metadata.outputs.source-date-epoch }}"
+        in python_job
+    )
