@@ -974,7 +974,12 @@ mod tests {
         assert_eq!(render.entities.len(), 4);
         assert_eq!(render.transitions.len(), 3);
         assert!(render.coordinates.abstract_space);
-        assert!(render.coordinates.warning.contains("not measured physical geometry"));
+        assert!(
+            render
+                .coordinates
+                .warning
+                .contains("not measured physical geometry")
+        );
         assert!(
             render
                 .entities
