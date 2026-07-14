@@ -37,7 +37,7 @@ if (args is ["extend0", "doctor"])
 {
     var status = Extend0Integration.Diagnose();
     Console.WriteLine(JsonSerializer.Serialize(status));
-    return status.MetadataContractReady ? 0 : 1;
+    return status.MetaDbReady ? 0 : 1;
 }
 
 var workerUrl = Environment.GetEnvironmentVariable("METASTABLE_SCIENTIFIC_WORKER_URL")
