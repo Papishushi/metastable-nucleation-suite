@@ -20,7 +20,10 @@ if (args is ["--version"])
 
 if (args is ["--self-test"])
 {
-    if (!Validation.selfTest() || !CapabilityGate.SelfTest())
+    if (
+        !Validation.selfTest()
+        || !CapabilityGate.SelfTest()
+        || !Extend0Integration.SelfTest())
     {
         Console.Error.WriteLine("self-test failed");
         return 1;
@@ -28,6 +31,13 @@ if (args is ["--self-test"])
 
     Console.WriteLine("self-test: ok");
     return 0;
+}
+
+if (args is ["extend0", "doctor"])
+{
+    var status = Extend0Integration.Diagnose();
+    Console.WriteLine(JsonSerializer.Serialize(status));
+    return status.MetaDbReady ? 0 : 1;
 }
 
 var workerUrl = Environment.GetEnvironmentVariable("METASTABLE_SCIENTIFIC_WORKER_URL")
@@ -81,5 +91,5 @@ if (args is ["execute", var experimentId])
 }
 
 Console.Error.WriteLine(
-    "Usage: metastable-platform --version | --self-test | capabilities | execute <experiment-id>");
+    "Usage: metastable-platform --version | --self-test | extend0 doctor | capabilities | execute <experiment-id>");
 return 2;
