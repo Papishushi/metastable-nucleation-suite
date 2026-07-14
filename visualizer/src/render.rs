@@ -136,20 +136,10 @@ impl RenderScene {
 /// Camera input expressed independently of browser events.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum CameraAction {
-    Orbit {
-        yaw_delta: f64,
-        pitch_delta: f64,
-    },
-    Pan {
-        x_delta: f64,
-        y_delta: f64,
-    },
-    Zoom {
-        factor: f64,
-    },
-    Focus {
-        position: [f64; 3],
-    },
+    Orbit { yaw_delta: f64, pitch_delta: f64 },
+    Pan { x_delta: f64, y_delta: f64 },
+    Zoom { factor: f64 },
+    Focus { position: [f64; 3] },
     Reset,
 }
 
@@ -313,11 +303,13 @@ mod tests {
             position: [4.0, 5.0, 6.0],
         });
 
-        assert!(camera
-            .target
-            .iter()
-            .zip([4.0, 5.0, 6.0])
-            .all(|(actual, expected)| (*actual - expected).abs() < f64::EPSILON));
+        assert!(
+            camera
+                .target
+                .iter()
+                .zip([4.0, 5.0, 6.0])
+                .all(|(actual, expected)| (*actual - expected).abs() < f64::EPSILON)
+        );
         assert!((camera.yaw - 0.5).abs() < f64::EPSILON);
         assert!((camera.pitch - CameraState::MAX_PITCH).abs() < f64::EPSILON);
         assert!(camera.distance < initial.distance);
