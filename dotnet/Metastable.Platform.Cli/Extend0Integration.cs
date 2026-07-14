@@ -1,29 +1,32 @@
 using System.Reflection;
 using System.Text.Json.Serialization;
-using Extend0.Metadata;
+using Extend0.Metadata.Schema;
 
 namespace Metastable.Platform.Cli;
 
 internal sealed record Extend0Status(
     [property: JsonPropertyName("package_version")] string PackageVersion,
-    [property: JsonPropertyName("metadb_ready")] bool MetaDbReady);
+    [property: JsonPropertyName("metadata_contract_ready")] bool MetadataContractReady);
 
 internal static class Extend0Integration
 {
     internal static Extend0Status Diagnose()
     {
-        var manager = new MetaDBManager(logger: null);
-        return new Extend0Status(GetPackageVersion(), manager is not null);
+        var metadataContractReady = string.Equals(
+            typeof(TableSpec).FullName,
+            "Extend0.Metadata.Schema.TableSpec",
+            StringComparison.Ordinal);
+        return new Extend0Status(GetPackageVersion(), metadataContractReady);
     }
 
     internal static bool SelfTest()
     {
-        return Diagnose().MetaDbReady;
+        return Diagnose().MetadataContractReady;
     }
 
     private static string GetPackageVersion()
     {
-        var assembly = typeof(MetaDB).Assembly;
+        var assembly = typeof(TableSpec).Assembly;
         return assembly
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
             .InformationalVersion
