@@ -124,7 +124,7 @@ La capa operativa .NET integra Extend0 como dependencia acotada para coordinaci�
 dotnet run --project dotnet/Metastable.Platform.Cli -- extend0 doctor
 ```
 
-El comando informa de la versión cargada y comprueba que MetaDB puede crear su administrador local. Los artefactos científicos, ABoxes y datasets siguen siendo la fuente de verdad; MetaDB actúa únicamente como estado o índice operativo según [ADR 0003](docs/adr/0003-extend0-operational-integration.md).
+El comando informa de la versión cargada y comprueba que el contrato público de metadatos está disponible. La versión publicada todavía no expone la nueva fachada local de MetaDB; su uso persistente queda bloqueado hasta una release compatible de Extend0. Los artefactos científicos, ABoxes y datasets siguen siendo la fuente de verdad según [ADR 0003](docs/adr/0003-extend0-operational-integration.md).
 
 ## Qué comprueba el software
 
