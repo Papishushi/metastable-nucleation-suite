@@ -19,7 +19,7 @@ The suite also has stronger scientific data guarantees that Extend0 must not blu
 
 Adopt Extend0 as a bounded dependency of the suite's .NET operational layer.
 
-The initial integration pins the Extend0 NuGet package to `1.0.9501`, adds an executable `metastable-platform extend0 doctor` diagnostic and includes Extend0 availability in the platform self-test. The package is consumed by the .NET project only; Python workers, F# scientific domain rules and Rust/WASM visualization code do not import Extend0 types.
+The initial integration pins the Extend0 NuGet package to `1.0.9501`, adds an executable `metastable-platform extend0 doctor` diagnostic and includes the published Extend0 metadata contract in the platform self-test. The package is consumed by the .NET project only; Python workers, F# scientific domain rules and Rust/WASM visualization code do not import Extend0 types.
 
 ### Lifecycle boundary
 
@@ -53,7 +53,7 @@ The Extend0 ontology describes Extend0 platform concepts. The suite ontology des
 
 ### Dependency and compatibility policy
 
-- The NuGet dependency is pinned exactly; floating versions are forbidden. Version `1.0.9501` is the latest package currently published even though the Extend0 repository has moved ahead, so adoption of the newer API is gated on a matching package release.
+- The NuGet dependency is pinned exactly; floating versions are forbidden. Version `1.0.9501` is the latest package currently published even though the Extend0 repository has moved ahead. The package does not expose either the newer `MetaDB.CreateManager()` facade or its internal `MetaDBManager`, so durable MetaDB adoption is gated on a matching package release with a supported public access surface.
 - An Extend0 upgrade is independent from the suite semantic version and requires restore, analyzer, self-test, publish and clean-machine smoke coverage on all six release RIDs.
 - Release SBOM and provenance must record the resolved package version.
 - Package compatibility is established by tests and documented contracts, not by assuming that matching .NET target frameworks imply behavioral compatibility.
@@ -61,7 +61,7 @@ The Extend0 ontology describes Extend0 platform concepts. The suite ontology des
 
 ## Consequences
 
-The suite can reuse Extend0's operational systems instead of creating another singleton, coordination and metadata framework. The first integration is deliberately small enough to validate packaging and runtime behavior before #34 places durable control-plane state on top of it.
+The suite can reuse Extend0's operational systems instead of creating another singleton, coordination and metadata framework. The first integration is deliberately limited to dependency restoration and public-contract diagnostics. It validates packaging and runtime loading without pretending that the currently published package exposes the manager API required by #34.
 
 The dependency adds supply-chain and compatibility surface to release builds. Exact version pinning, SBOM coverage and multi-RID smoke tests therefore become mandatory. Extend0 remains an implementation detail of the .NET operational boundary; scientific artifacts and public APIs stay portable if the implementation is replaced.
 
@@ -85,4 +85,4 @@ Rejected because a small diagnostic slice now validates dependency restoration, 
 
 ## Follow-up
 
-Tracked by #45. Durable MetaDB schemas and Lifecycle ownership enter with #34 after the initial dependency and diagnostic slice passes CI and release smoke tests.
+Tracked by #45. Durable MetaDB schemas and Lifecycle ownership enter with #34 only after Extend0 publishes a compatible package with the supported public MetaDB facade and the dependency/diagnostic slice passes CI and release smoke tests.
