@@ -19,7 +19,7 @@ The suite also has stronger scientific data guarantees that Extend0 must not blu
 
 Adopt Extend0 as a bounded dependency of the suite's .NET operational layer.
 
-The initial integration pins the Extend0 NuGet package to `1.0.9535`, adds an executable `metastable-platform extend0 doctor` diagnostic and constructs a local manager through the published `MetaDB.CreateManager()` facade in the platform self-test. The package is consumed by the .NET project only; Python workers, F# scientific domain rules and Rust/WASM visualization code do not import Extend0 types.
+The integration pins the stable Extend0 NuGet package to `1.1.9691.41434`, adds an executable `metastable-platform extend0 doctor` diagnostic and constructs a local manager through the published `MetaDB.CreateManager()` facade in the platform self-test. The package is consumed by the .NET project only; Python workers, F# scientific domain rules and Rust/WASM visualization code do not import Extend0 types.
 
 ### Lifecycle boundary
 
@@ -53,7 +53,7 @@ The Extend0 ontology describes Extend0 platform concepts. The suite ontology des
 
 ### Dependency and compatibility policy
 
-- The NuGet dependency is pinned exactly; floating versions are forbidden. Version `1.0.9535` exposes the supported `MetaDB.CreateManager()` facade. Durable MetaDB adoption on Linux and macOS remains gated on the file-semantics portability work tracked in [Extend0 #5](https://github.com/Papishushi/Extend0/issues/5).
+- The NuGet dependency is pinned exactly; floating versions are forbidden. Version `1.1.9691.41434` exposes the supported `MetaDB.CreateManager()` facade, incorporates the completed cross-platform file-semantics work from [Extend0 #5](https://github.com/Papishushi/Extend0/issues/5), and is validated on Windows, Linux and macOS, including native ARM64 release smoke. Durable suite schemas and recovery behavior still require the control-plane contracts and tests in #34.
 - An Extend0 upgrade is independent from the suite semantic version and requires restore, analyzer, self-test, publish and clean-machine smoke coverage on all six release RIDs.
 - Release SBOM and provenance must record the resolved package version.
 - Package compatibility is established by tests and documented contracts, not by assuming that matching .NET target frameworks imply behavioral compatibility.
@@ -85,4 +85,4 @@ Rejected because a small diagnostic slice now validates dependency restoration, 
 
 ## Follow-up
 
-Tracked by #45. Durable MetaDB schemas and Lifecycle ownership enter with #34 only after the dependency/diagnostic slice passes CI and release smoke tests; Linux and macOS persistence also remain gated on [Extend0 #5](https://github.com/Papishushi/Extend0/issues/5).
+Tracked by #45. Durable MetaDB schemas and Lifecycle ownership enter with #34 only after the dependency/diagnostic slice passes CI and release smoke tests. Extend0 portability issue [#5](https://github.com/Papishushi/Extend0/issues/5) is completed and the stable package has native ARM64 validation; those platform guarantees do not replace suite-specific recovery and corruption tests.

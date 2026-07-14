@@ -124,7 +124,7 @@ La capa operativa .NET integra Extend0 como dependencia acotada para coordinaci�
 dotnet run --project dotnet/Metastable.Platform.Cli -- extend0 doctor
 ```
 
-El comando informa de la versión cargada y construye un gestor local mediante la fachada pública `MetaDB.CreateManager()`. La persistencia operativa en Linux y macOS permanece acotada hasta resolver las semánticas de archivos multiplataforma de Extend0. Los artefactos científicos, ABoxes y datasets siguen siendo la fuente de verdad según [ADR 0003](docs/adr/0003-extend0-operational-integration.md).
+El comando informa de la versión cargada y construye un gestor local mediante la fachada pública `MetaDB.CreateManager()`. La versión fijada de Extend0 incluye semánticas de archivo validadas en Windows, Linux y macOS, además de smoke nativo ARM64; los esquemas persistentes y la recuperación concretos de la suite siguen definidos por el control plane. Los artefactos científicos, ABoxes y datasets continúan siendo la fuente de verdad según [ADR 0003](docs/adr/0003-extend0-operational-integration.md).
 
 ## Qué comprueba el software
 
