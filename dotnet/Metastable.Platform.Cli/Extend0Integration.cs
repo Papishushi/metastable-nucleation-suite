@@ -12,7 +12,7 @@ internal static class Extend0Integration
 {
     internal static Extend0Status Diagnose()
     {
-        using var manager = MetaDB.CreateManager();
+        var manager = new MetaDBManager(logger: null);
         return new Extend0Status(GetPackageVersion(), manager is not null);
     }
 
