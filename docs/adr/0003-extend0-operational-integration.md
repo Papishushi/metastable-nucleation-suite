@@ -19,7 +19,7 @@ The suite also has stronger scientific data guarantees that Extend0 must not blu
 
 Adopt Extend0 as a bounded dependency of the suite's .NET operational layer.
 
-The initial integration pins the Extend0 NuGet package to `1.0.9535`, adds an executable `metastable-platform extend0 doctor` diagnostic and includes Extend0 availability in the platform self-test. The package is consumed by the .NET project only; Python workers, F# scientific domain rules and Rust/WASM visualization code do not import Extend0 types.
+The initial integration pins the Extend0 NuGet package to `1.0.9501`, adds an executable `metastable-platform extend0 doctor` diagnostic and includes Extend0 availability in the platform self-test. The package is consumed by the .NET project only; Python workers, F# scientific domain rules and Rust/WASM visualization code do not import Extend0 types.
 
 ### Lifecycle boundary
 
@@ -53,7 +53,7 @@ The Extend0 ontology describes Extend0 platform concepts. The suite ontology des
 
 ### Dependency and compatibility policy
 
-- The NuGet dependency is pinned exactly; floating versions are forbidden.
+- The NuGet dependency is pinned exactly; floating versions are forbidden. Version `1.0.9501` is the latest package currently published even though the Extend0 repository has moved ahead, so adoption of the newer API is gated on a matching package release.
 - An Extend0 upgrade is independent from the suite semantic version and requires restore, analyzer, self-test, publish and clean-machine smoke coverage on all six release RIDs.
 - Release SBOM and provenance must record the resolved package version.
 - Package compatibility is established by tests and documented contracts, not by assuming that matching .NET target frameworks imply behavioral compatibility.
