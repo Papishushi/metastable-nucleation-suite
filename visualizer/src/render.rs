@@ -226,9 +226,9 @@ fn scene_bounds(scene: &RenderScene) -> ([f64; 3], f64) {
         }
     }
     let target = [
-        (minimum[0] + maximum[0]) / 2.0,
-        (minimum[1] + maximum[1]) / 2.0,
-        (minimum[2] + maximum[2]) / 2.0,
+        f64::midpoint(minimum[0], maximum[0]),
+        f64::midpoint(minimum[1], maximum[1]),
+        f64::midpoint(minimum[2], maximum[2]),
     ];
     let diagonal = ((maximum[0] - minimum[0]).powi(2)
         + (maximum[1] - minimum[1]).powi(2)
