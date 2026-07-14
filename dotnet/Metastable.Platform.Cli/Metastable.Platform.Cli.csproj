@@ -9,5 +9,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../Metastable.Domain/Metastable.Domain.fsproj" />
+    <PackageReference Include="Extend0" Version="[1.1.9691.41434]" />
   </ItemGroup>
 </Project>

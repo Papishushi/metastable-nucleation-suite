@@ -116,6 +116,16 @@ python scripts/monte_carlo_power.py \
 
 La aproximación analítica sirve para órdenes de magnitud. Monte Carlo permite introducir memoria, pérdida dependiente del ajuste, multiplicidad y parámetros específicos del dispositivo.
 
+### Diagnóstico de Extend0
+
+La capa operativa .NET integra Extend0 como dependencia acotada para coordinación y metadatos operativos. La integración puede verificarse sin iniciar el worker científico:
+
+```bash
+dotnet run --project dotnet/Metastable.Platform.Cli -- extend0 doctor
+```
+
+El comando informa de la versión cargada y construye un gestor local mediante la fachada pública `MetaDB.CreateManager()`. La versión fijada de Extend0 incluye semánticas de archivo validadas en Windows, Linux y macOS, además de smoke nativo ARM64; los esquemas persistentes y la recuperación concretos de la suite siguen definidos por el control plane. Los artefactos científicos, ABoxes y datasets continúan siendo la fuente de verdad según [ADR 0003](docs/adr/0003-extend0-operational-integration.md).
+
 ## Qué comprueba el software
 
 El simulador no pretende modelar un dispositivo concreto con precisión microscópica. Sirve para comprobar que la canalización estadística distingue correctamente nucleación Poisson local, sesgo por semillas, causa común clásica, modelos locales de Bell, benchmarks cuánticos, no señalización y bifurcaciones ópticas con ruido local.

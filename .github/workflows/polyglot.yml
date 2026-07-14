@@ -13,6 +13,7 @@ on:
       - "services/**"
       - "deploy/**"
       - "compose.yaml"
+      - "scripts/check_extend0_release.py"
       - ".github/workflows/polyglot.yml"
   push:
     branches: [main]
@@ -77,6 +78,9 @@ jobs:
         with:
           dotnet-version: "10.0.x"
           global-json-file: global.json
+      - uses: actions/setup-python@v6.3.0
+        with:
+          python-version: "3.14"
       - name: Show .NET SDK
         run: dotnet --info
       - name: Build solution
@@ -93,12 +97,15 @@ jobs:
         run: |
           artifacts/${{ matrix.rid }}/metastable-platform --version
           artifacts/${{ matrix.rid }}/metastable-platform --self-test
+          python scripts/check_extend0_release.py doctor \
+            artifacts/${{ matrix.rid }}/metastable-platform
       - name: Smoke test Windows artifact
         if: matrix.smoke && runner.os == 'Windows'
         shell: pwsh
         run: |
           artifacts/${{ matrix.rid }}/metastable-platform.exe --version
           artifacts/${{ matrix.rid }}/metastable-platform.exe --self-test
+          python scripts/check_extend0_release.py doctor artifacts/${{ matrix.rid }}/metastable-platform.exe
       - uses: actions/upload-artifact@v7.0.1
         with:
           name: metastable-platform-${{ matrix.rid }}

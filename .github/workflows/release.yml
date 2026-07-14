@@ -11,6 +11,7 @@ on:
       - "deploy/**"
       - "services/**"
       - "scripts/check_release_version.py"
+      - "scripts/check_extend0_release.py"
       - "scripts/package_release.py"
       - "tests/test_versioning.py"
       - ".github/workflows/release.yml"
@@ -146,6 +147,20 @@ jobs:
           dotnet publish dotnet/Metastable.Platform.Cli/Metastable.Platform.Cli.csproj
           -c Release -r ${{ matrix.rid }} --self-contained true
           -p:PublishSingleFile=true -o publish/${{ matrix.rid }}
+      - name: Locate resolved .NET dependency manifest
+        id: dotnet-deps
+        shell: bash
+        run: |
+          deps_file="$(find dotnet/Metastable.Platform.Cli \
+            -type f \
+            -path '*${{ matrix.rid }}*' \
+            -name 'metastable-platform.deps.json' \
+            -print -quit)"
+          if [[ -z "$deps_file" ]]; then
+            echo "::error::The resolved metastable-platform.deps.json was not generated"
+            exit 1
+          fi
+          echo "path=$deps_file" >> "$GITHUB_OUTPUT"
       - name: Build deterministic archive
         shell: bash
         run: |
@@ -170,6 +185,8 @@ jobs:
         run: |
           test "$(extracted/metastable-platform --version)" = "metastable-platform ${{ needs.metadata.outputs.version }}"
           extracted/metastable-platform --self-test
+          python scripts/check_extend0_release.py doctor \
+            extracted/metastable-platform
       - name: Smoke test extracted Windows artifact
         if: matrix.smoke && runner.os == 'Windows'
         shell: pwsh
@@ -177,14 +194,20 @@ jobs:
           $actual = & extracted/metastable-platform.exe --version
           if ($actual -ne "metastable-platform ${{ needs.metadata.outputs.version }}") { throw "unexpected version: $actual" }
           & extracted/metastable-platform.exe --self-test
+          python scripts/check_extend0_release.py doctor extracted/metastable-platform.exe
       - name: Generate CLI SBOM
         uses: anchore/sbom-action@v0.24.0
         with:
-          path: publish/${{ matrix.rid }}
+          file: ${{ steps.dotnet-deps.outputs.path }}
           format: spdx-json
           output-file: release/metastable-platform-${{ needs.metadata.outputs.version }}-${{ matrix.rid }}.spdx.json
           upload-artifact: false
           upload-release-assets: false
+      - name: Verify CLI SBOM dependency inventory
+        shell: bash
+        run: >-
+          python scripts/check_extend0_release.py sbom
+          release/metastable-platform-${{ needs.metadata.outputs.version }}-${{ matrix.rid }}.spdx.json
       - name: Attest CLI archive provenance
         if: needs.metadata.outputs.publish == 'true'
         uses: actions/attest@v4.1.1
