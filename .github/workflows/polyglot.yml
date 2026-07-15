@@ -140,6 +140,7 @@ jobs:
           python - <<'PY'
           import json
           from jsonschema import Draft202012Validator, FormatChecker
+          from referencing import Registry, Resource
 
           fixtures = [
               (
@@ -217,10 +218,24 @@ jobs:
               ),
           ]
 
+          schemas = {
+              schema_path: json.load(open(schema_path))
+              for schema_path, _ in fixtures
+          }
+          registry = Registry().with_resources(
+              (
+                  schema['$id'],
+                  Resource.from_contents(schema),
+              )
+              for schema in schemas.values()
+          )
+
           for schema_path, fixture in fixtures:
-              schema = json.load(open(schema_path))
+              schema = schemas[schema_path]
               Draft202012Validator(
-                  schema, format_checker=FormatChecker()
+                  schema,
+                  format_checker=FormatChecker(),
+                  registry=registry,
               ).validate(fixture)
           PY
 
