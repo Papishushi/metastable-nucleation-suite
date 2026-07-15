@@ -302,7 +302,7 @@ internal sealed class ControlPlaneStore : IDisposable
         return runs;
     }
 
-    private T? ReadByKeyUnsafe<T>(
+    private static T? ReadByKeyUnsafe<T>(
         IMetadataTable table,
         MetadataUtf8Column documents,
         string key)

@@ -22,7 +22,7 @@ public interface IRunOrchestrator : ICrossProcessService
     Task<string?> GetArtifactAsync(string runId, string artifactId);
 }
 
-internal sealed class Extend0RunOrchestrator
+internal sealed partial class Extend0RunOrchestrator
     : CrossProcessServiceBase<IRunOrchestrator>, IRunOrchestrator, IDisposable
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
@@ -208,10 +208,7 @@ internal sealed class Extend0RunOrchestrator
                 }
                 catch (Exception exception)
                 {
-                    _logger.LogError(
-                        exception,
-                        "Extend0 orchestrator dispatch failed for run {RunId}",
-                        runId);
+                    LogDispatchFailure(_logger, exception, runId);
                     _store.Fail(runId, exception.Message);
                 }
                 finally
@@ -225,6 +222,15 @@ internal sealed class Extend0RunOrchestrator
             // The Extend0 owner is shutting down.
         }
     }
+
+    [LoggerMessage(
+        EventId = 3401,
+        Level = LogLevel.Error,
+        Message = "Extend0 orchestrator dispatch failed for run {RunId}")]
+    private static partial void LogDispatchFailure(
+        ILogger logger,
+        Exception exception,
+        Guid runId);
 }
 
 internal sealed class ScientificWorkerClient : IDisposable
