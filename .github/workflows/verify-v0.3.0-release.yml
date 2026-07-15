@@ -18,9 +18,21 @@ jobs:
           TAG: v0.3.0
         shell: bash
         run: |
-          release_json="$(gh release view "$TAG" \
-            --repo "$GITHUB_REPOSITORY" \
-            --json tagName,isDraft,isPrerelease,publishedAt,assets)"
+          release_json=""
+          for attempt in $(seq 1 30); do
+            if release_json="$(gh release view "$TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --json tagName,isDraft,isPrerelease,publishedAt,assets 2>/dev/null)"; then
+              break
+            fi
+            echo "Release $TAG is not visible yet; retrying ($attempt/30)"
+            sleep 20
+          done
+
+          if [[ -z "$release_json" ]]; then
+            echo "::error::Release $TAG was not published within the verification window"
+            exit 1
+          fi
 
           test "$(jq -r '.tagName' <<<"$release_json")" = "$TAG"
           test "$(jq -r '.isDraft' <<<"$release_json")" = "false"
