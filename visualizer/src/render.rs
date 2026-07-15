@@ -56,7 +56,10 @@ pub struct RenderTransition {
     pub valid: bool,
     pub line_pattern: LinePattern,
     pub exclusion_reasons: Vec<String>,
+    /// Source records for the observed transition.
     pub provenance: Vec<ProvenanceRef>,
+    /// Source records used to derive the displayed geometry.
+    pub geometry_provenance: Vec<ProvenanceRef>,
     pub uncertainty: Option<RenderUncertainty>,
 }
 
@@ -99,7 +102,10 @@ pub struct SelectionDetails {
     pub label: String,
     pub valid: bool,
     pub exclusion_reasons: Vec<String>,
+    /// Source records for the selected entity or observed transition.
     pub provenance: Vec<ProvenanceRef>,
+    /// Source records used to derive selected transition geometry.
+    pub geometry_provenance: Vec<ProvenanceRef>,
 }
 
 impl RenderScene {
@@ -117,6 +123,7 @@ impl RenderScene {
                     valid: true,
                     exclusion_reasons: Vec::new(),
                     provenance: entity.provenance.clone(),
+                    geometry_provenance: Vec::new(),
                 }),
             RenderSelectionId::Transition(target) => self
                 .transitions
@@ -128,6 +135,7 @@ impl RenderScene {
                     valid: transition.valid,
                     exclusion_reasons: transition.exclusion_reasons.clone(),
                     provenance: transition.provenance.clone(),
+                    geometry_provenance: transition.geometry_provenance.clone(),
                 }),
         }
     }
