@@ -26,7 +26,8 @@ internal static class ControlPlaneOpenApi
                     "Submit an idempotent run",
                     "Run",
                     requestSchema: "ExperimentRequest",
-                    parameters: [IdempotencyKeyParameter()]),
+                    parameters: [IdempotencyKeyParameter()],
+                    includeCreatedResponse: true),
                 ["/v1/runs/{runId}"] = Operation(
                     "get",
                     "Read durable run state",
@@ -105,29 +106,23 @@ internal static class ControlPlaneOpenApi
         string summary,
         string schema,
         string? requestSchema = null,
-        object[]? parameters = null)
+        object[]? parameters = null,
+        bool includeCreatedResponse = false)
     {
+        var responses = new Dictionary<string, object>
+        {
+            ["200"] = JsonResponse("Success", schema),
+        };
+        if (includeCreatedResponse)
+        {
+            responses["201"] = JsonResponse("Created", schema);
+        }
+
         var operation = new Dictionary<string, object>
         {
             ["summary"] = summary,
             ["parameters"] = parameters ?? [],
-            ["responses"] = new Dictionary<string, object>
-            {
-                ["200"] = new
-                {
-                    description = "Success",
-                    content = new Dictionary<string, object>
-                    {
-                        ["application/json"] = new
-                        {
-                            schema = new Dictionary<string, string>
-                            {
-                                ["$ref"] = $"#/components/schemas/{schema}",
-                            },
-                        },
-                    },
-                },
-            },
+            ["responses"] = responses,
         };
 
         if (requestSchema is not null)
@@ -153,6 +148,21 @@ internal static class ControlPlaneOpenApi
             [method] = operation,
         };
     }
+
+    private static object JsonResponse(string description, string schema) => new
+    {
+        description,
+        content = new Dictionary<string, object>
+        {
+            ["application/json"] = new
+            {
+                schema = new Dictionary<string, string>
+                {
+                    ["$ref"] = $"#/components/schemas/{schema}",
+                },
+            },
+        },
+    };
 
     private static object PathParameter(string name, string? format = null)
     {

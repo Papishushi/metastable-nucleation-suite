@@ -42,6 +42,18 @@ internal static class ControlPlaneSelfTest
 
                 runId = created.Run.RunId;
 
+                var cancelled = store.CreateRun(
+                    "self-test-cancelled-key",
+                    NewRequest("control-plane-cancelled-self-test"));
+                if (!store.TryCancel(cancelled.Run.RunId, out var cancelledRun)
+                    || cancelledRun?.State != RunStates.Cancelled
+                    || store.TryBeginDispatch(cancelled.Run.RunId, out _))
+                {
+                    Console.Error.WriteLine(
+                        "control-plane self-test: cancelled run could enter dispatch");
+                    return 1;
+                }
+
                 var completed = store.CreateRun(
                     "self-test-completed-key",
                     NewRequest("control-plane-completed-self-test"));

@@ -180,11 +180,6 @@ internal sealed partial class Extend0RunOrchestrator
         {
             await foreach (var runId in _queue.Reader.ReadAllAsync(stoppingToken))
             {
-                if (!_store.TryBeginDispatch(runId, out var run) || run is null)
-                {
-                    continue;
-                }
-
                 using var dispatch = CancellationTokenSource.CreateLinkedTokenSource(
                     stoppingToken);
                 if (!_active.TryAdd(runId, dispatch))
@@ -195,6 +190,14 @@ internal sealed partial class Extend0RunOrchestrator
 
                 try
                 {
+                    // Register cancellation before persisting `running`. CancelAsync
+                    // can now either cancel a queued run or signal every running run,
+                    // so physical work cannot start through the gap between the two.
+                    if (!_store.TryBeginDispatch(runId, out var run) || run is null)
+                    {
+                        continue;
+                    }
+
                     var result = await _worker.ExecuteAsync(run.Request, dispatch.Token);
                     _store.Complete(runId, result.ArtifactUri, result.ResponseBody);
                 }

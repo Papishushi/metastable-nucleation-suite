@@ -58,6 +58,19 @@ def validate_openapi(document: dict[str, Any]) -> None:
             raise ValueError(f"missing OpenAPI schema: {name}")
 
     submit = paths["/v1/runs"]["post"]
+    responses = submit.get("responses", {})
+    for status in ("200", "201"):
+        response_schema = (
+            responses.get(status, {})
+            .get("content", {})
+            .get("application/json", {})
+            .get("schema", {})
+        )
+        if response_schema.get("$ref") != "#/components/schemas/Run":
+            raise ValueError(
+                f"POST /v1/runs response {status} must reference Run"
+            )
+
     idempotency_keys = [
         parameter
         for parameter in submit.get("parameters", [])
