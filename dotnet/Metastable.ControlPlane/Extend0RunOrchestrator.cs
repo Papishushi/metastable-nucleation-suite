@@ -129,12 +129,24 @@ internal sealed partial class Extend0RunOrchestrator
 
         if (_active.TryGetValue(parsed, out var active))
         {
-            active.Cancel();
+            SignalActiveCancellation(active);
         }
 
         return Task.FromResult(new OrchestrationResult(
             "cancelled",
             JsonSerializer.Serialize(run.ToResponse(), JsonOptions)));
+    }
+
+    internal static void SignalActiveCancellation(CancellationTokenSource active)
+    {
+        try
+        {
+            active.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+            // Dispatch completed and disposed its token after TryGetValue won.
+        }
     }
 
     public Task<string?> GetArtifactAsync(string runId, string artifactId)
@@ -319,28 +331,65 @@ internal sealed record WorkerResult(string ArtifactUri, string ResponseBody);
 
 internal sealed class RunOrchestratorSingleton : CrossProcessSingleton<IRunOrchestrator>
 {
+    private const string CrossProcessIdentity =
+        "Metastable.ControlPlane.RunOrchestrator.v1";
+
     internal RunOrchestratorSingleton(
         string stateDirectory,
         string workerUrl,
         ILoggerFactory loggerFactory)
         : base(
-            () => new Extend0RunOrchestrator(
-                stateDirectory,
-                workerUrl,
-                loggerFactory.CreateLogger<Extend0RunOrchestrator>(),
-                start: true),
-            new CrossProcessSingletonOptions
-            {
-                Mode = SingletonMode.CrossProcess,
-                TransportKind = OperatingSystem.IsWindows()
-                    ? TransportKind.NamedPipe
-                    : TransportKind.UnixDomainSocket,
-                CrossProcessName = "Metastable.ControlPlane.RunOrchestrator.v1",
-                CrossProcessConnectTimeoutMs = 5000,
-                Overwrite = false,
-                Logger = loggerFactory.CreateLogger<RunOrchestratorSingleton>(),
-            },
+            () => CreateOwner(stateDirectory, workerUrl, loggerFactory),
+            CreateOptions(loggerFactory),
             loggerFactory)
     {
+    }
+
+    private static Extend0RunOrchestrator CreateOwner(
+        string stateDirectory,
+        string workerUrl,
+        ILoggerFactory loggerFactory)
+    {
+        RemoveStaleUnixEndpoint(BuildUnixEndpoint());
+        return new Extend0RunOrchestrator(
+            stateDirectory,
+            workerUrl,
+            loggerFactory.CreateLogger<Extend0RunOrchestrator>(),
+            start: true);
+    }
+
+    private static CrossProcessSingletonOptions CreateOptions(
+        ILoggerFactory loggerFactory) => new()
+    {
+        Mode = SingletonMode.CrossProcess,
+        TransportKind = OperatingSystem.IsWindows()
+            ? TransportKind.NamedPipe
+            : TransportKind.UnixDomainSocket,
+        CrossProcessEndpointName = BuildUnixEndpoint(),
+        CrossProcessName = CrossProcessIdentity,
+        CrossProcessConnectTimeoutMs = 5000,
+        Overwrite = false,
+        Logger = loggerFactory.CreateLogger<RunOrchestratorSingleton>(),
+    };
+
+    private static string? BuildUnixEndpoint()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return null;
+        }
+
+        return CrossProcessTransportFactory.ResolveEndpointNameFor<IRunOrchestrator>(
+            CrossProcessIdentity,
+            TransportKind.UnixDomainSocket);
+    }
+
+    internal static void RemoveStaleUnixEndpoint(string? endpoint)
+    {
+        if (!OperatingSystem.IsWindows() && endpoint is not null)
+        {
+            // CreateOwner runs only after Extend0 acquired the ownership lease.
+            File.Delete(endpoint);
+        }
     }
 }

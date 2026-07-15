@@ -24,6 +24,25 @@ internal static class ControlPlaneSelfTest
                     return 1;
                 }
 
+                var disposedCancellation = new CancellationTokenSource();
+                disposedCancellation.Dispose();
+                Extend0RunOrchestrator.SignalActiveCancellation(
+                    disposedCancellation);
+
+                if (!OperatingSystem.IsWindows())
+                {
+                    var staleEndpoint = Path.Combine(root, "stale.sock");
+                    File.WriteAllText(staleEndpoint, "stale");
+                    RunOrchestratorSingleton.RemoveStaleUnixEndpoint(
+                        staleEndpoint);
+                    if (File.Exists(staleEndpoint))
+                    {
+                        Console.Error.WriteLine(
+                            "control-plane self-test: stale Unix endpoint survived cleanup");
+                        return 1;
+                    }
+                }
+
                 var created = store.CreateRun(
                     "self-test-key",
                     new ExperimentRequest(
