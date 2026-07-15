@@ -1,0 +1,101 @@
+name: publish-version
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - VERSION
+      - CITATION.cff
+      - dotnet/Directory.Build.props
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: publish-version-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  tag-and-dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.0
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v6.3.0
+        with:
+          python-version: "3.14"
+
+      - name: Install release metadata dependencies
+        run: python -m pip install packaging
+
+      - name: Validate canonical release metadata
+        run: python scripts/check_release_version.py
+
+      - name: Resolve canonical tag
+        id: release
+        shell: bash
+        run: |
+          version="$(cat VERSION)"
+          tag="v${version}"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Create canonical version tag if absent
+        shell: bash
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          git fetch --tags --force
+
+          if git rev-parse --verify --quiet "refs/tags/$TAG" >/dev/null; then
+            existing_commit="$(git rev-list -n 1 "$TAG")"
+            if [[ "$existing_commit" != "$GITHUB_SHA" ]]; then
+              echo "::error::Tag $TAG already points to $existing_commit instead of $GITHUB_SHA"
+              exit 1
+            fi
+            echo "Tag $TAG already points to the release commit"
+          else
+            git tag "$TAG" "$GITHUB_SHA"
+            git push origin "refs/tags/$TAG"
+          fi
+
+      - name: Dispatch immutable release workflow
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; nothing to publish"
+            exit 0
+          fi
+
+          for attempt in 1 2 3 4 5; do
+            if gh workflow run release.yml \
+              --repo "$GITHUB_REPOSITORY" \
+              --ref "$TAG"; then
+              echo "Dispatched release.yml for $TAG"
+              exit 0
+            fi
+            echo "Tag ref not ready for dispatch yet; retrying ($attempt/5)"
+            sleep $((attempt * 2))
+          done
+
+          echo "::error::Could not dispatch release.yml for $TAG"
+          exit 1
+
+      - name: Publish summary
+        shell: bash
+        run: |
+          {
+            echo "## Version publication"
+            echo
+            echo "- Version: \`${{ steps.release.outputs.version }}\`"
+            echo "- Tag: \`${{ steps.release.outputs.tag }}\`"
+            echo "- Release workflow: \`release.yml\`"
+          } >> "$GITHUB_STEP_SUMMARY"
