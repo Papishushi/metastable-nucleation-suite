@@ -19,9 +19,24 @@ internal static class ControlPlaneSelfTest
                         Guid.NewGuid().ToString("D"),
                         "control-plane-self-test",
                         DateTimeOffset.UtcNow.ToString("O")));
-                if (!created.Created
-                    || !store.TryBeginDispatch(created.Run.RunId, out _))
+                if (!created.Created)
                 {
+                    Console.Error.WriteLine("control-plane self-test: run was not created");
+                    return 1;
+                }
+
+                if (store.GetRun(created.Run.RunId)?.State != RunStates.Queued)
+                {
+                    Console.Error.WriteLine(
+                        "control-plane self-test: queued run was not readable");
+                    return 1;
+                }
+
+                if (!store.TryBeginDispatch(created.Run.RunId, out var running)
+                    || running?.State != RunStates.Running)
+                {
+                    Console.Error.WriteLine(
+                        "control-plane self-test: run did not enter running state");
                     return 1;
                 }
 
@@ -31,8 +46,11 @@ internal static class ControlPlaneSelfTest
             using (var recovered = new ControlPlaneStore(root))
             {
                 recovered.RecoverInterruptedRuns();
-                if (recovered.GetRun(runId)?.State != RunStates.RecoveryRequired)
+                var recoveredRun = recovered.GetRun(runId);
+                if (recoveredRun?.State != RunStates.RecoveryRequired)
                 {
+                    Console.Error.WriteLine(
+                        $"control-plane self-test: expected recovery_required, got {recoveredRun?.State ?? "missing"}");
                     return 1;
                 }
             }
