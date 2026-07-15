@@ -6,7 +6,6 @@ import json
 from pathlib import Path
 import time
 from typing import Any
-from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 from uuid import uuid4
 
@@ -33,7 +32,7 @@ def wait_ready(base_url: str) -> None:
             status, _ = request_json(f"{base_url}/healthz")
             if status == 200:
                 return
-        except (HTTPError, URLError, TimeoutError):
+        except OSError:
             pass
         time.sleep(1)
     raise RuntimeError("control plane did not become ready")
