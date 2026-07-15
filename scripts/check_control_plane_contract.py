@@ -16,6 +16,13 @@ REQUIRED_PATHS = {
     "/v1/runs/{runId}/artifacts/{artifactId}": "get",
 }
 
+EXPERIMENT_REQUEST_PROPERTIES = {
+    "schema_version",
+    "request_id",
+    "experiment_id",
+    "submitted_at_utc",
+}
+
 
 def validate_openapi(document: dict[str, Any]) -> None:
     if document.get("openapi") != "3.1.0":
@@ -49,6 +56,48 @@ def validate_openapi(document: dict[str, Any]) -> None:
     for name in ("ExperimentRequest", "Run", "ArtifactIndex", "CapabilityManifest"):
         if name not in schemas:
             raise ValueError(f"missing OpenAPI schema: {name}")
+
+    submit = paths["/v1/runs"]["post"]
+    idempotency_keys = [
+        parameter
+        for parameter in submit.get("parameters", [])
+        if isinstance(parameter, dict)
+        and parameter.get("in") == "header"
+        and parameter.get("name", "").lower() == "idempotency-key"
+        and parameter.get("required") is True
+    ]
+    if len(idempotency_keys) != 1:
+        raise ValueError(
+            "POST /v1/runs must declare one required Idempotency-Key header"
+        )
+
+    request_body = submit.get("requestBody")
+    if not isinstance(request_body, dict) or request_body.get("required") is not True:
+        raise ValueError("POST /v1/runs must declare a required request body")
+    request_schema = (
+        request_body.get("content", {})
+        .get("application/json", {})
+        .get("schema", {})
+    )
+    if request_schema.get("$ref") != "#/components/schemas/ExperimentRequest":
+        raise ValueError(
+            "POST /v1/runs request body must reference ExperimentRequest"
+        )
+
+    experiment_request = schemas["ExperimentRequest"]
+    if not isinstance(experiment_request, dict):
+        raise ValueError("ExperimentRequest must be an object schema")
+    declared_properties = experiment_request.get("properties")
+    if not isinstance(declared_properties, dict):
+        raise ValueError("ExperimentRequest must declare its properties")
+    if set(declared_properties) != EXPERIMENT_REQUEST_PROPERTIES:
+        raise ValueError(
+            "ExperimentRequest properties must be "
+            f"{sorted(EXPERIMENT_REQUEST_PROPERTIES)}, got "
+            f"{sorted(declared_properties)}"
+        )
+    if set(experiment_request.get("required", [])) != EXPERIMENT_REQUEST_PROPERTIES:
+        raise ValueError("all ExperimentRequest properties must be required")
 
 
 def main() -> None:

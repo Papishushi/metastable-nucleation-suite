@@ -202,24 +202,13 @@ internal sealed partial class Extend0RunOrchestrator
                 {
                     _store.Interrupt(runId);
                 }
-                catch (OperationCanceledException)
+                catch (OperationCanceledException) when (dispatch.IsCancellationRequested)
                 {
                     // CancelAsync persisted the terminal transition before signalling.
                 }
                 catch (Exception exception)
                 {
-                    LogDispatchFailure(_logger, exception, runId);
-                    try
-                    {
-                        _store.Fail(runId, exception.Message);
-                    }
-                    catch (Exception persistenceException)
-                    {
-                        LogFailurePersistenceFailure(
-                            _logger,
-                            persistenceException,
-                            runId);
-                    }
+                    RecordDispatchFailure(runId, exception);
                 }
                 finally
                 {
@@ -230,6 +219,22 @@ internal sealed partial class Extend0RunOrchestrator
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
             // The Extend0 owner is shutting down.
+        }
+    }
+
+    private void RecordDispatchFailure(Guid runId, Exception exception)
+    {
+        LogDispatchFailure(_logger, exception, runId);
+        try
+        {
+            _store.Fail(runId, exception.Message);
+        }
+        catch (Exception persistenceException)
+        {
+            LogFailurePersistenceFailure(
+                _logger,
+                persistenceException,
+                runId);
         }
     }
 

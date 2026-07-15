@@ -21,23 +21,31 @@ internal static class ControlPlaneOpenApi
             paths = new Dictionary<string, object>
             {
                 ["/v1/capabilities"] = Operation("get", "Discover server capabilities", "CapabilityManifest"),
-                ["/v1/runs"] = Operation("post", "Submit an idempotent run", "Run"),
+                ["/v1/runs"] = Operation(
+                    "post",
+                    "Submit an idempotent run",
+                    "Run",
+                    requestSchema: "ExperimentRequest",
+                    parameters: [IdempotencyKeyParameter()]),
                 ["/v1/runs/{runId}"] = Operation(
                     "get",
                     "Read durable run state",
                     "Run",
-                    PathParameter("runId", "uuid")),
+                    parameters: [PathParameter("runId", "uuid")]),
                 ["/v1/runs/{runId}/cancel"] = Operation(
                     "post",
                     "Cancel a run",
                     "Run",
-                    PathParameter("runId", "uuid")),
+                    parameters: [PathParameter("runId", "uuid")]),
                 ["/v1/runs/{runId}/artifacts/{artifactId}"] = Operation(
                     "get",
                     "Read artifact metadata",
                     "ArtifactIndex",
-                    PathParameter("runId", "uuid"),
-                    PathParameter("artifactId")),
+                    parameters:
+                    [
+                        PathParameter("runId", "uuid"),
+                        PathParameter("artifactId"),
+                    ]),
             },
             components = new
             {
@@ -47,6 +55,29 @@ internal static class ControlPlaneOpenApi
                     {
                         type = "object",
                         required = new[] { "schema_version", "request_id", "experiment_id", "submitted_at_utc" },
+                        properties = new Dictionary<string, object>
+                        {
+                            ["schema_version"] = new Dictionary<string, object>
+                            {
+                                ["const"] = "1.0.0",
+                            },
+                            ["request_id"] = new
+                            {
+                                type = "string",
+                                format = "uuid",
+                            },
+                            ["experiment_id"] = new
+                            {
+                                type = "string",
+                                minLength = 1,
+                                maxLength = 128,
+                            },
+                            ["submitted_at_utc"] = new
+                            {
+                                type = "string",
+                                format = "date-time",
+                            },
+                        },
                         additionalProperties = false,
                     },
                     ["Run"] = new
@@ -73,32 +104,53 @@ internal static class ControlPlaneOpenApi
         string method,
         string summary,
         string schema,
-        params object[] parameters)
+        string? requestSchema = null,
+        object[]? parameters = null)
     {
-        return new Dictionary<string, object>
+        var operation = new Dictionary<string, object>
         {
-            [method] = new
+            ["summary"] = summary,
+            ["parameters"] = parameters ?? [],
+            ["responses"] = new Dictionary<string, object>
             {
-                summary,
-                parameters,
-                responses = new Dictionary<string, object>
+                ["200"] = new
                 {
-                    ["200"] = new
+                    description = "Success",
+                    content = new Dictionary<string, object>
                     {
-                        description = "Success",
-                        content = new Dictionary<string, object>
+                        ["application/json"] = new
                         {
-                            ["application/json"] = new
+                            schema = new Dictionary<string, string>
                             {
-                                schema = new Dictionary<string, string>
-                                {
-                                    ["$ref"] = $"#/components/schemas/{schema}",
-                                },
+                                ["$ref"] = $"#/components/schemas/{schema}",
                             },
                         },
                     },
                 },
             },
+        };
+
+        if (requestSchema is not null)
+        {
+            operation["requestBody"] = new
+            {
+                required = true,
+                content = new Dictionary<string, object>
+                {
+                    ["application/json"] = new
+                    {
+                        schema = new Dictionary<string, string>
+                        {
+                            ["$ref"] = $"#/components/schemas/{requestSchema}",
+                        },
+                    },
+                },
+            };
+        }
+
+        return new Dictionary<string, object>
+        {
+            [method] = operation,
         };
     }
 
@@ -121,4 +173,18 @@ internal static class ControlPlaneOpenApi
             schema,
         };
     }
+
+    private static object IdempotencyKeyParameter() => new
+    {
+        name = "Idempotency-Key",
+        @in = "header",
+        required = true,
+        schema = new
+        {
+            type = "string",
+            minLength = 1,
+            maxLength = 128,
+            pattern = "^[!-~]+$",
+        },
+    };
 }
