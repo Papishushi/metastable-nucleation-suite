@@ -5,10 +5,10 @@ Las claves corresponden a `references.bib`. Esta tabla evita que la bibliografí
 | Experimento | Fundamento principal | Fuentes |
 |---|---|---|
 | E01 Línea base | nucleación estocástica, barreras y limitaciones de CNT | `sosso2016nucleation`, `menon2020preordered` |
-| E02 Siembra | nucleación heterogénea y selección de forma | `bucar2015disappearing`, `bauer2001ritonavir` |
+| E02 Siembra | nucleación heterogénea, interfaces y selección de forma | `bucar2015disappearing`, `bauer2001ritonavir`, `mio2017interfaces` |
 | E03 Contaminación | hipótesis y límites de la siembra accidental | `bucar2015disappearing`, `morissette2003ritonavir` |
-| E04 Recuperación | diversidad de rutas y formas accesibles | `morissette2003ritonavir`, `sosso2016nucleation` |
-| E05 Variables locales | sensibilidad exponencial y precursores | `sosso2016nucleation`, `menon2020preordered` |
+| E04 Recuperación | diversidad de rutas, formas accesibles y estados intermedios | `morissette2003ritonavir`, `sosso2016nucleation`, `skelton2012multistate` |
+| E05 Variables locales | sensibilidad exponencial, precursores y física de dispositivos PCM | `sosso2016nucleation`, `menon2020preordered`, `burr2010pcm`, `burr2016pcmprogress`, `legallo2020pcmphysics` |
 | E06 Retroacción | decoherencia, interacción de medida y dinámica abierta | `schlosshauer2005decoherence`, `baas2004bistability` |
 | E07 Red terrestre | sensores sincronizados distribuidos | `pustelny2013gnome` |
 | E08 Tierra–espacio | redes de relojes y búsqueda de perturbaciones transitorias | `roberts2017clocks` |
@@ -42,7 +42,16 @@ Las claves corresponden a `references.bib`. Esta tabla evita que la bibliografí
 - Tsui et al.: https://doi.org/10.1038/s41586-024-07212-7
 - Bose et al.: https://doi.org/10.1103/PhysRevLett.119.240401
 - Marletto y Vedral: https://doi.org/10.1103/PhysRevLett.119.240402
+- Burr et al. (2010): https://doi.org/10.1116/1.3301579
+- Burr et al. (2016): https://doi.org/10.1109/JETCAS.2016.2547718
+- Le Gallo y Sebastian: https://doi.org/10.1088/1361-6463/ab7794
+- Skelton et al.: https://doi.org/10.1063/1.4748961
+- Mio et al.: https://doi.org/10.1038/s41598-017-02710-3
 
 ## Lectura responsable
 
-Las fuentes sobre Bell demuestran no localidad en sistemas entrelazados preparados; **no** demuestran no localidad espontánea en nucleación. Las fuentes de polimorfismo documentan cambios de reproducibilidad y mecanismos plausibles; **no** demuestran que una semilla haya contaminado literalmente todo el planeta. El diseño experimental conserva estas distinciones.
+Las fuentes sobre Bell demuestran no localidad en sistemas entrelazados preparados; **no** demuestran no localidad espontánea en nucleación. Las fuentes de polimorfismo documentan cambios de reproducibilidad y mecanismos plausibles; **no** demuestran que una semilla haya contaminado literalmente todo el planeta.
+
+Las fuentes de PCM documentan física de cambio de fase, control de interfaces, estados agregados e intermedios; **no** demuestran por sí solas un Nucleation-Encoded Chalcogenide Ensemble (NECE). Los preprints sin DOI verificado se citan directamente en los documentos especializados y no se incorporan a `references.bib`, cuyo verificador exige metadatos DOI contrastables.
+
+El diseño experimental conserva estas distinciones.
