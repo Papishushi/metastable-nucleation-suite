@@ -12,6 +12,17 @@ internal static class ControlPlaneSelfTest
             Guid runId;
             using (var store = new ControlPlaneStore(root))
             {
+                var nonRfc3339Request = NewRequest("invalid-timestamp") with
+                {
+                    SubmittedAtUtc = "2026-07-15 00:00:00+00:00",
+                };
+                if (nonRfc3339Request.IsValid())
+                {
+                    Console.Error.WriteLine(
+                        "control-plane self-test: non-RFC3339 timestamp was accepted");
+                    return 1;
+                }
+
                 var created = store.CreateRun(
                     "self-test-key",
                     new ExperimentRequest(

@@ -77,6 +77,7 @@ internal static class ControlPlaneOpenApi
                             {
                                 type = "string",
                                 format = "date-time",
+                                pattern = @"^\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:[Zz]|[+-]\d{2}:\d{2})$",
                             },
                         },
                         additionalProperties = false,
@@ -84,7 +85,68 @@ internal static class ControlPlaneOpenApi
                     ["Run"] = new
                     {
                         type = "object",
-                        required = new[] { "schema_version", "run_id", "request_id", "experiment_id", "state", "transitions" },
+                        required = new[]
+                        {
+                            "schema_version",
+                            "run_id",
+                            "request_id",
+                            "experiment_id",
+                            "state",
+                            "created_at_utc",
+                            "updated_at_utc",
+                            "transitions",
+                        },
+                        properties = new Dictionary<string, object>
+                        {
+                            ["schema_version"] = new Dictionary<string, object>
+                            {
+                                ["const"] = "1.0.0",
+                            },
+                            ["run_id"] = UuidSchema(),
+                            ["request_id"] = UuidSchema(),
+                            ["experiment_id"] = new
+                            {
+                                type = "string",
+                                minLength = 1,
+                                maxLength = 128,
+                            },
+                            ["state"] = RunStateSchema(),
+                            ["created_at_utc"] = DateTimeSchema(),
+                            ["updated_at_utc"] = DateTimeSchema(),
+                            ["artifact"] = new
+                            {
+                                oneOf = new object[]
+                                {
+                                    ArtifactReferenceSchema(),
+                                    new { type = "null" },
+                                },
+                            },
+                            ["failure"] = new
+                            {
+                                type = new[] { "string", "null" },
+                            },
+                            ["transitions"] = new
+                            {
+                                type = "array",
+                                minItems = 1,
+                                items = new
+                                {
+                                    type = "object",
+                                    required = new[] { "state", "at_utc" },
+                                    properties = new Dictionary<string, object>
+                                    {
+                                        ["state"] = RunStateSchema(),
+                                        ["at_utc"] = DateTimeSchema(),
+                                        ["reason"] = new
+                                        {
+                                            type = new[] { "string", "null" },
+                                        },
+                                    },
+                                    additionalProperties = false,
+                                },
+                            },
+                        },
+                        additionalProperties = false,
                     },
                     ["ArtifactIndex"] = new
                     {
@@ -162,6 +224,61 @@ internal static class ControlPlaneOpenApi
                 },
             },
         },
+    };
+
+    private static object UuidSchema() => new
+    {
+        type = "string",
+        format = "uuid",
+    };
+
+    private static object DateTimeSchema() => new
+    {
+        type = "string",
+        format = "date-time",
+    };
+
+    private static object RunStateSchema() => new
+    {
+        @enum = new[]
+        {
+            RunStates.Queued,
+            RunStates.Running,
+            RunStates.Succeeded,
+            RunStates.Failed,
+            RunStates.Cancelled,
+            RunStates.RecoveryRequired,
+        },
+    };
+
+    private static object ArtifactReferenceSchema() => new
+    {
+        type = "object",
+        required = new[] { "artifact_id", "uri", "media_type", "response_sha256" },
+        properties = new Dictionary<string, object>
+        {
+            ["artifact_id"] = new
+            {
+                type = "string",
+                minLength = 1,
+                maxLength = 64,
+            },
+            ["uri"] = new
+            {
+                type = "string",
+                minLength = 1,
+            },
+            ["media_type"] = new Dictionary<string, object>
+            {
+                ["const"] = "application/json",
+            },
+            ["response_sha256"] = new
+            {
+                type = "string",
+                pattern = "^[0-9a-f]{64}$",
+            },
+        },
+        additionalProperties = false,
     };
 
     private static object PathParameter(string name, string? format = null)

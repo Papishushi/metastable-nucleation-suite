@@ -23,6 +23,26 @@ EXPERIMENT_REQUEST_PROPERTIES = {
     "submitted_at_utc",
 }
 
+RUN_PROPERTIES = {
+    "schema_version",
+    "run_id",
+    "request_id",
+    "experiment_id",
+    "state",
+    "created_at_utc",
+    "updated_at_utc",
+    "artifact",
+    "failure",
+    "transitions",
+}
+
+REQUIRED_RUN_PROPERTIES = RUN_PROPERTIES - {"artifact", "failure"}
+
+RFC3339_PATTERN = (
+    r"^\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2}"
+    r"(?:\.\d+)?(?:[Zz]|[+-]\d{2}:\d{2})$"
+)
+
 
 def validate_openapi(document: dict[str, Any]) -> None:
     if document.get("openapi") != "3.1.0":
@@ -111,6 +131,32 @@ def validate_openapi(document: dict[str, Any]) -> None:
         )
     if set(experiment_request.get("required", [])) != EXPERIMENT_REQUEST_PROPERTIES:
         raise ValueError("all ExperimentRequest properties must be required")
+    if (
+        declared_properties["submitted_at_utc"].get("pattern")
+        != RFC3339_PATTERN
+    ):
+        raise ValueError("ExperimentRequest timestamp must enforce RFC3339 syntax")
+
+    run = schemas["Run"]
+    if not isinstance(run, dict) or run.get("type") != "object":
+        raise ValueError("Run must be an object schema")
+    run_properties = run.get("properties")
+    if not isinstance(run_properties, dict) or set(run_properties) != RUN_PROPERTIES:
+        raise ValueError(
+            f"Run properties must be {sorted(RUN_PROPERTIES)}, got "
+            f"{sorted(run_properties) if isinstance(run_properties, dict) else 'none'}"
+        )
+    if set(run.get("required", [])) != REQUIRED_RUN_PROPERTIES:
+        raise ValueError("Run required properties do not match the v1 contract")
+    for timestamp in ("created_at_utc", "updated_at_utc"):
+        if run_properties[timestamp].get("format") != "date-time":
+            raise ValueError(f"Run {timestamp} must use the date-time format")
+    transitions = run_properties["transitions"]
+    if not isinstance(transitions, dict):
+        raise ValueError("Run transitions must be an array schema")
+    transition_properties = transitions.get("items", {}).get("properties", {})
+    if set(transition_properties) != {"state", "at_utc", "reason"}:
+        raise ValueError("Run transitions must declare state, at_utc and reason")
 
 
 def main() -> None:

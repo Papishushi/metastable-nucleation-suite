@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 
 namespace Metastable.ControlPlane;
 
@@ -16,7 +17,7 @@ internal static class RunStates
 }
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
-internal sealed record ExperimentRequest(
+internal sealed partial record ExperimentRequest(
     [property: JsonPropertyName("schema_version")] string SchemaVersion,
     [property: JsonPropertyName("request_id")] string RequestId,
     [property: JsonPropertyName("experiment_id")] string ExperimentId,
@@ -29,9 +30,9 @@ internal sealed record ExperimentRequest(
             && !string.IsNullOrWhiteSpace(ExperimentId)
             && ExperimentId.Length <= 128
             && !string.IsNullOrWhiteSpace(SubmittedAtUtc)
-            && HasExplicitUtcOffset(SubmittedAtUtc)
+            && Rfc3339DateTime().IsMatch(SubmittedAtUtc)
             && DateTimeOffset.TryParse(
-                SubmittedAtUtc,
+                SubmittedAtUtc.ToUpperInvariant(),
                 System.Globalization.CultureInfo.InvariantCulture,
                 System.Globalization.DateTimeStyles.RoundtripKind,
                 out var submitted)
@@ -39,17 +40,10 @@ internal sealed record ExperimentRequest(
             && submitted.Offset <= TimeSpan.FromHours(14);
     }
 
-    private static bool HasExplicitUtcOffset(string value)
-    {
-        if (value.EndsWith('Z') || value.EndsWith('z'))
-        {
-            return true;
-        }
-
-        return value.Length >= 6
-            && value[^3] == ':'
-            && (value[^6] == '+' || value[^6] == '-');
-    }
+    [GeneratedRegex(
+        @"^\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:[Zz]|[+-]\d{2}:\d{2})$",
+        RegexOptions.CultureInvariant)]
+    private static partial Regex Rfc3339DateTime();
 }
 
 internal sealed record RunTransition(
