@@ -105,9 +105,7 @@ impl ValidatedScene {
                 },
                 exclusion_reasons: transition.exclusion_reasons.clone(),
                 provenance: render_provenance(&transition.source_refs),
-                geometry_provenance: render_provenance(
-                    &transition.geometry_mapping.source_refs,
-                ),
+                geometry_provenance: render_provenance(&transition.geometry_mapping.source_refs),
                 uncertainty: transition.uncertainty.as_ref().map(RenderUncertainty::from),
             })
             .collect();
@@ -1003,10 +1001,7 @@ mod tests {
         assert_eq!(invalid.observation_role, VisualRole::Measured);
         assert_eq!(invalid.geometry_role, VisualRole::Derived);
         assert_eq!(invalid.provenance[0].artifact_id, "event-node-b-000043");
-        assert_eq!(
-            invalid.geometry_provenance[0].artifact_id,
-            "completed-abox"
-        );
+        assert_eq!(invalid.geometry_provenance[0].artifact_id, "completed-abox");
         assert_eq!(
             invalid.geometry_provenance[0].record_id,
             "e09-abstract-layout-v1"
