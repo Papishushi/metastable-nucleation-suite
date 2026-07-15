@@ -38,6 +38,29 @@ RUN_PROPERTIES = {
 
 REQUIRED_RUN_PROPERTIES = RUN_PROPERTIES - {"artifact", "failure"}
 
+ARTIFACT_INDEX_PROPERTIES = {
+    "schema_version",
+    "run_id",
+    "artifact",
+    "indexed_at_utc",
+}
+
+CAPABILITY_MANIFEST_PROPERTIES = {
+    "schema_version",
+    "server_version",
+    "generated_at_utc",
+    "capabilities",
+}
+
+CAPABILITY_PROPERTIES = {
+    "id",
+    "status",
+    "since_version",
+    "deprecated_since_version",
+    "sunset_at_utc",
+    "replacement",
+}
+
 RFC3339_PATTERN = (
     r"^\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2}"
     r"(?:\.\d+)?(?:[Zz]|[+-]\d{2}:\d{2})$"
@@ -157,6 +180,32 @@ def validate_openapi(document: dict[str, Any]) -> None:
     transition_properties = transitions.get("items", {}).get("properties", {})
     if set(transition_properties) != {"state", "at_utc", "reason"}:
         raise ValueError("Run transitions must declare state, at_utc and reason")
+
+    artifact_index = schemas["ArtifactIndex"]
+    artifact_properties = artifact_index.get("properties", {})
+    if set(artifact_properties) != ARTIFACT_INDEX_PROPERTIES:
+        raise ValueError(
+            "ArtifactIndex properties do not match the v1 contract"
+        )
+    if set(artifact_index.get("required", [])) != ARTIFACT_INDEX_PROPERTIES:
+        raise ValueError("all ArtifactIndex properties must be required")
+    if artifact_properties["indexed_at_utc"].get("format") != "date-time":
+        raise ValueError("ArtifactIndex indexed_at_utc must use date-time")
+
+    capability_manifest = schemas["CapabilityManifest"]
+    manifest_properties = capability_manifest.get("properties", {})
+    if set(manifest_properties) != CAPABILITY_MANIFEST_PROPERTIES:
+        raise ValueError(
+            "CapabilityManifest properties do not match the v1 contract"
+        )
+    if (
+        set(capability_manifest.get("required", []))
+        != CAPABILITY_MANIFEST_PROPERTIES
+    ):
+        raise ValueError("all CapabilityManifest properties must be required")
+    capability = manifest_properties["capabilities"].get("items", {})
+    if set(capability.get("properties", {})) != CAPABILITY_PROPERTIES:
+        raise ValueError("Capability properties do not match the v1 contract")
 
 
 def main() -> None:

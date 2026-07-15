@@ -152,11 +152,37 @@ internal static class ControlPlaneOpenApi
                     {
                         type = "object",
                         required = new[] { "schema_version", "run_id", "artifact", "indexed_at_utc" },
+                        properties = new Dictionary<string, object>
+                        {
+                            ["schema_version"] = new Dictionary<string, object>
+                            {
+                                ["const"] = "1.0.0",
+                            },
+                            ["run_id"] = UuidSchema(),
+                            ["artifact"] = ArtifactReferenceSchema(),
+                            ["indexed_at_utc"] = DateTimeSchema(),
+                        },
+                        additionalProperties = false,
                     },
                     ["CapabilityManifest"] = new
                     {
                         type = "object",
                         required = new[] { "schema_version", "server_version", "generated_at_utc", "capabilities" },
+                        properties = new Dictionary<string, object>
+                        {
+                            ["schema_version"] = new Dictionary<string, object>
+                            {
+                                ["const"] = "1.0.0",
+                            },
+                            ["server_version"] = VersionSchema(),
+                            ["generated_at_utc"] = DateTimeSchema(),
+                            ["capabilities"] = new
+                            {
+                                type = "array",
+                                items = CapabilitySchema(),
+                            },
+                        },
+                        additionalProperties = false,
                     },
                 },
             },
@@ -279,6 +305,58 @@ internal static class ControlPlaneOpenApi
             },
         },
         additionalProperties = false,
+    };
+
+    private static object VersionSchema() => new
+    {
+        type = "string",
+        pattern = "^[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$",
+    };
+
+    private static object CapabilitySchema() => new
+    {
+        type = "object",
+        required = new[] { "id", "status", "since_version" },
+        properties = new Dictionary<string, object>
+        {
+            ["id"] = CapabilityIdSchema(),
+            ["status"] = new
+            {
+                @enum = new[] { "active", "deprecated" },
+            },
+            ["since_version"] = VersionSchema(),
+            ["deprecated_since_version"] = VersionSchema(),
+            ["sunset_at_utc"] = DateTimeSchema(),
+            ["replacement"] = CapabilityIdSchema(),
+        },
+        allOf = new object[]
+        {
+            new Dictionary<string, object>
+            {
+                ["if"] = new
+                {
+                    properties = new Dictionary<string, object>
+                    {
+                        ["status"] = new Dictionary<string, object>
+                        {
+                            ["const"] = "deprecated",
+                        },
+                    },
+                    required = new[] { "status" },
+                },
+                ["then"] = new
+                {
+                    required = new[] { "deprecated_since_version" },
+                },
+            },
+        },
+        additionalProperties = false,
+    };
+
+    private static object CapabilityIdSchema() => new
+    {
+        type = "string",
+        pattern = "^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*\\.v[1-9][0-9]*$",
     };
 
     private static object PathParameter(string name, string? format = null)
