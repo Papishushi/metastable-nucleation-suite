@@ -235,6 +235,8 @@ internal sealed partial class Extend0RunOrchestrator
 
 internal sealed class ScientificWorkerClient : IDisposable
 {
+    private static readonly JsonSerializerOptions JsonOptions =
+        new(JsonSerializerDefaults.Web);
     private readonly HttpClient _client;
 
     internal ScientificWorkerClient(string workerUrl)
