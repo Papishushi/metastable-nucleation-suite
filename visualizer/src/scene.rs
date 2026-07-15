@@ -1069,8 +1069,7 @@ mod tests {
         changed["layers"][0]["visible_by_default"] = false.into();
         changed["layers"][1]["visible_by_default"] = false.into();
 
-        let scene =
-            parse_and_validate(&changed.to_string()).expect("hidden layers must be valid");
+        let scene = parse_and_validate(&changed.to_string()).expect("hidden layers must be valid");
         let render = scene.render_scene();
 
         let state_layer = render
