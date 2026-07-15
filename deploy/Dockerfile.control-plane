@@ -1,0 +1,32 @@
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+ARG TARGETARCH
+ARG VERSION
+WORKDIR /src
+COPY VERSION ./VERSION
+COPY global.json ./global.json
+COPY dotnet/ ./dotnet/
+RUN if [ -n "$VERSION" ]; then test "$(cat VERSION)" = "$VERSION"; fi \
+    && case "$TARGETARCH" in \
+      amd64) rid=linux-x64 ;; \
+      arm64) rid=linux-arm64 ;; \
+      *) echo "unsupported TARGETARCH: $TARGETARCH" >&2; exit 1 ;; \
+    esac \
+    && dotnet publish dotnet/Metastable.ControlPlane/Metastable.ControlPlane.csproj \
+      -c Release -r "$rid" --self-contained true \
+      -p:PublishSingleFile=true -o /out
+
+FROM mcr.microsoft.com/dotnet/runtime-deps:10.0-noble-chiseled AS runtime
+ARG VERSION=0.0.0-dev
+ARG REVISION=unknown
+LABEL org.opencontainers.image.title="Metastable Control Plane" \
+      org.opencontainers.image.description="Extend0-orchestrated Kestrel control plane for the Metastable Nucleation Suite" \
+      org.opencontainers.image.source="https://github.com/Papishushi/metastable-nucleation-suite" \
+      org.opencontainers.image.version="$VERSION" \
+      org.opencontainers.image.revision="$REVISION" \
+      org.opencontainers.image.licenses="MIT"
+WORKDIR /app
+COPY --from=build /out/metastable-control-plane /app/metastable-control-plane
+ENV ASPNETCORE_URLS=http://0.0.0.0:8080
+EXPOSE 8080
+USER 1654
+ENTRYPOINT ["/app/metastable-control-plane"]

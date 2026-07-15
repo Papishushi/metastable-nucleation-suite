@@ -31,6 +31,7 @@ El repositorio separa explícitamente tres cosas que suelen mezclarse:
 - `docs/13_ontologia_semantica.md`: arquitectura TBox/ABox, validación SHACL y uso por agentes.
 - `docs/14_motor_ejecucion_hardware_y_potencia.md`: ejecución semántica, adaptadores y potencia Monte Carlo.
 - `docs/15_adaptadores_hardware.md`: protocolo y configuración de Serial, TCP y VISA.
+- `docs/17_control_plane.md`: API Kestrel, orquestación Extend0, MetaDB y recuperación.
 - `references.bib`: bibliografía primaria y revisiones verificables por DOI.
 - `experiments/catalog.yaml`: índice resumido legible por máquina.
 - `experiments/specifications.yaml`: especificaciones ejecutables de E01–E15, con hipótesis nula, controles, exclusiones, parada y análisis.
@@ -44,6 +45,7 @@ El repositorio separa explícitamente tres cosas que suelen mezclarse:
 - `ontology/queries/`: biblioteca de consultas SPARQL para humanos y agentes.
 - `schemas/event.schema.json`: contrato de datos evento a evento.
 - `contracts/v1/visualization-scene.schema.json`: proyección 3D versionada con coordenadas, capas científicas y procedencia explícitas.
+- `contracts/v1/control-plane-run.schema.json`: estados y transiciones durables de la API operacional.
 - `visualizer/`: núcleo Rust/WASM WebGPU con fallback WebGL2, sin lógica de aplicación JavaScript o TypeScript.
 - `src/metastable_suite/hardware.py`: interfaz común de backends físicos y simulados.
 - `src/metastable_suite/transports.py`: transportes JSON Serial, TCP y VISA.
@@ -125,6 +127,16 @@ dotnet run --project dotnet/Metastable.Platform.Cli -- extend0 doctor
 ```
 
 El comando informa de la versión cargada y construye un gestor local mediante la fachada pública `MetaDB.CreateManager()`. La versión fijada de Extend0 incluye semánticas de archivo validadas en Windows, Linux y macOS, además de smoke nativo ARM64; los esquemas persistentes y la recuperación concretos de la suite siguen definidos por el control plane. Los artefactos científicos, ABoxes y datasets continúan siendo la fuente de verdad según [ADR 0003](docs/adr/0003-extend0-operational-integration.md).
+
+### Control plane distribuido
+
+El servicio Kestrel opcional usa un único orquestador cross-process de Extend0 y dos índices MetaDB durables. Se inicia sin cambiar el flujo standalone:
+
+```bash
+docker compose --profile distributed up --build --wait control-plane
+```
+
+La API queda en `http://127.0.0.1:8080`; el contrato y las reglas de recuperación están en [docs/17_control_plane.md](docs/17_control_plane.md).
 
 ## Qué comprueba el software
 

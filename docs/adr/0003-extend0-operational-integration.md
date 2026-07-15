@@ -19,7 +19,7 @@ The suite also has stronger scientific data guarantees that Extend0 must not blu
 
 Adopt Extend0 as a bounded dependency of the suite's .NET operational layer.
 
-The integration pins the stable Extend0 NuGet package to `1.1.9691.41434`, adds an executable `metastable-platform extend0 doctor` diagnostic and constructs a local manager through the published `MetaDB.CreateManager()` facade in the platform self-test. The package is consumed by the .NET project only; Python workers, F# scientific domain rules and Rust/WASM visualization code do not import Extend0 types.
+The integration pins the stable Extend0 NuGet package to `1.1.9691.41434`, adds an executable `metastable-platform extend0 doctor` diagnostic and constructs managers through the published `MetaDB.CreateManager()` facade. The distributed control plane uses `CrossProcessSingleton<IRunOrchestrator>` as the single-owner dispatch boundary and stores derived run/artifact indexes in explicit MetaDB schemas. The package is consumed by .NET projects only; Python workers, F# scientific domain rules and Rust/WASM visualization code do not import Extend0 types.
 
 ### Lifecycle boundary
 
@@ -61,7 +61,7 @@ The Extend0 ontology describes Extend0 platform concepts. The suite ontology des
 
 ## Consequences
 
-The suite can reuse Extend0's operational systems instead of creating another singleton, coordination and metadata framework. The first integration is deliberately limited to dependency restoration and public manager construction. It validates packaging and runtime loading while persistent schemas and recovery behavior remain part of the control-plane work in #34.
+The suite reuses Extend0's operational systems instead of creating another singleton, coordination and metadata framework. Kestrel instances resolve one orchestration owner; only that owner mutates the MetaDB run and artifact tables or dispatches work. Queued work is resumed after restart, while interrupted running work enters the explicit `recovery_required` state rather than being repeated silently.
 
 The dependency adds supply-chain and compatibility surface to release builds. Exact version pinning, SBOM coverage and multi-RID smoke tests therefore become mandatory. Extend0 remains an implementation detail of the .NET operational boundary; scientific artifacts and public APIs stay portable if the implementation is replaced.
 
@@ -85,4 +85,4 @@ Rejected because a small diagnostic slice now validates dependency restoration, 
 
 ## Follow-up
 
-Tracked by #45. Durable MetaDB schemas and Lifecycle ownership enter with #34 only after the dependency/diagnostic slice passes CI and release smoke tests. Extend0 portability issue [#5](https://github.com/Papishushi/Extend0/issues/5) is completed and the stable package has native ARM64 validation; those platform guarantees do not replace suite-specific recovery and corruption tests.
+Tracked by #45. The first durable consumer lands with #34; migration, corruption and clean-release expansion remain integration follow-ups. Extend0 portability issue [#5](https://github.com/Papishushi/Extend0/issues/5) is completed and the stable package has native ARM64 validation; those platform guarantees do not replace suite-specific recovery tests.

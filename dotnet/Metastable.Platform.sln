@@ -6,6 +6,8 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Metastable.Domain", "Metast
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metastable.Platform.Cli", "Metastable.Platform.Cli\Metastable.Platform.Cli.csproj", "{AF429217-02A8-4E27-BF78-0AF9FC7A66D8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metastable.ControlPlane", "Metastable.ControlPlane\Metastable.ControlPlane.csproj", "{A1C1FCD0-C2F5-4EE1-9D2C-ED927E40CC34}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -20,5 +22,9 @@ Global
 		{AF429217-02A8-4E27-BF78-0AF9FC7A66D8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AF429217-02A8-4E27-BF78-0AF9FC7A66D8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AF429217-02A8-4E27-BF78-0AF9FC7A66D8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A1C1FCD0-C2F5-4EE1-9D2C-ED927E40CC34}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A1C1FCD0-C2F5-4EE1-9D2C-ED927E40CC34}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A1C1FCD0-C2F5-4EE1-9D2C-ED927E40CC34}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A1C1FCD0-C2F5-4EE1-9D2C-ED927E40CC34}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
