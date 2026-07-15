@@ -31,6 +31,7 @@ El repositorio separa explícitamente tres cosas que suelen mezclarse:
 - `docs/13_ontologia_semantica.md`: arquitectura TBox/ABox, validación SHACL y uso por agentes.
 - `docs/14_motor_ejecucion_hardware_y_potencia.md`: ejecución semántica, adaptadores y potencia Monte Carlo.
 - `docs/15_adaptadores_hardware.md`: protocolo y configuración de Serial, TCP y VISA.
+- `docs/16_metastate_atlas_and_nucleation_defined_circuitry.md`: visión del Metastate Atlas, materia computacional y límites cuantitativos.
 - `references.bib`: bibliografía primaria y revisiones verificables por DOI.
 - `experiments/catalog.yaml`: índice resumido legible por máquina.
 - `experiments/specifications.yaml`: especificaciones ejecutables de E01–E15, con hipótesis nula, controles, exclusiones, parada y análisis.
@@ -50,8 +51,10 @@ El repositorio separa explícitamente tres cosas que suelen mezclarse:
 - `src/metastable_suite/hardware_adapters.py`: backends concretos sobre cada transporte.
 - `src/metastable_suite/execution.py`: motor de ejecución semántico.
 - `src/metastable_suite/monte_carlo_power.py`: potencia empírica mediante simulación.
+- `src/metastable_suite/metastate_capacity.py`: modelo paramétrico de información, energía y cálculo por masa.
 - `scripts/semantic_execute.py`: ejecución de ABoxes `Planned`.
 - `scripts/monte_carlo_power.py`: CLI de potencia Monte Carlo.
+- `scripts/metastate_capacity.py`: CLI de escenarios de capacidad de materia metaestable.
 - `tests/`: pruebas matemáticas, estadísticas, bibliográficas, adversariales, semánticas y de hardware.
 
 ## Inicio rápido
@@ -116,6 +119,26 @@ python scripts/monte_carlo_power.py \
 
 La aproximación analítica sirve para órdenes de magnitud. Monte Carlo permite introducir memoria, pérdida dependiente del ajuste, multiplicidad y parámetros específicos del dispositivo.
 
+### Capacidad de materia metaestable
+
+```bash
+python scripts/metastate_capacity.py --power-budget-w-per-kg 1000
+python scripts/metastate_capacity.py \
+  --custom \
+  --name example \
+  --density-kg-m3 6100 \
+  --pitch-nm 50 \
+  --states 16 \
+  --active-volume-fraction 0.20 \
+  --coding-efficiency 0.60 \
+  --write-energy-j 1e-12 \
+  --operation-energy-j 1e-15 \
+  --event-rate-hz 1e9 \
+  --active-utilization 1e-3
+```
+
+El modelo separa capacidad geométrica, energía de reescritura, límite de Landauer, techo de cálculo por celdas y techo impuesto por un presupuesto térmico. Los escenarios no medidos son análisis de sensibilidad, no especificaciones de dispositivo.
+
 ### Diagnóstico de Extend0
 
 La capa operativa .NET integra Extend0 como dependencia acotada para coordinación y metadatos operativos. La integración puede verificarse sin iniciar el worker científico:
@@ -139,21 +162,23 @@ Los transportes físicos distinguen timeout, desconexión y error de protocolo. 
 ## Principio de diseño
 
 ```mermaid
-flowchart LR
-    A[Reproducibilidad] --> B[Siembra y contaminación]
-    B --> C[Variables locales multicanal]
-    C --> D[Correlación distribuida]
-    D --> E[Amplificación de entrelazamiento preparado]
-    E --> F[Test de Bell con salida metaestable]
-    F --> G[No localidad espontánea]
-    G --> H[Test de no señalización]
+flowchart TB
+    M[Ciencia reproducible de metaestados]
+    M --> A[Materia, nucleación y polimorfismo<br/>E01-E06]
+    M --> B[Fotónica y física fundamental<br/>E09-E15]
+    A --> C[Metastate Atlas]
+    B --> C
+    D[Redes, propagación y replicación<br/>E07, E08, E14] --> C
+    C --> E[Comparación, control y posibles componentes físicos]
 ```
 
-No se salta al último peldaño porque una correlación misteriosa casi siempre resulta ser un cable, un reloj compartido, una selección posterior de datos o un sesgo del detector. La física tiene sentido del humor, pero suele ser de laboratorio: el “fenómeno cósmico” era el aire acondicionado.
+Los dos programas tienen la misma relevancia dentro de MNS. El primero estudia selección de formas materiales; el segundo utiliza plataformas ópticas y cuánticas para observar metaestados, bifurcaciones y correlaciones con alta resolución. El Metastate Atlas proporciona un lenguaje común sin afirmar que microfísicas distintas sean equivalentes.
+
+Las hipótesis extraordinarias conservan una escalera de falsación estricta: una correlación misteriosa casi siempre resulta ser un cable, un reloj compartido, una selección posterior de datos o un sesgo del detector. La física tiene sentido del humor, pero suele ser de laboratorio: el “fenómeno cósmico” era el aire acondicionado.
 
 ## Estado del proyecto
 
-Diseño conceptual, software de referencia y motor de ejecución semántico. **No afirma que exista no localidad espontánea en la nucleación.** Define cómo intentar refutar primero las explicaciones ordinarias y qué observación sería realmente extraordinaria.
+Diseño conceptual, software de referencia y motor de ejecución semántico. **No afirma que exista no localidad espontánea en la nucleación ni que la circuitería tridimensional definida por nucleación sea una capacidad actual.** Define cómo separar resultados establecidos, hipótesis investigables y objetivos especulativos, y cómo intentar refutar primero explicaciones ordinarias.
 
 ## Licencia
 
