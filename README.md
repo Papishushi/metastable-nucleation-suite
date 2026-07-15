@@ -32,6 +32,9 @@ El repositorio separa explícitamente tres cosas que suelen mezclarse:
 - `docs/14_motor_ejecucion_hardware_y_potencia.md`: ejecución semántica, adaptadores y potencia Monte Carlo.
 - `docs/15_adaptadores_hardware.md`: protocolo y configuración de Serial, TCP y VISA.
 - `docs/16_metastate_atlas_and_nucleation_defined_circuitry.md`: visión del Metastate Atlas, materia computacional y límites cuantitativos.
+- `docs/17_control_plane.md`: API Kestrel, orquestación Extend0, MetaDB y recuperación.
+- `docs/18_nucleation_encoded_chalcogenide_ensembles.md`: definición de NECE y separación respecto a PCM multinivel escalar.
+- `docs/19_nece_positioning_competitors_and_go_no_go.md`: comparación con alternativas, límites y criterios experimentales go/no-go.
 - `references.bib`: bibliografía primaria y revisiones verificables por DOI.
 - `experiments/catalog.yaml`: índice resumido legible por máquina.
 - `experiments/specifications.yaml`: especificaciones ejecutables de E01–E15, con hipótesis nula, controles, exclusiones, parada y análisis.
@@ -45,6 +48,7 @@ El repositorio separa explícitamente tres cosas que suelen mezclarse:
 - `ontology/queries/`: biblioteca de consultas SPARQL para humanos y agentes.
 - `schemas/event.schema.json`: contrato de datos evento a evento.
 - `contracts/v1/visualization-scene.schema.json`: proyección 3D versionada con coordenadas, capas científicas y procedencia explícitas.
+- `contracts/v1/control-plane-run.schema.json`: estados y transiciones durables de la API operacional.
 - `visualizer/`: núcleo Rust/WASM WebGPU con fallback WebGL2, sin lógica de aplicación JavaScript o TypeScript.
 - `src/metastable_suite/hardware.py`: interfaz común de backends físicos y simulados.
 - `src/metastable_suite/transports.py`: transportes JSON Serial, TCP y VISA.
@@ -52,9 +56,11 @@ El repositorio separa explícitamente tres cosas que suelen mezclarse:
 - `src/metastable_suite/execution.py`: motor de ejecución semántico.
 - `src/metastable_suite/monte_carlo_power.py`: potencia empírica mediante simulación.
 - `src/metastable_suite/metastate_capacity.py`: modelo paramétrico de información, energía y cálculo por masa.
+- `src/metastable_suite/nucleation_encoded_capacity.py`: modelo separado para capacidad configuracional NECE.
 - `scripts/semantic_execute.py`: ejecución de ABoxes `Planned`.
 - `scripts/monte_carlo_power.py`: CLI de potencia Monte Carlo.
-- `scripts/metastate_capacity.py`: CLI de escenarios de capacidad de materia metaestable.
+- `scripts/metastate_capacity.py`: CLI de escenarios escalares de materia metaestable.
+- `scripts/nucleation_encoded_capacity.py`: CLI de escenarios configuracionales NECE.
 - `tests/`: pruebas matemáticas, estadísticas, bibliográficas, adversariales, semánticas y de hardware.
 
 ## Inicio rápido
@@ -135,9 +141,10 @@ python scripts/metastate_capacity.py \
   --operation-energy-j 1e-15 \
   --event-rate-hz 1e9 \
   --active-utilization 1e-3
+python scripts/nucleation_encoded_capacity.py --power-budget-w-per-kg 1000
 ```
 
-El modelo separa capacidad geométrica, energía de reescritura, límite de Landauer, techo de cálculo por celdas y techo impuesto por un presupuesto térmico. Los escenarios no medidos son análisis de sensibilidad, no especificaciones de dispositivo.
+Los modelos separan capacidad geométrica, capacidad configuracional recuperable, energía de reescritura, límite de Landauer, techo de cálculo por celdas y techo impuesto por un presupuesto térmico. Los escenarios no medidos son análisis de sensibilidad, no especificaciones de dispositivo.
 
 ### Diagnóstico de Extend0
 
@@ -178,7 +185,7 @@ Las hipótesis extraordinarias conservan una escalera de falsación estricta: un
 
 ## Estado del proyecto
 
-Diseño conceptual, software de referencia y motor de ejecución semántico. **No afirma que exista no localidad espontánea en la nucleación ni que la circuitería tridimensional definida por nucleación sea una capacidad actual.** Define cómo separar resultados establecidos, hipótesis investigables y objetivos especulativos, y cómo intentar refutar primero explicaciones ordinarias.
+Diseño conceptual, software de referencia y motor de ejecución semántico. **No afirma que exista no localidad espontánea en la nucleación ni que NECE o la circuitería tridimensional definida por nucleación sean capacidades actuales.** Define cómo separar resultados establecidos, hipótesis investigables y objetivos especulativos, y cómo intentar refutar primero explicaciones ordinarias.
 
 ## Licencia
 
