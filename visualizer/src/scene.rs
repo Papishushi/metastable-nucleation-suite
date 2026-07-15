@@ -1054,7 +1054,8 @@ mod tests {
             serde_json::from_str(E09_FIXTURE).expect("fixture must parse");
         changed["coordinate_system"]["handedness"] = "left".into();
 
-        let scene = parse_and_validate(&changed.to_string()).expect("left-handed scene must be valid");
+        let scene =
+            parse_and_validate(&changed.to_string()).expect("left-handed scene must be valid");
 
         assert_eq!(
             scene.render_scene().coordinates.handedness,

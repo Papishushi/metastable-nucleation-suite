@@ -215,8 +215,7 @@ impl CameraState {
                 self.target[1] += y_delta;
             }
             CameraAction::Zoom { factor } if factor.is_finite() && factor > 0.0 => {
-                self.distance =
-                    (self.distance * factor).clamp(Self::MIN_DISTANCE, f64::MAX);
+                self.distance = (self.distance * factor).clamp(Self::MIN_DISTANCE, f64::MAX);
             }
             CameraAction::Focus { position } => self.target = position,
             CameraAction::Reset => {
@@ -247,12 +246,9 @@ fn scene_bounds(scene: &RenderScene) -> ([f64; 3], f64) {
         f64::midpoint(minimum[1], maximum[1]),
         f64::midpoint(minimum[2], maximum[2]),
     ];
-    let half_extent = |axis: usize| {
-        (maximum[axis] - target[axis]).max(target[axis] - minimum[axis])
-    };
-    let radius = half_extent(0)
-        .hypot(half_extent(1))
-        .hypot(half_extent(2));
+    let half_extent =
+        |axis: usize| (maximum[axis] - target[axis]).max(target[axis] - minimum[axis]);
+    let radius = half_extent(0).hypot(half_extent(1)).hypot(half_extent(2));
     let distance = (radius * 3.0).clamp(1.5, f64::MAX);
     (target, distance)
 }
