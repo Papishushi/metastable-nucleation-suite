@@ -27,6 +27,19 @@ Clients must gate every optional or remotely versioned operation against a stabl
 
 Python and .NET code validate against these files and never share internal classes as a contract.
 
+## Control plane runs
+
+`v1/experiment-request.schema.json` is the submission envelope accepted by
+`POST /v1/runs`. `v1/control-plane-run.schema.json` defines the durable public
+run state and its explicit transition history. `v1/control-plane-artifact.schema.json`
+defines the rebuildable artifact lookup record; it does not replace the scientific
+artifact, manifest or ABox.
+
+The application generates `GET /openapi/v1.json` from its route model. CI checks
+the required operations and schemas with `scripts/check_control_plane_contract.py`.
+The internal Extend0 Lifecycle contract is an owner-coordination boundary only;
+cross-language clients continue to use these HTTP/JSON contracts.
+
 ## Visualization scenes
 
 `v1/visualization-scene.schema.json` defines the derived, hash-linked scene consumed by the

@@ -6,6 +6,14 @@ services:
     volumes:
       - artifacts:/artifacts
 
+  control-plane-state-init:
+    profiles: ["distributed"]
+    image: busybox:1.37.0-musl
+    user: root
+    command: ["chown", "1654:1654", "/state"]
+    volumes:
+      - control-plane-state:/state
+
   scientific-worker:
     build:
       context: .
@@ -39,5 +47,32 @@ services:
         condition: service_healthy
     command: ["execute", "compose-smoke-test"]
 
+  control-plane:
+    profiles: ["distributed"]
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.control-plane
+    environment:
+      METASTABLE_CONTROL_PLANE_STATE: /state
+      METASTABLE_SCIENTIFIC_WORKER_URL: http://scientific-worker:8081
+    ports:
+      - "8080:8080"
+    read_only: true
+    tmpfs:
+      - /tmp
+    volumes:
+      - control-plane-state:/state
+    depends_on:
+      control-plane-state-init:
+        condition: service_completed_successfully
+      scientific-worker:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/app/metastable-control-plane", "--health-check", "http://127.0.0.1:8080/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
 volumes:
   artifacts:
+  control-plane-state:

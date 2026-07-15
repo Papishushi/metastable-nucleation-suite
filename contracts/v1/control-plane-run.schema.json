@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/metastable-nucleation-suite/contracts/v1/control-plane-run.schema.json",
+  "title": "Durable control-plane run",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "run_id",
+    "request_id",
+    "experiment_id",
+    "state",
+    "created_at_utc",
+    "updated_at_utc",
+    "transitions"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "run_id": {"type": "string", "format": "uuid"},
+    "request_id": {"type": "string", "format": "uuid"},
+    "experiment_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "state": {
+      "enum": [
+        "queued",
+        "running",
+        "succeeded",
+        "failed",
+        "cancelled",
+        "recovery_required"
+      ]
+    },
+    "created_at_utc": {"type": "string", "format": "date-time"},
+    "updated_at_utc": {"type": "string", "format": "date-time"},
+    "artifact": {"$ref": "control-plane-artifact.schema.json#/$defs/artifact"},
+    "failure": {"type": ["string", "null"]},
+    "transitions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["state", "at_utc"],
+        "properties": {
+          "state": {
+            "enum": [
+              "queued",
+              "running",
+              "succeeded",
+              "failed",
+              "cancelled",
+              "recovery_required"
+            ]
+          },
+          "at_utc": {"type": "string", "format": "date-time"},
+          "reason": {"type": ["string", "null"]}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

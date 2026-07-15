@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/metastable-nucleation-suite/contracts/v1/control-plane-artifact.schema.json",
+  "title": "Derived control-plane artifact index",
+  "$defs": {
+    "artifact": {
+      "type": "object",
+      "required": ["artifact_id", "uri", "media_type", "response_sha256"],
+      "properties": {
+        "artifact_id": {"type": "string", "minLength": 1, "maxLength": 64},
+        "uri": {"type": "string", "minLength": 1},
+        "media_type": {"const": "application/json"},
+        "response_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "type": "object",
+  "required": ["schema_version", "run_id", "artifact", "indexed_at_utc"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "run_id": {"type": "string", "format": "uuid"},
+    "artifact": {"$ref": "#/$defs/artifact"},
+    "indexed_at_utc": {"type": "string", "format": "date-time"}
+  },
+  "additionalProperties": false
+}

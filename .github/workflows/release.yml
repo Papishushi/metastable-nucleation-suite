@@ -295,6 +295,8 @@ jobs:
             dockerfile: deploy/Dockerfile.platform-cli
           - name: scientific-worker
             dockerfile: deploy/Dockerfile.scientific-worker
+          - name: control-plane
+            dockerfile: deploy/Dockerfile.control-plane
     runs-on: ubuntu-latest
     permissions:
       contents: read
