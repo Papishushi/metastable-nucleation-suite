@@ -200,7 +200,6 @@ internal sealed class ControlPlaneStore : IDisposable
             WriteRunUnsafe(completed);
             WriteDocumentUnsafe(
                 _artifacts,
-                _artifactDocuments,
                 ArtifactKey(runId, artifact.ArtifactId),
                 new ArtifactIndexRecord("1.0.0", runId, artifact, DateTimeOffset.UtcNow));
         }
@@ -326,13 +325,11 @@ internal sealed class ControlPlaneStore : IDisposable
     private void WriteRunUnsafe(RunRecord run) =>
         WriteDocumentUnsafe(
             _runs,
-            _runDocuments,
             run.RunId.ToString("D"),
             run);
 
     private static void WriteDocumentUnsafe<T>(
         IMetadataTable table,
-        MetadataUtf8Column documents,
         string key,
         T value)
     {
@@ -343,16 +340,21 @@ internal sealed class ControlPlaneStore : IDisposable
             if (!exists)
             {
                 row = FindFreeRow(locked);
-                if (!documents.TrySetKey(row, key))
-                {
-                    throw new InvalidOperationException($"MetaDB key '{key}' does not fit.");
-                }
             }
 
-            if (!documents.TrySet(row, json))
+            // GetOrCreateCell initializes its composite default key on every call. Write
+            // through one cell and set our application key last so a value write cannot
+            // replace it with the default "Documents:<row>" key.
+            var cell = locked.GetOrCreateCell(0, row);
+            if (!cell.TrySetValue(json))
             {
                 throw new InvalidOperationException(
                     $"MetaDB document '{key}' exceeds its schema capacity.");
+            }
+
+            if (!cell.TrySetKey(key))
+            {
+                throw new InvalidOperationException($"MetaDB key '{key}' does not fit.");
             }
         });
     }
