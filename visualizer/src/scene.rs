@@ -11,7 +11,7 @@ use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 
 use crate::render::{
     LinePattern, ProvenanceRef, RenderAxis, RenderCoordinates, RenderEntity, RenderHandedness,
-    RenderScene, RenderTransition, RenderUncertainty, VisualRole,
+    RenderLayer, RenderScene, RenderTransition, RenderUncertainty, VisualRole,
 };
 
 #[derive(Debug, Deserialize)]
@@ -63,6 +63,17 @@ impl ValidatedScene {
     /// Build deterministic render state without exposing unvalidated scene internals.
     #[must_use]
     pub fn render_scene(&self) -> RenderScene {
+        let layers = self
+            .scene
+            .layers
+            .iter()
+            .map(|layer| RenderLayer {
+                id: layer.id.clone(),
+                label: layer.label.clone(),
+                role: layer.scientific_role.into(),
+                visible_by_default: layer.visible_by_default,
+            })
+            .collect();
         let layer_roles: HashMap<&str, ScientificRole> = self
             .scene
             .layers
@@ -75,6 +86,7 @@ impl ValidatedScene {
             .iter()
             .map(|entity| RenderEntity {
                 id: entity.id.clone(),
+                layer_id: entity.layer_id.clone(),
                 label: entity.label.clone(),
                 position: entity.position,
                 role: layer_roles[entity.layer_id.as_str()].into(),
@@ -93,6 +105,7 @@ impl ValidatedScene {
             .iter()
             .map(|transition| RenderTransition {
                 id: transition.id.clone(),
+                layer_id: transition.layer_id.clone(),
                 from_entity: entity_indices[transition.from_entity_id.as_str()],
                 to_entity: entity_indices[transition.to_entity_id.as_str()],
                 observation_role: transition.observation_role.into(),
@@ -125,6 +138,7 @@ impl ValidatedScene {
                     render_axis(&coordinate.axes.z),
                 ],
             },
+            layers,
             entities,
             transitions,
         }
@@ -1045,6 +1059,44 @@ mod tests {
         assert_eq!(
             selected.geometry_provenance[0].record_id,
             "e09-abstract-layout-v1"
+        );
+    }
+
+    #[test]
+    fn preserves_hidden_layer_membership_in_render_state() {
+        let mut changed: serde_json::Value =
+            serde_json::from_str(E09_FIXTURE).expect("fixture must parse");
+        changed["layers"][0]["visible_by_default"] = false.into();
+        changed["layers"][1]["visible_by_default"] = false.into();
+
+        let scene =
+            parse_and_validate(&changed.to_string()).expect("hidden layers must be valid");
+        let render = scene.render_scene();
+
+        let state_layer = render
+            .layers
+            .iter()
+            .find(|layer| layer.id == "state-space")
+            .expect("state layer must be retained");
+        let transition_layer = render
+            .layers
+            .iter()
+            .find(|layer| layer.id == "event-geometry")
+            .expect("transition layer must be retained");
+
+        assert!(!state_layer.visible_by_default);
+        assert!(!transition_layer.visible_by_default);
+        assert!(
+            render
+                .entities
+                .iter()
+                .all(|entity| entity.layer_id == "state-space")
+        );
+        assert!(
+            render
+                .transitions
+                .iter()
+                .all(|transition| transition.layer_id == "event-geometry")
         );
     }
 

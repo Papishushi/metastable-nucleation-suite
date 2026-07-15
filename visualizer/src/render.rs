@@ -41,10 +41,20 @@ pub struct RenderUncertainty {
     pub confidence_level: f64,
 }
 
+/// One validated layer and its initial presentation state.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RenderLayer {
+    pub id: String,
+    pub label: String,
+    pub role: VisualRole,
+    pub visible_by_default: bool,
+}
+
 /// One validated scene entity ready for GPU buffer construction.
 #[derive(Clone, Debug, PartialEq)]
 pub struct RenderEntity {
     pub id: String,
+    pub layer_id: String,
     pub label: String,
     pub position: [f64; 3],
     pub role: VisualRole,
@@ -56,6 +66,7 @@ pub struct RenderEntity {
 #[derive(Clone, Debug, PartialEq)]
 pub struct RenderTransition {
     pub id: String,
+    pub layer_id: String,
     pub from_entity: usize,
     pub to_entity: usize,
     pub observation_role: VisualRole,
@@ -92,6 +103,7 @@ pub struct RenderCoordinates {
 pub struct RenderScene {
     pub scene_id: String,
     pub coordinates: RenderCoordinates,
+    pub layers: Vec<RenderLayer>,
     pub entities: Vec<RenderEntity>,
     pub transitions: Vec<RenderTransition>,
 }
@@ -107,6 +119,7 @@ pub enum RenderSelectionId {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SelectionDetails {
     pub id: RenderSelectionId,
+    pub layer_id: String,
     pub label: String,
     pub valid: bool,
     pub exclusion_reasons: Vec<String>,
@@ -127,6 +140,7 @@ impl RenderScene {
                 .find(|entity| entity.id == *target)
                 .map(|entity| SelectionDetails {
                     id: id.clone(),
+                    layer_id: entity.layer_id.clone(),
                     label: entity.label.clone(),
                     valid: true,
                     exclusion_reasons: Vec::new(),
@@ -139,6 +153,7 @@ impl RenderScene {
                 .find(|transition| transition.id == *target)
                 .map(|transition| SelectionDetails {
                     id: id.clone(),
+                    layer_id: transition.layer_id.clone(),
                     label: transition.id.clone(),
                     valid: transition.valid,
                     exclusion_reasons: transition.exclusion_reasons.clone(),
@@ -280,9 +295,16 @@ mod tests {
                     },
                 ],
             },
+            layers: vec![RenderLayer {
+                id: "test-layer".to_owned(),
+                label: "Test layer".to_owned(),
+                role: VisualRole::Derived,
+                visible_by_default: true,
+            }],
             entities: vec![
                 RenderEntity {
                     id: "a".to_owned(),
+                    layer_id: "test-layer".to_owned(),
                     label: "A".to_owned(),
                     position: [-1.0, -2.0, 0.0],
                     role: VisualRole::Derived,
@@ -291,6 +313,7 @@ mod tests {
                 },
                 RenderEntity {
                     id: "b".to_owned(),
+                    layer_id: "test-layer".to_owned(),
                     label: "B".to_owned(),
                     position: [1.0, 2.0, 0.0],
                     role: VisualRole::Derived,
