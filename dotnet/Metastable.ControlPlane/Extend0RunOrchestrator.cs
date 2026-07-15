@@ -1,5 +1,5 @@
 using System.Collections.Concurrent;
-using System.Net.Http.Json;
+using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Threading.Channels;
 using Extend0.Lifecycle.CrossProcess;
@@ -250,15 +250,21 @@ internal sealed class ScientificWorkerClient : IDisposable
         ExperimentRequest request,
         CancellationToken cancellationToken)
     {
-        using var response = await _client.PostAsJsonAsync(
+        var payload = JsonSerializer.SerializeToUtf8Bytes(request, JsonOptions);
+        using var content = new ByteArrayContent(payload);
+        content.Headers.ContentType = new MediaTypeHeaderValue("application/json")
+        {
+            CharSet = "utf-8",
+        };
+        using var response = await _client.PostAsync(
             "/v1/experiments",
-            request,
+            content,
             cancellationToken);
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             throw new InvalidOperationException(
-                $"Scientific worker returned HTTP {(int)response.StatusCode}.");
+                $"Scientific worker returned HTTP {(int)response.StatusCode}: {body}");
         }
 
         using var document = JsonDocument.Parse(body);

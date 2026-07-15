@@ -75,7 +75,9 @@ def submit(base_url: str, state_path: Path) -> None:
             break
         time.sleep(0.5)
     if run["state"] != "succeeded":
-        raise RuntimeError(f"control-plane run ended in {run['state']}")
+        raise RuntimeError(
+            f"control-plane run ended in {run['state']}: {run.get('failure')}"
+        )
 
     _, artifact = request_json(
         f"{base_url}/v1/runs/{run['run_id']}/artifacts/primary"
