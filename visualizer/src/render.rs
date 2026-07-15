@@ -245,12 +245,20 @@ impl CameraState {
 }
 
 fn scene_bounds(scene: &RenderScene) -> ([f64; 3], f64) {
-    let Some(first) = scene.entities.first() else {
+    let has_visible_entities = scene
+        .entities
+        .iter()
+        .any(|entity| entity_is_visible_by_default(scene, entity));
+    let mut entities = scene
+        .entities
+        .iter()
+        .filter(|entity| !has_visible_entities || entity_is_visible_by_default(scene, entity));
+    let Some(first) = entities.next() else {
         return ([0.0; 3], 1.0);
     };
     let mut minimum = first.position;
     let mut maximum = first.position;
-    for entity in &scene.entities[1..] {
+    for entity in entities {
         for (axis, value) in entity.position.iter().copied().enumerate() {
             minimum[axis] = minimum[axis].min(value);
             maximum[axis] = maximum[axis].max(value);
@@ -266,6 +274,13 @@ fn scene_bounds(scene: &RenderScene) -> ([f64; 3], f64) {
     let radius = half_extent(0).hypot(half_extent(1)).hypot(half_extent(2));
     let distance = (radius * 3.0).clamp(1.5, f64::MAX);
     (target, distance)
+}
+
+fn entity_is_visible_by_default(scene: &RenderScene, entity: &RenderEntity) -> bool {
+    scene
+        .layers
+        .iter()
+        .any(|layer| layer.id == entity.layer_id && layer.visible_by_default)
 }
 
 #[cfg(test)]
@@ -323,6 +338,36 @@ mod tests {
             ],
             transitions: Vec::new(),
         }
+    }
+
+    #[test]
+    fn initial_camera_ignores_hidden_outliers_and_falls_back_when_all_layers_are_hidden() {
+        let visible_scene = test_scene();
+        let expected = CameraState::for_scene(&visible_scene);
+        let mut scene = visible_scene;
+        scene.layers.push(RenderLayer {
+            id: "hidden-layer".to_owned(),
+            label: "Hidden layer".to_owned(),
+            role: VisualRole::Illustrative,
+            visible_by_default: false,
+        });
+        scene.entities.push(RenderEntity {
+            id: "hidden-outlier".to_owned(),
+            layer_id: "hidden-layer".to_owned(),
+            label: "Hidden outlier".to_owned(),
+            position: [1.0e6; 3],
+            role: VisualRole::Illustrative,
+            provenance: Vec::new(),
+            uncertainty: None,
+        });
+
+        assert_eq!(CameraState::for_scene(&scene), expected);
+
+        scene.layers[0].visible_by_default = false;
+        let fallback = CameraState::for_scene(&scene);
+        assert!(fallback.target[0] > expected.target[0]);
+        assert!(fallback.distance > expected.distance);
+        assert!(fallback.distance.is_finite());
     }
 
     #[test]
