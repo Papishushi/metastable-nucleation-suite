@@ -1,0 +1,43 @@
+name: verify-v0.3.0-release
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/verify-v0.3.0-release.yml
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify release metadata and assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: v0.3.0
+        shell: bash
+        run: |
+          release_json="$(gh release view "$TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --json tagName,isDraft,isPrerelease,publishedAt,assets)"
+
+          test "$(jq -r '.tagName' <<<"$release_json")" = "$TAG"
+          test "$(jq -r '.isDraft' <<<"$release_json")" = "false"
+          test "$(jq -r '.isPrerelease' <<<"$release_json")" = "false"
+          test "$(jq -r '.publishedAt' <<<"$release_json")" != "null"
+
+          asset_count="$(jq '.assets | length' <<<"$release_json")"
+          if (( asset_count < 2 )); then
+            echo "::error::Expected published release assets, found $asset_count"
+            exit 1
+          fi
+
+          mkdir -p /tmp/mns-release
+          gh release download "$TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern SHA256SUMS \
+            --dir /tmp/mns-release
+          test -s /tmp/mns-release/SHA256SUMS
+
+          echo "Verified $TAG with $asset_count assets"
