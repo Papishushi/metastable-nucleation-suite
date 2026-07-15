@@ -5,8 +5,8 @@ mod scene;
 pub use gpu::{GpuContext, browser_backends};
 pub use render::{
     CameraAction, CameraState, LinePattern, ProvenanceRef, RenderAxis, RenderCoordinates,
-    RenderEntity, RenderScene, RenderSelectionId, RenderTransition, RenderUncertainty,
-    SelectionDetails, VisualRole,
+    RenderEntity, RenderHandedness, RenderScene, RenderSelectionId, RenderTransition,
+    RenderUncertainty, SelectionDetails, VisualRole,
 };
 pub use scene::{ValidatedScene, ValidationError, ValidationReport, parse_and_validate};
 

@@ -10,8 +10,8 @@ use thiserror::Error;
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 
 use crate::render::{
-    LinePattern, ProvenanceRef, RenderAxis, RenderCoordinates, RenderEntity, RenderScene,
-    RenderTransition, RenderUncertainty, VisualRole,
+    LinePattern, ProvenanceRef, RenderAxis, RenderCoordinates, RenderEntity, RenderHandedness,
+    RenderScene, RenderTransition, RenderUncertainty, VisualRole,
 };
 
 #[derive(Debug, Deserialize)]
@@ -116,6 +116,7 @@ impl ValidatedScene {
             scene_id: self.scene.id.clone(),
             coordinates: RenderCoordinates {
                 frame_id: coordinate.frame_id.clone(),
+                handedness: coordinate.handedness.into(),
                 abstract_space: coordinate.abstract_space,
                 warning: coordinate.origin_description.clone(),
                 axes: [
@@ -126,6 +127,15 @@ impl ValidatedScene {
             },
             entities,
             transitions,
+        }
+    }
+}
+
+impl From<Handedness> for RenderHandedness {
+    fn from(handedness: Handedness) -> Self {
+        match handedness {
+            Handedness::Right => Self::Right,
+            Handedness::Left => Self::Left,
         }
     }
 }
@@ -196,7 +206,7 @@ enum CoordinateKind {
     Cartesian3d,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
 #[serde(rename_all = "snake_case")]
 enum Handedness {
     Right,
@@ -1035,6 +1045,20 @@ mod tests {
         assert_eq!(
             selected.geometry_provenance[0].record_id,
             "e09-abstract-layout-v1"
+        );
+    }
+
+    #[test]
+    fn preserves_coordinate_handedness_in_render_state() {
+        let mut changed: serde_json::Value =
+            serde_json::from_str(E09_FIXTURE).expect("fixture must parse");
+        changed["coordinate_system"]["handedness"] = "left".into();
+
+        let scene = parse_and_validate(&changed.to_string()).expect("left-handed scene must be valid");
+
+        assert_eq!(
+            scene.render_scene().coordinates.handedness,
+            RenderHandedness::Left
         );
     }
 

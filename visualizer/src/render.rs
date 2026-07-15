@@ -16,6 +16,13 @@ pub enum LinePattern {
     Dashed,
 }
 
+/// Orientation of the validated coordinate system.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum RenderHandedness {
+    Right,
+    Left,
+}
+
 /// A stable reference back to one source record.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ProvenanceRef {
@@ -74,6 +81,7 @@ pub struct RenderAxis {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RenderCoordinates {
     pub frame_id: String,
+    pub handedness: RenderHandedness,
     pub abstract_space: bool,
     pub warning: String,
     pub axes: [RenderAxis; 3],
@@ -207,7 +215,8 @@ impl CameraState {
                 self.target[1] += y_delta;
             }
             CameraAction::Zoom { factor } if factor.is_finite() && factor > 0.0 => {
-                self.distance = (self.distance * factor).max(Self::MIN_DISTANCE);
+                self.distance =
+                    (self.distance * factor).clamp(Self::MIN_DISTANCE, f64::MAX);
             }
             CameraAction::Focus { position } => self.target = position,
             CameraAction::Reset => {
@@ -238,11 +247,14 @@ fn scene_bounds(scene: &RenderScene) -> ([f64; 3], f64) {
         f64::midpoint(minimum[1], maximum[1]),
         f64::midpoint(minimum[2], maximum[2]),
     ];
-    let diagonal = ((maximum[0] - minimum[0]).powi(2)
-        + (maximum[1] - minimum[1]).powi(2)
-        + (maximum[2] - minimum[2]).powi(2))
-    .sqrt();
-    (target, diagonal.max(1.0) * 1.5)
+    let half_extent = |axis: usize| {
+        (maximum[axis] - target[axis]).max(target[axis] - minimum[axis])
+    };
+    let radius = half_extent(0)
+        .hypot(half_extent(1))
+        .hypot(half_extent(2));
+    let distance = (radius * 3.0).clamp(1.5, f64::MAX);
+    (target, distance)
 }
 
 #[cfg(test)]
@@ -254,6 +266,7 @@ mod tests {
             scene_id: "test".to_owned(),
             coordinates: RenderCoordinates {
                 frame_id: "test-frame".to_owned(),
+                handedness: RenderHandedness::Right,
                 abstract_space: true,
                 warning: "abstract".to_owned(),
                 axes: [
@@ -335,5 +348,21 @@ mod tests {
         camera.apply(CameraAction::Zoom { factor: f64::NAN });
 
         assert!((camera.distance - distance).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn camera_distance_stays_finite_for_extreme_bounds_and_zoom() {
+        let mut scene = test_scene();
+        scene.entities[0].position = [-1.0e308; 3];
+        scene.entities[1].position = [1.0e308; 3];
+
+        let mut camera = CameraState::for_scene(&scene);
+        assert!(camera.distance.is_finite());
+
+        camera.apply(CameraAction::Zoom { factor: 2.0 });
+        assert!(camera.distance.is_finite());
+
+        camera.apply(CameraAction::Zoom { factor: 0.5 });
+        assert!(camera.distance < f64::MAX);
     }
 }
