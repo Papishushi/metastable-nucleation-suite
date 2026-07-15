@@ -37,6 +37,95 @@ configuración espacial y relacional de metaestados
 No basta con producir una fracción media de cristalización. Debe ser posible preparar y distinguir patrones
 configuracionales específicos con incertidumbre y procedencia declaradas.
 
+### 18.1.1 Qué ha hecho realmente la PCM multinivel
+
+La literatura de PCM describe la operación multinivel principalmente como la programación de estados intermedios
+de resistencia o respuesta óptica. El controlador ajusta amplitud, duración y secuencia de pulsos hasta alcanzar
+una ventana escalar. La microestructura que produce ese valor puede contener distintas fracciones amorfas y
+cristalinas, tamaños de grano, conectividades, orientaciones y distribuciones de vacantes, pero normalmente no se
+lee ni se utiliza como palabra independiente.
+
+Por tanto, una igualdad como
+
+\[
+R_A\approx R_B
+\]
+
+no implica
+
+\[
+\mathcal S_A\approx\mathcal S_B.
+\]
+
+Dos configuraciones con pocos dominios grandes o muchos dominios pequeños pueden ser equivalentes para una celda
+escalar y, sin embargo, ser distintas para una arquitectura que lea difracción, fase, espectro, conectividad o
+respuesta modal.
+
+Skelton et al. observaron un estado intermedio de GST formado por cristalitos microscópicos dentro de una matriz
+amorfa, pero solo dentro de una ventana estrecha de voltaje y con dificultades fundamentales para obtener múltiples
+niveles intermedios fiables. Ese resultado es un precedente directo de la microestructura relevante, pero su símbolo
+seguía siendo el nivel de resistencia, no la configuración de cristalitos.
+
+### 18.1.2 Precedentes parciales de selección estructural
+
+No es correcto afirmar que nadie haya intentado controlar rutas, fases o patrones internos. Existen precedentes
+importantes:
+
+- la ingeniería de sustrato, interfaz y encapsulación puede favorecer sitios de nucleación, orientar granos y
+  promover o impedir el ordenamiento de vacantes en GST;
+- se han distinguido estados de rocksalt desordenado, rocksalt con vacantes ordenadas y fase trigonal con contrastes
+  de resistividad;
+- la microscopía *in situ* ha seguido la evolución del ordenamiento de vacantes y su impacto electrónico y óptico;
+- la fotónica de cambio de fase ha avanzado desde la conmutación global hacia la escritura láser localizada de
+  patrones de Sb2Se3 optimizados inversamente;
+- en otros calcogenuros, como 1T-TaS2, secuencias coherentes de pulsos han modulado la eficiencia de acceso a una
+  fase metaestable oculta.
+
+Estos trabajos demuestran control de fase, ruta, interfaz o patrón. No demuestran todavía un NECE completo porque
+no establecen como palabra lógica una familia de configuraciones internas isoagregadas, escritas repetidamente,
+leídas con resolución configuracional y validadas mediante una matriz de confusión.
+
+La frontera debe expresarse así:
+
+```text
+PCM multinivel:             programar un valor agregado
+PCM estructural avanzada:   favorecer una fase, orden o patrón espacial
+NECE:                       direccionar una configuración interna como palabra
+```
+
+### 18.1.3 Por qué el campo no convergió antes en NECE
+
+La dirección industrial fue racional. Para fabricar memoria densa bastaba con separar ventanas de resistencia;
+resolver la microestructura habría añadido instrumentación, área, energía y latencia sin mejorar necesariamente el
+producto. La nucleación estocástica se trató como variabilidad que debía compensarse mediante `program-and-verify`,
+no como un alfabeto configuracional.
+
+Un NECE exige resolver simultáneamente:
+
+1. **identificación:** definir descriptores que separen configuraciones más allá de la fracción cristalina;
+2. **observabilidad:** leer posición, tamaño, orientación, conectividad u orden sin destruir el estado;
+3. **controlabilidad:** dirigir muchos grados de libertad internos con pocos actuadores físicos;
+4. **retención:** seleccionar una cuenca dinámica, no solo una imagen transitoria;
+5. **codificación:** demostrar información recuperable después de deriva, ruido y corrección;
+6. **función:** probar que la configuración aporta una respuesta que el observable escalar no contiene.
+
+En consecuencia, la novedad defendible de NECE no es «usar nucleación» ni «tener varios estados». Es cerrar el
+bucle inverso:
+
+```text
+metaestado objetivo
+        ↓
+atlas de configuraciones y trayectorias
+        ↓
+receta espacial y temporal
+        ↓
+nucleación y crecimiento
+        ↓
+lectura configuracional
+        ↓
+verificación y corrección
+```
+
 ## 18.2 Terminología propuesta
 
 Para evitar confundir ambos conceptos, MNS utilizará:
@@ -179,3 +268,33 @@ En NECE, la microconfiguración es el objeto informativo y potencialmente el cir
 
 La evaluación competitiva, los límites cuantitativos y los criterios de continuación están definidos en
 `docs/19_nece_positioning_competitors_and_go_no_go.md`.
+
+## 18.10 Referencias primarias y revisiones de apoyo
+
+### PCM escalar y multinivel
+
+- G. W. Burr et al., *Phase change memory technology*, Journal of Vacuum Science & Technology B 28,
+  223–262 (2010), DOI: `10.1116/1.3301579`; arXiv:1001.1164.
+- G. W. Burr et al., *Recent Progress in Phase-Change Memory Technology*, IEEE Journal on Emerging and Selected
+  Topics in Circuits and Systems 6, 146–162 (2016), DOI: `10.1109/JETCAS.2016.2547718`.
+- M. Le Gallo and A. Sebastian, *An overview of phase-change memory device physics*, Journal of Physics D:
+  Applied Physics 53, 213002 (2020), DOI: `10.1088/1361-6463/ab7794`.
+- J. M. Skelton, D. Loke, T. H. Lee and S. R. Elliott, *Understanding the multistate SET process in
+  Ge-Sb-Te-based phase-change memory*, Journal of Applied Physics 112, 064901 (2012),
+  DOI: `10.1063/1.4748961`.
+
+### Control de estructura, rutas y patrones
+
+- A. M. Mio et al., *Role of interfaces on the stability and electrical properties of Ge2Sb2Te5 crystalline
+  structures*, Scientific Reports 7, 2616 (2017), DOI: `10.1038/s41598-017-02710-3`.
+- T.-T. Jiang et al., *In situ characterization of vacancy ordering in Ge-Sb-Te phase-change memory alloys*,
+  arXiv:2203.09310 (2022). Debe verificarse la referencia editorial final antes de citar una versión publicada.
+- C. Wu et al., *Reconfigurable inverse designed phase-change photonics*, arXiv:2403.05649 (2024); publicado como
+  artículo de APL Photonics en 2025. La escritura es espacial y pixelada, no una lectura de configuraciones
+  microscópicas isoagregadas.
+- J. Maklar et al., *Coherent Light Control of a Metastable Hidden Phase*, arXiv:2206.03788 (2022). Es un precedente
+  de control de trayectoria en 1T-TaS2, no una demostración de PCM multinivel ni de NECE.
+
+Las referencias deben clasificarse por la afirmación que soportan. Ningún trabajo de esta lista demuestra por sí
+solo escritura repetible, lectura configuracional e información adicional de configuraciones isoagregadas; esa es
+precisamente la prueba diferencial propuesta para NECE.
