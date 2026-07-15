@@ -1,7 +1,7 @@
 <Project>
   <PropertyGroup>
     <!-- Mirrored from the canonical root VERSION file and enforced by check_release_version.py. -->
-    <Version>0.2.0</Version>
+    <Version>0.3.0</Version>
     <PackageVersion>$(Version)</PackageVersion>
     <InformationalVersion>$(Version)</InformationalVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
