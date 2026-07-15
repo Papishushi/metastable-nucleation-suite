@@ -5,6 +5,6 @@ type: software
 authors:
   - family-names: Molinero Lucas
     given-names: Daniel
-version: 0.2.0
-date-released: 2026-07-13
+version: 0.3.0
+date-released: 2026-07-15
 license: MIT
