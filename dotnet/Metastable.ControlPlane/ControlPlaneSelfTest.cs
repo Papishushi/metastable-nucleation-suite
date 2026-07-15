@@ -10,6 +10,7 @@ internal static class ControlPlaneSelfTest
         try
         {
             Guid runId;
+            Guid completedRunId;
             using (var store = new ControlPlaneStore(root))
             {
                 var nonRfc3339Request = NewRequest("invalid-timestamp") with
@@ -79,6 +80,7 @@ internal static class ControlPlaneSelfTest
                     completed.Run.RunId,
                     "/artifacts/self-test.json",
                     "{\"status\":\"completed\"}");
+                completedRunId = completed.Run.RunId;
                 store.Fail(completed.Run.RunId, "late artifact-index failure");
                 if (store.GetRun(completed.Run.RunId)?.State != RunStates.Succeeded)
                 {
@@ -119,6 +121,14 @@ internal static class ControlPlaneSelfTest
                 {
                     Console.Error.WriteLine(
                         $"control-plane self-test: expected recovery_required, got {recoveredRun?.State ?? "missing"}");
+                    return 1;
+                }
+
+                if (recovered.GetRun(completedRunId)?.State != RunStates.Succeeded
+                    || recovered.GetArtifact(completedRunId, "primary") is null)
+                {
+                    Console.Error.WriteLine(
+                        "control-plane self-test: completed artifact index was not durable");
                     return 1;
                 }
             }

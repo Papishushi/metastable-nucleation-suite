@@ -198,11 +198,13 @@ internal sealed class ControlPlaneStore : IDisposable
                     SHA256.HashData(Encoding.UTF8.GetBytes(workerResponse))));
             var completed = Transition(run, RunStates.Succeeded, "worker completed")
                 with { Artifact = artifact, Failure = null };
-            WriteRunUnsafe(completed);
+            // Publish the rebuildable index first: a durable succeeded run must
+            // never point at an artifact lookup that was not persisted yet.
             WriteDocumentUnsafe(
                 _artifacts,
                 ArtifactKey(runId, artifact.ArtifactId),
                 new ArtifactIndexRecord("1.0.0", runId, artifact, DateTimeOffset.UtcNow));
+            WriteRunUnsafe(completed);
         }
     }
 
