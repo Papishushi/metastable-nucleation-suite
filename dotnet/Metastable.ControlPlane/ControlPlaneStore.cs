@@ -11,6 +11,7 @@ namespace Metastable.ControlPlane;
 
 internal sealed class ControlPlaneStore : IDisposable
 {
+    internal const int MaxFailureReasonCharacters = 2048;
     private const uint InitialCapacity = 256;
     private const int KeyBytes = 128;
     private const int RunValueBytes = 32 * 1024;
@@ -210,13 +211,13 @@ internal sealed class ControlPlaneStore : IDisposable
         lock (_gate)
         {
             var run = GetRequiredRunUnsafe(runId);
-            if (run.State == RunStates.Cancelled)
+            if (RunStates.IsTerminal(run.State))
             {
                 return;
             }
 
             var failed = Transition(run, RunStates.Failed, "worker dispatch failed")
-                with { Failure = reason };
+                with { Failure = BoundFailureReason(reason) };
             WriteRunUnsafe(failed);
         }
     }
@@ -447,4 +448,16 @@ internal sealed class ControlPlaneStore : IDisposable
 
     private static string ArtifactKey(Guid runId, string artifactId) =>
         $"{runId:D}:{artifactId}";
+
+    private static string BoundFailureReason(string reason)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            return "worker dispatch failed";
+        }
+
+        return reason.Length <= MaxFailureReasonCharacters
+            ? reason
+            : $"{reason[..MaxFailureReasonCharacters]}…";
+    }
 }

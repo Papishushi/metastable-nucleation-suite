@@ -41,6 +41,51 @@ internal static class ControlPlaneSelfTest
                 }
 
                 runId = created.Run.RunId;
+
+                var completed = store.CreateRun(
+                    "self-test-completed-key",
+                    NewRequest("control-plane-completed-self-test"));
+                if (!store.TryBeginDispatch(completed.Run.RunId, out _))
+                {
+                    Console.Error.WriteLine(
+                        "control-plane self-test: completed run did not start");
+                    return 1;
+                }
+
+                store.Complete(
+                    completed.Run.RunId,
+                    "/artifacts/self-test.json",
+                    "{\"status\":\"completed\"}");
+                store.Fail(completed.Run.RunId, "late artifact-index failure");
+                if (store.GetRun(completed.Run.RunId)?.State != RunStates.Succeeded)
+                {
+                    Console.Error.WriteLine(
+                        "control-plane self-test: failure overwrote terminal success");
+                    return 1;
+                }
+
+                var failed = store.CreateRun(
+                    "self-test-failed-key",
+                    NewRequest("control-plane-failure-self-test"));
+                if (!store.TryBeginDispatch(failed.Run.RunId, out _))
+                {
+                    Console.Error.WriteLine(
+                        "control-plane self-test: failed run did not start");
+                    return 1;
+                }
+
+                store.Fail(
+                    failed.Run.RunId,
+                    new string('x', ControlPlaneStore.MaxFailureReasonCharacters + 4096));
+                var boundedFailure = store.GetRun(failed.Run.RunId);
+                if (boundedFailure?.State != RunStates.Failed
+                    || boundedFailure?.Failure?.Length
+                        != ControlPlaneStore.MaxFailureReasonCharacters + 1)
+                {
+                    Console.Error.WriteLine(
+                        "control-plane self-test: persisted failure was not bounded");
+                    return 1;
+                }
             }
 
             using (var recovered = new ControlPlaneStore(root))
@@ -74,4 +119,11 @@ internal static class ControlPlaneSelfTest
             }
         }
     }
+
+    private static ExperimentRequest NewRequest(string experimentId) =>
+        new(
+            "1.0.0",
+            Guid.NewGuid().ToString("D"),
+            experimentId,
+            DateTimeOffset.UtcNow.ToString("O"));
 }

@@ -190,6 +190,7 @@ jobs:
                       'state': 'queued',
                       'created_at_utc': '2026-07-15T00:00:00Z',
                       'updated_at_utc': '2026-07-15T00:00:00Z',
+                      'artifact': None,
                       'failure': None,
                       'transitions': [
                           {

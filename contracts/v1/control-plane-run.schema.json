@@ -30,7 +30,12 @@
     },
     "created_at_utc": {"type": "string", "format": "date-time"},
     "updated_at_utc": {"type": "string", "format": "date-time"},
-    "artifact": {"$ref": "control-plane-artifact.schema.json#/$defs/artifact"},
+    "artifact": {
+      "oneOf": [
+        {"$ref": "control-plane-artifact.schema.json#/$defs/artifact"},
+        {"type": "null"}
+      ]
+    },
     "failure": {"type": ["string", "null"]},
     "transitions": {
       "type": "array",

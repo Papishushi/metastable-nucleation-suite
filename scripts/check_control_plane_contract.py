@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import re
 from typing import Any
 
 
@@ -23,9 +24,26 @@ def validate_openapi(document: dict[str, Any]) -> None:
     if not isinstance(paths, dict):
         raise ValueError("control-plane OpenAPI has no paths object")
     for path, method in REQUIRED_PATHS.items():
-        operation = paths.get(path)
-        if not isinstance(operation, dict) or method not in operation:
+        path_item = paths.get(path)
+        if not isinstance(path_item, dict) or method not in path_item:
             raise ValueError(f"missing OpenAPI operation: {method.upper()} {path}")
+        operation = path_item[method]
+        if not isinstance(operation, dict):
+            raise ValueError(f"invalid OpenAPI operation: {method.upper()} {path}")
+
+        expected_parameters = set(re.findall(r"{([^{}]+)}", path))
+        declared_parameters = {
+            parameter.get("name")
+            for parameter in operation.get("parameters", [])
+            if isinstance(parameter, dict)
+            and parameter.get("in") == "path"
+            and parameter.get("required") is True
+        }
+        if declared_parameters != expected_parameters:
+            raise ValueError(
+                f"path parameters for {method.upper()} {path} must be "
+                f"{sorted(expected_parameters)}, got {sorted(declared_parameters)}"
+            )
 
     schemas = document.get("components", {}).get("schemas", {})
     for name in ("ExperimentRequest", "Run", "ArtifactIndex", "CapabilityManifest"):

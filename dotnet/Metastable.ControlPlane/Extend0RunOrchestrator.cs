@@ -209,7 +209,17 @@ internal sealed partial class Extend0RunOrchestrator
                 catch (Exception exception)
                 {
                     LogDispatchFailure(_logger, exception, runId);
-                    _store.Fail(runId, exception.Message);
+                    try
+                    {
+                        _store.Fail(runId, exception.Message);
+                    }
+                    catch (Exception persistenceException)
+                    {
+                        LogFailurePersistenceFailure(
+                            _logger,
+                            persistenceException,
+                            runId);
+                    }
                 }
                 finally
                 {
@@ -228,6 +238,15 @@ internal sealed partial class Extend0RunOrchestrator
         Level = LogLevel.Error,
         Message = "Extend0 orchestrator dispatch failed for run {RunId}")]
     private static partial void LogDispatchFailure(
+        ILogger logger,
+        Exception exception,
+        Guid runId);
+
+    [LoggerMessage(
+        EventId = 3402,
+        Level = LogLevel.Error,
+        Message = "Could not persist dispatch failure for run {RunId}; continuing queue processing")]
+    private static partial void LogFailurePersistenceFailure(
         ILogger logger,
         Exception exception,
         Guid runId);

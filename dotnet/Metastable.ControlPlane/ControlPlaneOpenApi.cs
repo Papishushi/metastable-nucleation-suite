@@ -22,9 +22,22 @@ internal static class ControlPlaneOpenApi
             {
                 ["/v1/capabilities"] = Operation("get", "Discover server capabilities", "CapabilityManifest"),
                 ["/v1/runs"] = Operation("post", "Submit an idempotent run", "Run"),
-                ["/v1/runs/{runId}"] = Operation("get", "Read durable run state", "Run"),
-                ["/v1/runs/{runId}/cancel"] = Operation("post", "Cancel a run", "Run"),
-                ["/v1/runs/{runId}/artifacts/{artifactId}"] = Operation("get", "Read artifact metadata", "ArtifactIndex"),
+                ["/v1/runs/{runId}"] = Operation(
+                    "get",
+                    "Read durable run state",
+                    "Run",
+                    PathParameter("runId", "uuid")),
+                ["/v1/runs/{runId}/cancel"] = Operation(
+                    "post",
+                    "Cancel a run",
+                    "Run",
+                    PathParameter("runId", "uuid")),
+                ["/v1/runs/{runId}/artifacts/{artifactId}"] = Operation(
+                    "get",
+                    "Read artifact metadata",
+                    "ArtifactIndex",
+                    PathParameter("runId", "uuid"),
+                    PathParameter("artifactId")),
             },
             components = new
             {
@@ -59,13 +72,15 @@ internal static class ControlPlaneOpenApi
     private static Dictionary<string, object> Operation(
         string method,
         string summary,
-        string schema)
+        string schema,
+        params object[] parameters)
     {
         return new Dictionary<string, object>
         {
             [method] = new
             {
                 summary,
+                parameters,
                 responses = new Dictionary<string, object>
                 {
                     ["200"] = new
@@ -84,6 +99,26 @@ internal static class ControlPlaneOpenApi
                     },
                 },
             },
+        };
+    }
+
+    private static object PathParameter(string name, string? format = null)
+    {
+        var schema = new Dictionary<string, object>
+        {
+            ["type"] = "string",
+        };
+        if (format is not null)
+        {
+            schema["format"] = format;
+        }
+
+        return new
+        {
+            name,
+            @in = "path",
+            required = true,
+            schema,
         };
     }
 }
