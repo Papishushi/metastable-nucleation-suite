@@ -120,3 +120,13 @@ After both integrations are active:
 - Zenodo activation and arXiv submission require the maintainer or an authorised author.
 - Metadata, manuscript source, clean-build checks and cross-link verification can be reviewed through pull requests.
 - Publication and archiving work is coordinated in #103, with implementation gates #104 and #105.
+
+## Authoritative service documentation
+
+Check the live requirements again immediately before activation or submission:
+
+- [Zenodo: enable a GitHub repository](https://help.zenodo.org/docs/github/enable-repository/)
+- [Zenodo: describe software and metadata precedence](https://help.zenodo.org/docs/github/describe-software/)
+- [Zenodo: `CITATION.cff` support](https://help.zenodo.org/docs/github/describe-software/citation-file/)
+- [arXiv: submission guidelines](https://info.arxiv.org/help/submit/index.html)
+- [arXiv: TeX/LaTeX submission guidance](https://info.arxiv.org/help/submit_tex.html)
