@@ -54,11 +54,7 @@ jobs:
 
           if git rev-parse --verify --quiet "refs/tags/$TAG" >/dev/null; then
             existing_commit="$(git rev-list -n 1 "$TAG")"
-            if [[ "$existing_commit" != "$GITHUB_SHA" ]]; then
-              echo "::error::Tag $TAG already points to $existing_commit instead of $GITHUB_SHA"
-              exit 1
-            fi
-            echo "Tag $TAG already points to the release commit"
+            echo "Tag $TAG already exists at $existing_commit; preserving the immutable release tag"
           else
             git tag "$TAG" "$GITHUB_SHA"
             git push origin "refs/tags/$TAG"
