@@ -1,10 +1,24 @@
 cff-version: 1.2.0
 title: Metastable Nucleation Suite
-message: Please cite this repository and the primary literature listed in references.bib.
+message: Please cite the exact archived software release and the primary literature listed in references.bib.
 type: software
 authors:
   - family-names: Molinero Lucas
     given-names: Daniel
-version: 0.3.0
-date-released: 2026-07-15
+abstract: >-
+  Open research-software infrastructure for executable protocols, data contracts,
+  semantic provenance and reproducible execution in metastability and nucleation
+  research. MNS explicitly separates measured, simulated, derived, inferred and
+  illustrative outputs and does not treat software verification as physical validation.
+keywords:
+  - metastability
+  - nucleation
+  - reproducible research
+  - research software
+  - semantic provenance
+  - scientific workflows
+repository-code: https://github.com/Papishushi/metastable-nucleation-suite
+url: https://github.com/Papishushi/metastable-nucleation-suite
+version: 0.4.0
+date-released: 2026-07-16
 license: MIT

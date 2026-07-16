@@ -1,5 +1,5 @@
 name: Product backlog item
-about: Define a traceable unit of scientific, software, hardware or documentation work
+description: Define a traceable unit of scientific, software, hardware or documentation work.
 title: "[PBI] "
 body:
   - type: markdown

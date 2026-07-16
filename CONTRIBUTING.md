@@ -1,8 +1,16 @@
 # Contribuir
 
+## Antes de empezar
+
+No es necesario entender todo el repositorio. Consulta [ONBOARDING.md](ONBOARDING.md), el [mapa de arquitectura y contribución](docs/18_architecture_and_contribution_map.md) y la issue compartida [#93](https://github.com/Papishushi/metastable-nucleation-suite/issues/93) para elegir una tarea acotada.
+
+Toda participación debe respetar [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). Las vulnerabilidades no deben publicarse como issues: utiliza el proceso privado descrito en [SECURITY.md](SECURITY.md).
+
 Las contribuciones deben mejorar la capacidad del proyecto para formular hipótesis falsables, ejecutar controles y reproducir análisis. No se aceptarán cambios que presenten una correlación como causalidad, una coincidencia como no localidad o una violación de Bell como señalización.
 
 Toda hipótesis nueva debe incluir una predicción nula explícita y explicar qué resultado sería compatible con la física conocida. También debe identificar los principales confundidores, proponer controles positivos y negativos y definir qué observación justificaría una replicación más exigente.
+
+Los cambios puramente documentales, operativos, de CI o de tooling pueden marcar las secciones de hipótesis y predicción nula como `No aplica`, indicando brevemente por qué. No se debe inventar una hipótesis científica para satisfacer una plantilla.
 
 Los análisis confirmatorios y exploratorios deben mantenerse separados. Un patrón descubierto al inspeccionar los datos puede documentarse y desarrollarse, pero debe validarse en un bloque independiente antes de presentarse como evidencia confirmatoria.
 

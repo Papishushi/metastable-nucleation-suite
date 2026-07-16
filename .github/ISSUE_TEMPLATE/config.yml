@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Contributor matching and setup questions
+    url: https://github.com/Papishushi/metastable-nucleation-suite/issues/93
+    about: Use the shared onboarding thread when you do not yet know which bounded issue fits.
+  - name: Independent scientific and technical review
+    url: https://github.com/Papishushi/metastable-nucleation-suite/issues/74
+    about: Volunteer for a focused review track or leave a technically grounded no-go finding.
