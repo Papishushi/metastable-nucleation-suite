@@ -1,0 +1,102 @@
+name: Contributor onboarding
+
+description: Ask for a bounded contribution or help choosing a review track.
+title: "[ONBOARDING] "
+labels:
+  - help wanted
+body:
+  - type: markdown
+    attributes:
+      value: |
+        You do not need to understand the whole repository. Describe the smallest useful contribution you want to make. Do not include secrets, vulnerability details, private data or unpublished experimental data.
+
+  - type: dropdown
+    id: profile
+    attributes:
+      label: Contribution profile
+      options:
+        - Scientific Python
+        - Data contracts, semantics or provenance
+        - .NET platform or distributed operations
+        - Rust/WASM or visualization
+        - Hardware integration
+        - Documentation or CI
+        - Independent scientific review
+        - Not sure yet
+    validations:
+      required: true
+
+  - type: dropdown
+    id: experience
+    attributes:
+      label: Experience with this repository
+      options:
+        - First contribution
+        - Some familiarity
+        - Experienced contributor or reviewer
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: interests
+    attributes:
+      label: Work that interests you
+      options:
+        - label: Tests or synthetic adversarial cases
+        - label: Documentation or examples
+        - label: CI, packaging or releases
+        - label: Visualization
+        - label: Ontology, JSON-LD or SHACL
+        - label: Hardware or control plane
+        - label: Scientific or statistical review
+
+  - type: dropdown
+    id: time
+    attributes:
+      label: Approximate time available
+      options:
+        - 1-2 hours
+        - Half a day
+        - One or two days
+        - Recurring contribution
+        - Review only
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: environment
+    attributes:
+      label: Environment already available
+      options:
+        - label: Python 3.10+
+        - label: Docker
+        - label: .NET 10
+        - label: Rust and wasm32 target
+        - label: Laboratory or hardware access
+        - label: None yet
+
+  - type: textarea
+    id: blocker
+    attributes:
+      label: Current blocker or question
+      description: Explain whether you are blocked by setup, architecture, task selection, validation or scientific scope.
+      placeholder: I can run Python tests, but I do not know which issue is appropriate for a first contribution.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed_scope
+    attributes:
+      label: Proposed bounded outcome
+      description: Optional. Describe one result that could fit in a coherent pull request or focused review.
+      placeholder: Add one invalid SHACL fixture and document the resulting diagnostic.
+
+  - type: checkboxes
+    id: acknowledgement
+    attributes:
+      label: Acknowledgements
+      options:
+        - label: I have read ONBOARDING.md and the Code of Conduct.
+          required: true
+        - label: I understand that CI success does not establish experimental truth.
+          required: true
