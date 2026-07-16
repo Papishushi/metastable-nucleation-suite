@@ -66,8 +66,42 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.release.outputs.tag }}
         run: |
+          set -euo pipefail
+
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "Release $TAG already exists; nothing to publish"
+            exit 0
+          fi
+
+          active_run="$(
+            gh run list \
+              --repo "$GITHUB_REPOSITORY" \
+              --workflow release.yml \
+              --limit 100 \
+              --json databaseId,event,headBranch,status,url \
+            | jq -r --arg tag "$TAG" '
+                first(
+                  .[]
+                  | select(
+                      .headBranch == $tag
+                      and (.event == "workflow_dispatch" or .event == "push")
+                      and (
+                        .status == "queued"
+                        or .status == "in_progress"
+                        or .status == "waiting"
+                        or .status == "pending"
+                        or .status == "requested"
+                      )
+                    )
+                  | "\(.databaseId)\t\(.status)\t\(.url)"
+                ) // empty
+              '
+          )"
+
+          if [[ -n "$active_run" ]]; then
+            IFS=$'\t' read -r run_id run_status run_url <<< "$active_run"
+            echo "Release workflow for $TAG is already $run_status (run $run_id); not dispatching a duplicate"
+            echo "Existing run: $run_url"
             exit 0
           fi
 
