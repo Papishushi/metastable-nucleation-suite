@@ -16,7 +16,7 @@ RUN if [ -n "$VERSION" ]; then test "$(cat VERSION)" = "$VERSION"; fi \
       -p:PublishSingleFile=true -o /out
 
 FROM mcr.microsoft.com/dotnet/runtime-deps:10.0-noble-chiseled AS runtime
-ARG VERSION=0.0.0-dev
+ARG VERSION=0.3.0-dev
 ARG REVISION=unknown
 LABEL org.opencontainers.image.title="Metastable Control Plane" \
       org.opencontainers.image.description="Extend0-orchestrated Kestrel control plane for the Metastable Nucleation Suite" \
