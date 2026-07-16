@@ -8,12 +8,16 @@ This crate is the Rust/WASM boundary for issue #41. The first foundation provide
 - record-level provenance and scientific-integrity validation before GPU upload;
 - adapter capabilities that advertise E09 independently of generic experiment-ID syntax;
 - an explicit WebGPU-first, WebGL2-fallback `wgpu` policy;
+- deterministic E09 render state that retains scientific roles, exclusions, uncertainty and
+  record-level provenance;
+- a native/WASM-shared orbit camera and selection model for pointer and keyboard adapters;
 - native unit tests and a `wasm32-unknown-unknown` compile target.
 
 It intentionally contains no TypeScript or handwritten JavaScript application logic. CI
 rejects those files except for two exact generated `wasm-bindgen` output paths documented
-in ADR 0002. Browser bootstrap packaging and the first render pipeline follow after the
-scene boundary is accepted.
+in ADR 0002. The current #44 increment prepares validated GPU inputs and deterministic
+interaction state. Browser canvas ownership, surface configuration, shaders and the first
+visible frame remain before the draft can be marked ready for review.
 
 ```bash
 cargo fmt --check

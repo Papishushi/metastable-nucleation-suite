@@ -9,6 +9,11 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 
+use crate::render::{
+    LinePattern, ProvenanceRef, RenderAxis, RenderCoordinates, RenderEntity, RenderHandedness,
+    RenderLayer, RenderScene, RenderTransition, RenderUncertainty, VisualRole,
+};
+
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Scene {
@@ -54,6 +59,140 @@ impl ValidatedScene {
     pub fn transition_count(&self) -> usize {
         self.scene.transitions.len()
     }
+
+    /// Build deterministic render state without exposing unvalidated scene internals.
+    #[must_use]
+    pub fn render_scene(&self) -> RenderScene {
+        let layers = self
+            .scene
+            .layers
+            .iter()
+            .map(|layer| RenderLayer {
+                id: layer.id.clone(),
+                label: layer.label.clone(),
+                role: layer.scientific_role.into(),
+                visible_by_default: layer.visible_by_default,
+            })
+            .collect();
+        let layer_roles: HashMap<&str, ScientificRole> = self
+            .scene
+            .layers
+            .iter()
+            .map(|layer| (layer.id.as_str(), layer.scientific_role))
+            .collect();
+        let entities = self
+            .scene
+            .entities
+            .iter()
+            .map(|entity| RenderEntity {
+                id: entity.id.clone(),
+                layer_id: entity.layer_id.clone(),
+                label: entity.label.clone(),
+                position: entity.position,
+                role: layer_roles[entity.layer_id.as_str()].into(),
+                provenance: render_provenance(&entity.source_refs),
+                uncertainty: entity.uncertainty.as_ref().map(RenderUncertainty::from),
+            })
+            .collect::<Vec<_>>();
+        let entity_indices = entities
+            .iter()
+            .enumerate()
+            .map(|(index, entity)| (entity.id.as_str(), index))
+            .collect::<HashMap<_, _>>();
+        let transitions = self
+            .scene
+            .transitions
+            .iter()
+            .map(|transition| RenderTransition {
+                id: transition.id.clone(),
+                layer_id: transition.layer_id.clone(),
+                from_entity: entity_indices[transition.from_entity_id.as_str()],
+                to_entity: entity_indices[transition.to_entity_id.as_str()],
+                observation_role: transition.observation_role.into(),
+                geometry_role: transition.geometry_mapping.scientific_role.into(),
+                valid: transition.valid,
+                line_pattern: if transition.valid {
+                    LinePattern::Solid
+                } else {
+                    LinePattern::Dashed
+                },
+                exclusion_reasons: transition.exclusion_reasons.clone(),
+                provenance: render_provenance(&transition.source_refs),
+                geometry_provenance: render_provenance(&transition.geometry_mapping.source_refs),
+                uncertainty: transition.uncertainty.as_ref().map(RenderUncertainty::from),
+            })
+            .collect();
+        drop(entity_indices);
+        let coordinate = &self.scene.coordinate_system;
+
+        RenderScene {
+            scene_id: self.scene.id.clone(),
+            coordinates: RenderCoordinates {
+                frame_id: coordinate.frame_id.clone(),
+                handedness: coordinate.handedness.into(),
+                abstract_space: coordinate.abstract_space,
+                warning: coordinate.origin_description.clone(),
+                axes: [
+                    render_axis(&coordinate.axes.x),
+                    render_axis(&coordinate.axes.y),
+                    render_axis(&coordinate.axes.z),
+                ],
+            },
+            layers,
+            entities,
+            transitions,
+        }
+    }
+}
+
+impl From<Handedness> for RenderHandedness {
+    fn from(handedness: Handedness) -> Self {
+        match handedness {
+            Handedness::Right => Self::Right,
+            Handedness::Left => Self::Left,
+        }
+    }
+}
+
+impl From<ScientificRole> for VisualRole {
+    fn from(role: ScientificRole) -> Self {
+        match role {
+            ScientificRole::Measured => Self::Measured,
+            ScientificRole::Derived => Self::Derived,
+            ScientificRole::Inferred => Self::Inferred,
+            ScientificRole::Illustrative => Self::Illustrative,
+        }
+    }
+}
+
+impl From<&Uncertainty> for RenderUncertainty {
+    fn from(uncertainty: &Uncertainty) -> Self {
+        Self {
+            standard_deviation: uncertainty.standard_deviation,
+            confidence_level: uncertainty.confidence_level,
+        }
+    }
+}
+
+fn render_axis(axis: &Axis) -> RenderAxis {
+    RenderAxis {
+        label: axis.label.clone(),
+        unit: axis.unit.clone(),
+    }
+}
+
+fn render_provenance(references: &[SourceReference]) -> Vec<ProvenanceRef> {
+    references
+        .iter()
+        .map(|reference| ProvenanceRef {
+            artifact_id: reference.artifact_id.clone(),
+            run_id: reference.run_id.clone(),
+            record_id: reference.record_id.clone(),
+            event_id: reference.event_id.clone(),
+            partition: reference.partition.clone(),
+            row_group: reference.row_group,
+        })
+        .collect()
 }
 
 #[derive(Clone, Copy, Debug, Deserialize)]
@@ -81,7 +220,7 @@ enum CoordinateKind {
     Cartesian3d,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
 #[serde(rename_all = "snake_case")]
 enum Handedness {
     Right,
@@ -850,6 +989,129 @@ mod tests {
         assert_eq!(scene.experiment_id(), "E09");
         assert_eq!(scene.entity_count(), 4);
         assert_eq!(scene.transition_count(), 3);
+    }
+
+    #[test]
+    fn builds_e09_render_state_with_scientific_cues_and_provenance() {
+        let scene = parse_and_validate(E09_FIXTURE).expect("reference scene must be valid");
+        let render = scene.render_scene();
+
+        assert_eq!(render.entities.len(), 4);
+        assert_eq!(render.transitions.len(), 3);
+        assert!(render.coordinates.abstract_space);
+        assert!(
+            render
+                .coordinates
+                .warning
+                .contains("not measured physical geometry")
+        );
+        assert!(
+            render
+                .entities
+                .iter()
+                .all(|entity| entity.role == VisualRole::Derived)
+        );
+
+        let invalid = render
+            .transitions
+            .iter()
+            .find(|transition| !transition.valid)
+            .expect("fixture must retain its excluded transition");
+        assert_eq!(invalid.line_pattern, LinePattern::Dashed);
+        assert_eq!(
+            invalid.exclusion_reasons,
+            vec!["missing_peer_event".to_owned()]
+        );
+        assert_eq!(invalid.observation_role, VisualRole::Measured);
+        assert_eq!(invalid.geometry_role, VisualRole::Derived);
+        assert_eq!(invalid.provenance[0].artifact_id, "event-node-b-000043");
+        assert_eq!(invalid.geometry_provenance[0].artifact_id, "completed-abox");
+        assert_eq!(
+            invalid.geometry_provenance[0].record_id,
+            "e09-abstract-layout-v1"
+        );
+    }
+
+    #[test]
+    fn selection_resolves_to_the_source_record() {
+        let scene = parse_and_validate(E09_FIXTURE).expect("reference scene must be valid");
+        let render = scene.render_scene();
+        let selected = render
+            .selection(&crate::RenderSelectionId::Transition(
+                "trial-000043-node-b-invalid".to_owned(),
+            ))
+            .expect("transition must be selectable");
+
+        assert!(!selected.valid);
+        assert_eq!(
+            selected.exclusion_reasons,
+            vec!["missing_peer_event".to_owned()]
+        );
+        assert_eq!(selected.provenance[0].run_id, "reference-seed-7");
+        assert_eq!(
+            selected.provenance[0].record_id,
+            "e09-reference-trial-000043-node-b"
+        );
+        assert_eq!(
+            selected.geometry_provenance[0].artifact_id,
+            "completed-abox"
+        );
+        assert_eq!(
+            selected.geometry_provenance[0].record_id,
+            "e09-abstract-layout-v1"
+        );
+    }
+
+    #[test]
+    fn preserves_hidden_layer_membership_in_render_state() {
+        let mut changed: serde_json::Value =
+            serde_json::from_str(E09_FIXTURE).expect("fixture must parse");
+        changed["layers"][0]["visible_by_default"] = false.into();
+        changed["layers"][1]["visible_by_default"] = false.into();
+
+        let scene = parse_and_validate(&changed.to_string()).expect("hidden layers must be valid");
+        let render = scene.render_scene();
+
+        let state_layer = render
+            .layers
+            .iter()
+            .find(|layer| layer.id == "state-space")
+            .expect("state layer must be retained");
+        let transition_layer = render
+            .layers
+            .iter()
+            .find(|layer| layer.id == "event-geometry")
+            .expect("transition layer must be retained");
+
+        assert!(!state_layer.visible_by_default);
+        assert!(!transition_layer.visible_by_default);
+        assert!(
+            render
+                .entities
+                .iter()
+                .all(|entity| entity.layer_id == "state-space")
+        );
+        assert!(
+            render
+                .transitions
+                .iter()
+                .all(|transition| transition.layer_id == "event-geometry")
+        );
+    }
+
+    #[test]
+    fn preserves_coordinate_handedness_in_render_state() {
+        let mut changed: serde_json::Value =
+            serde_json::from_str(E09_FIXTURE).expect("fixture must parse");
+        changed["coordinate_system"]["handedness"] = "left".into();
+
+        let scene =
+            parse_and_validate(&changed.to_string()).expect("left-handed scene must be valid");
+
+        assert_eq!(
+            scene.render_scene().coordinates.handedness,
+            RenderHandedness::Left
+        );
     }
 
     #[test]
