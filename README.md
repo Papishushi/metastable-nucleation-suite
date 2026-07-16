@@ -1,6 +1,7 @@
 # Metastable Nucleation Suite
 
 [![Release](https://img.shields.io/github/v/release/Papishushi/metastable-nucleation-suite)](https://github.com/Papishushi/metastable-nucleation-suite/releases)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21387011.svg)](https://doi.org/10.5281/zenodo.21387011)
 [![CI](https://github.com/Papishushi/metastable-nucleation-suite/actions/workflows/ci.yml/badge.svg)](https://github.com/Papishushi/metastable-nucleation-suite/actions/workflows/ci.yml)
 [![References](https://github.com/Papishushi/metastable-nucleation-suite/actions/workflows/references.yml/badge.svg)](https://github.com/Papishushi/metastable-nucleation-suite/actions/workflows/references.yml)
 [![License: MIT](https://img.shields.io/badge/code-MIT-blue.svg)](LICENSE)
@@ -77,13 +78,14 @@ TCP no requiere dependencias adicionales.
 
 ## Citación, archivado y preprints
 
+- [Zenodo DOI `10.5281/zenodo.21387011`](https://doi.org/10.5281/zenodo.21387011) es el identificador persistente actualmente disponible para el registro archivado de MNS.
 - [`CITATION.cff`](CITATION.cff) es la fuente canónica de metadatos de citación y de ingestión de releases en Zenodo.
-- [#104](https://github.com/Papishushi/metastable-nucleation-suite/issues/104) sigue la activación de Zenodo, el primer DOI de versión y el DOI conceptual del proyecto.
+- [#104](https://github.com/Papishushi/metastable-nucleation-suite/issues/104) sigue la verificación del tipo de registro, los DOI complementarios y los enlaces cruzados de Zenodo.
 - [#105](https://github.com/Papishushi/metastable-nucleation-suite/issues/105) sigue el manuscrito reproducible y la entrega manual del preprint a arXiv.
 - [El workflow Zenodo/arXiv](docs/20_zenodo_arxiv_archiving_workflow.md) define identificadores, higiene de fuentes y enlaces cruzados.
 - [#103](https://github.com/Papishushi/metastable-nucleation-suite/issues/103) coordina archivado, preprint, software paper y difusión.
 
-Los badges y enlaces DOI/arXiv se añadirán únicamente cuando existan identificadores reales. Un DOI o un identificador arXiv hace citable un artefacto; no demuestra una hipótesis física ni sustituye revisión por pares o replicación.
+El DOI anterior hace citable el registro archivado asociado. Su clasificación como DOI de versión o DOI conceptual, y cualquier DOI complementario, se documentarán en #104 después de verificar los metadatos del registro. Un DOI o un identificador arXiv no demuestra una hipótesis física ni sustituye revisión por pares o replicación.
 
 ## Contribuir o revisar sin aprender todo el repositorio
 
