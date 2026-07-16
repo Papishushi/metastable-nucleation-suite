@@ -110,7 +110,7 @@ Stars and forks are discovery signals, not evidence of scientific or community m
 
 ### English
 
-> MNS is an open platform for executable protocols, data contracts, semantic provenance and reproducible execution around metastability and nucleation research. Releases are archived for persistent citation, and the software/methods manuscript will be published as an openly reviewable preprint. We are looking for focused reviewers and contributors in scientific Python, semantics, .NET, Rust/WASM, experimental design, materials and statistics. Critical reviews and technically supported no-go conclusions are welcome.
+> MNS is an open platform for executable protocols, data contracts, semantic provenance and reproducible execution around metastability and nucleation research. Releases will be archived for persistent citation once the Zenodo repository gate is complete, and the software/methods manuscript will be published as an openly reviewable preprint. We are looking for focused reviewers and contributors in scientific Python, semantics, .NET, Rust/WASM, experimental design, materials and statistics. Critical reviews and technically supported no-go conclusions are welcome.
 
 ### Español
 
