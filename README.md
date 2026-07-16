@@ -1,6 +1,7 @@
 # Metastable Nucleation Suite
 
 [![Release](https://img.shields.io/github/v/release/Papishushi/metastable-nucleation-suite)](https://github.com/Papishushi/metastable-nucleation-suite/releases)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21387010.svg)](https://doi.org/10.5281/zenodo.21387010)
 [![CI](https://github.com/Papishushi/metastable-nucleation-suite/actions/workflows/ci.yml/badge.svg)](https://github.com/Papishushi/metastable-nucleation-suite/actions/workflows/ci.yml)
 [![References](https://github.com/Papishushi/metastable-nucleation-suite/actions/workflows/references.yml/badge.svg)](https://github.com/Papishushi/metastable-nucleation-suite/actions/workflows/references.yml)
 [![License: MIT](https://img.shields.io/badge/code-MIT-blue.svg)](LICENSE)
@@ -77,13 +78,15 @@ TCP no requiere dependencias adicionales.
 
 ## Citación, archivado y preprints
 
-- [`CITATION.cff`](CITATION.cff) es la fuente canónica de metadatos de citación y de ingestión de releases en Zenodo.
-- [#104](https://github.com/Papishushi/metastable-nucleation-suite/issues/104) sigue la activación de Zenodo, el primer DOI de versión y el DOI conceptual del proyecto.
+- [DOI conceptual `10.5281/zenodo.21387010`](https://doi.org/10.5281/zenodo.21387010): representa todas las versiones de MNS y resuelve siempre a la versión más reciente. Utilízalo para citar el proyecto en general.
+- [DOI de versión `10.5281/zenodo.21387011`](https://doi.org/10.5281/zenodo.21387011): identifica de forma inmutable la release `v0.4.0`. Utilízalo cuando la reproducibilidad dependa exactamente de esa versión.
+- [`CITATION.cff`](CITATION.cff) describe la release actual y conserva su DOI de versión exacto.
+- [#104](https://github.com/Papishushi/metastable-nucleation-suite/issues/104) sigue la integración de Zenodo y la propagación de sus identificadores.
 - [#105](https://github.com/Papishushi/metastable-nucleation-suite/issues/105) sigue el manuscrito reproducible y la entrega manual del preprint a arXiv.
 - [El workflow Zenodo/arXiv](docs/20_zenodo_arxiv_archiving_workflow.md) define identificadores, higiene de fuentes y enlaces cruzados.
 - [#103](https://github.com/Papishushi/metastable-nucleation-suite/issues/103) coordina archivado, preprint, software paper y difusión.
 
-Los badges y enlaces DOI/arXiv se añadirán únicamente cuando existan identificadores reales. Un DOI o un identificador arXiv hace citable un artefacto; no demuestra una hipótesis física ni sustituye revisión por pares o replicación.
+El DOI conceptual es estable entre releases; el DOI de versión conserva la trazabilidad exacta de `v0.4.0`. Ninguno de los dos demuestra una hipótesis física ni sustituye revisión por pares o replicación.
 
 ## Contribuir o revisar sin aprender todo el repositorio
 
