@@ -19,6 +19,6 @@ keywords:
   - scientific workflows
 repository-code: https://github.com/Papishushi/metastable-nucleation-suite
 url: https://github.com/Papishushi/metastable-nucleation-suite
-version: 0.3.0
-date-released: 2026-07-15
+version: 0.4.0
+date-released: 2026-07-16
 license: MIT
