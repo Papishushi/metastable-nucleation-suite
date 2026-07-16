@@ -75,6 +75,18 @@ pip install -e .[hardware]
 
 TCP no requiere dependencias adicionales.
 
+## Contribuir o revisar sin aprender todo el repositorio
+
+- [ONBOARDING.md](ONBOARDING.md): ruta de 30 minutos y carriles por perfil.
+- [Mapa de arquitectura y contribución](docs/18_architecture_and_contribution_map.md): qué capa modifica cada tipo de cambio.
+- [CONTRIBUTING.md](CONTRIBUTING.md): PBIs, criterios científicos y validación de PRs.
+- [REVIEWING.md](REVIEWING.md): revisión crítica focalizada, incluida una conclusión no-go.
+- [Issue #93](https://github.com/Papishushi/metastable-nucleation-suite/issues/93): preguntas de instalación y asignación de una primera tarea acotada.
+- [Issue #74](https://github.com/Papishushi/metastable-nucleation-suite/issues/74): llamada a revisores científicos y técnicos independientes.
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) y [SECURITY.md](SECURITY.md): convivencia y reporte privado de vulnerabilidades.
+
+No es necesario dominar Python, .NET, Rust, semántica y hardware a la vez. Elige una frontera concreta, enlaza una issue y valida únicamente las capas afectadas sin debilitar `make check`.
+
 ## Flujo científico reproducible
 
 ### Ejecutar un plan ontológico
@@ -157,6 +169,7 @@ La API Kestrel queda disponible en `http://127.0.0.1:8080`. Su contrato, recuper
 - [docs/09_fuentes_por_experimento.md](docs/09_fuentes_por_experimento.md): trazabilidad a literatura primaria.
 - [docs/10_plantilla_preregistro.md](docs/10_plantilla_preregistro.md): plantilla confirmatoria.
 - [docs/12_matriz_de_fallos_y_lagunas.md](docs/12_matriz_de_fallos_y_lagunas.md): amenazas y falsos positivos.
+- [docs/19_community_outreach_and_publication_plan.md](docs/19_community_outreach_and_publication_plan.md): captación, revisión y publicación de software.
 
 ### Datos, semántica y ejecución
 
@@ -168,6 +181,7 @@ La API Kestrel queda disponible en `http://127.0.0.1:8080`. Su contrato, recuper
 - [docs/14_motor_ejecucion_hardware_y_potencia.md](docs/14_motor_ejecucion_hardware_y_potencia.md).
 - [docs/15_adaptadores_hardware.md](docs/15_adaptadores_hardware.md).
 - [docs/17_control_plane.md](docs/17_control_plane.md).
+- [docs/18_architecture_and_contribution_map.md](docs/18_architecture_and_contribution_map.md).
 
 ### Implementación
 
@@ -216,4 +230,4 @@ Código bajo MIT. Documentación bajo CC BY 4.0; véase [LICENSE](LICENSE) y [LI
 
 ## Contribuciones
 
-Las propuestas nuevas deben declarar hipótesis, predicción nula, controles, confundidores, criterio de escalado, evidencia requerida y fuentes primarias. GitHub incluye plantillas para propuestas experimentales y fallos reproducibles.
+Las propuestas nuevas deben declarar hipótesis, predicción nula, controles, confundidores, criterio de escalado, evidencia requerida y fuentes primarias. GitHub incluye plantillas para propuestas experimentales, PBIs, onboarding y fallos reproducibles.
