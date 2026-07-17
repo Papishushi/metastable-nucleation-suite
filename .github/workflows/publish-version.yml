@@ -73,17 +73,19 @@ jobs:
             exit 0
           fi
 
+          tag_commit="$(git rev-list -n 1 "$TAG")"
           active_run="$(
             gh run list \
               --repo "$GITHUB_REPOSITORY" \
               --workflow release.yml \
               --limit 100 \
-              --json databaseId,event,headBranch,status,url \
-            | jq -r --arg tag "$TAG" '
+              --json databaseId,event,headBranch,headSha,status,url \
+            | jq -r --arg tag "$TAG" --arg commit "$tag_commit" '
                 first(
                   .[]
                   | select(
                       .headBranch == $tag
+                      and .headSha == $commit
                       and (.event == "workflow_dispatch" or .event == "push")
                       and (
                         .status == "queued"
@@ -100,9 +102,15 @@ jobs:
 
           if [[ -n "$active_run" ]]; then
             IFS=$'\t' read -r run_id run_status run_url <<< "$active_run"
-            echo "Release workflow for $TAG is already $run_status (run $run_id); not dispatching a duplicate"
+            echo "Release workflow for $TAG at $tag_commit is already $run_status (run $run_id); not dispatching a duplicate"
             echo "Existing run: $run_url"
             exit 0
+          fi
+
+          if [[ "$tag_commit" != "$GITHUB_SHA" ]]; then
+            echo "::error::Tag $TAG points to $tag_commit, but no release or active release run exists and the current commit is $GITHUB_SHA"
+            echo "::error::Refusing to publish recovery artifacts from an unverified older revision"
+            exit 1
           fi
 
           for attempt in 1 2 3 4 5; do
