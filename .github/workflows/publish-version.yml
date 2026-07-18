@@ -74,30 +74,28 @@ jobs:
           fi
 
           tag_commit="$(git rev-list -n 1 "$TAG")"
-          active_run="$(
+          matching_runs="$(
             gh run list \
               --repo "$GITHUB_REPOSITORY" \
               --workflow release.yml \
+              --branch "$TAG" \
               --limit 100 \
-              --json databaseId,event,headBranch,headSha,status,url \
-            | jq -r --arg tag "$TAG" --arg commit "$tag_commit" '
-                first(
-                  .[]
-                  | select(
-                      .headBranch == $tag
-                      and .headSha == $commit
-                      and (.event == "workflow_dispatch" or .event == "push")
-                      and (
-                        .status == "queued"
-                        or .status == "in_progress"
-                        or .status == "waiting"
-                        or .status == "pending"
-                        or .status == "requested"
-                      )
-                    )
-                  | "\(.databaseId)\t\(.status)\t\(.url)"
-                ) // empty
-              '
+              --json databaseId,event,headBranch,headSha,status,conclusion,url
+          )"
+
+          active_run="$(
+            jq -r --arg tag "$TAG" --arg commit "$tag_commit" '
+              first(
+                .[]
+                | select(
+                    .headBranch == $tag
+                    and .headSha == $commit
+                    and (.event == "workflow_dispatch" or .event == "push")
+                    and .status != "completed"
+                  )
+                | "\(.databaseId)\t\(.status)\t\(.url)"
+              ) // empty
+            ' <<< "$matching_runs"
           )"
 
           if [[ -n "$active_run" ]]; then
@@ -107,10 +105,31 @@ jobs:
             exit 0
           fi
 
-          if [[ "$tag_commit" != "$GITHUB_SHA" ]]; then
-            echo "::error::Tag $TAG points to $tag_commit, but no release or active release run exists and the current commit is $GITHUB_SHA"
-            echo "::error::Refusing to publish recovery artifacts from an unverified older revision"
+          previous_run="$(
+            jq -r --arg tag "$TAG" --arg commit "$tag_commit" '
+              first(
+                .[]
+                | select(
+                    .headBranch == $tag
+                    and .headSha == $commit
+                    and (.event == "workflow_dispatch" or .event == "push")
+                    and .status == "completed"
+                  )
+                | "\(.databaseId)\t\(.conclusion // \"unknown\")\t\(.url)"
+              ) // empty
+            ' <<< "$matching_runs"
+          )"
+
+          if [[ "$tag_commit" != "$GITHUB_SHA" && -z "$previous_run" ]]; then
+            echo "::error::Tag $TAG points to $tag_commit, but no release or prior release workflow run exists for that exact commit"
+            echo "::error::Refusing to publish recovery artifacts from an unverified tag"
             exit 1
+          fi
+
+          if [[ -n "$previous_run" ]]; then
+            IFS=$'\t' read -r previous_id previous_conclusion previous_url <<< "$previous_run"
+            echo "Verified prior release attempt for $TAG at $tag_commit: run $previous_id concluded $previous_conclusion"
+            echo "Prior run: $previous_url"
           fi
 
           for attempt in 1 2 3 4 5; do
