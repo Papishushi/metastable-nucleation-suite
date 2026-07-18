@@ -115,7 +115,8 @@ jobs:
                     and (.event == "workflow_dispatch" or .event == "push")
                     and .status == "completed"
                   )
-                | "\(.databaseId)\t\(.conclusion // \"unknown\")\t\(.url)"
+                | (.conclusion // "unknown") as $conclusion
+                | "\(.databaseId)\t\($conclusion)\t\(.url)"
               ) // empty
             ' <<< "$matching_runs"
           )"
