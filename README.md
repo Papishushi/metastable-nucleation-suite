@@ -1,62 +1,65 @@
 # Metastable Nucleation Suite
 
+[![Release](https://img.shields.io/github/v/release/Papishushi/metastable-nucleation-suite)](https://github.com/Papishushi/metastable-nucleation-suite/releases)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21387010.svg)](https://doi.org/10.5281/zenodo.21387010)
 [![CI](https://github.com/Papishushi/metastable-nucleation-suite/actions/workflows/ci.yml/badge.svg)](https://github.com/Papishushi/metastable-nucleation-suite/actions/workflows/ci.yml)
+[![References](https://github.com/Papishushi/metastable-nucleation-suite/actions/workflows/references.yml/badge.svg)](https://github.com/Papishushi/metastable-nucleation-suite/actions/workflows/references.yml)
 [![License: MIT](https://img.shields.io/badge/code-MIT-blue.svg)](LICENSE)
 [![Docs: CC BY 4.0](https://img.shields.io/badge/docs-CC%20BY%204.0-lightgrey.svg)](LICENSE-DOCS)
+[![Scientific review requested](https://img.shields.io/badge/scientific%20review-requested-orange.svg)](https://github.com/Papishushi/metastable-nucleation-suite/issues/74)
 
-Suite abierta de protocolos, modelos de referencia y diseño experimental para estudiar **nucleación, metaestabilidad, selección de polimorfos, contaminación por semillas, variables ambientales latentes, retroacción de medida y posibles correlaciones no locales**.
+**Metastable Nucleation Suite (MNS)** es una plataforma abierta de protocolos, contratos de datos, modelos de referencia y ejecución reproducible para investigar nucleación, metaestabilidad y selección de estados físicos.
 
-El repositorio separa explícitamente tres cosas que suelen mezclarse:
+El repositorio combina diseño experimental, estadística adversarial, procedencia semántica, integración de hardware, visualización científica y operación distribuida. Su objetivo no es convertir una hipótesis en cierta mediante software, sino hacer explícito qué se ha observado, qué se ha inferido, qué se ha simulado y qué tendría que ocurrir para aceptar o descartar una afirmación.
 
-1. **Fenómenos establecidos:** nucleación estocástica, barreras de energía libre, nucleación heterogénea, siembra, polimorfismo, decoherencia y correlaciones de Bell en sistemas preparados.
-2. **Hipótesis plausibles pero no demostradas:** variables ambientales conocidas combinadas no linealmente, perturbaciones físicas compartidas o sensibilidad extrema de la nucleación a microcondiciones no registradas.
-3. **Hipótesis extraordinarias:** correlaciones Bell-no-locales espontáneas entre sistemas preparados independientemente, violación de no señalización o acoplamientos no descritos por la física estándar.
+> **Posición científica:** MNS no afirma haber demostrado no localidad espontánea, una arquitectura computacional superior ni un dispositivo Nucleation-Encoded Chalcogenide Ensemble. Las hipótesis extraordinarias permanecen separadas de los resultados establecidos y de las simulaciones.
 
-> **Posición científica de partida:** la física conocida predice que dos sistemas independientes, sin entrelazamiento ni canal causal compartido, no violarán Bell y no permitirán señalización superlumínica. Una coincidencia temporal o una correlación residual no basta para demostrar no localidad.
+## Programas científicos
 
-## Qué contiene
+La arquitectura general de MNS se organiza en dos programas coiguales:
 
-- `INSTALL.md`: instalación y verificación de releases sin clonar el repositorio.
-- `docs/01_marco_cientifico.md`: términos, supuestos y límites.
-- `docs/02_matriz_hipotesis.md`: hipótesis ordenadas desde química ordinaria hasta nueva física.
-- `docs/03_suite_experimentos.md`: desarrollo científico de los 15 experimentos.
-- `docs/04_laboratorio_metaestados_opticos.md`: diseño conceptual del laboratorio óptico distribuido.
-- `docs/05_estadistica_y_falsacion.md`: análisis preregistrado, Bell, no señalización y control de multiplicidad.
-- `docs/06_hoja_de_ruta.md`: fases de implementación y criterios go/no-go.
-- `docs/07_seguridad_y_limites.md`: seguridad láser, criogenia, vacío y límites epistemológicos.
-- `docs/09_fuentes_por_experimento.md`: trazabilidad de cada protocolo a literatura primaria.
-- `docs/10_plantilla_preregistro.md`: preregistro para análisis confirmatorios.
-- `docs/11_contrato_de_datos.md`: formato común de eventos, tiempos, flags y metrología.
-- `docs/12_matriz_de_fallos_y_lagunas.md`: amenazas experimentales, falsos positivos y mitigaciones.
-- `docs/13_ontologia_semantica.md`: arquitectura TBox/ABox, validación SHACL y uso por agentes.
-- `docs/14_motor_ejecucion_hardware_y_potencia.md`: ejecución semántica, adaptadores y potencia Monte Carlo.
-- `docs/15_adaptadores_hardware.md`: protocolo y configuración de Serial, TCP y VISA.
-- `docs/17_control_plane.md`: API Kestrel, orquestación Extend0, MetaDB y recuperación.
-- `references.bib`: bibliografía primaria y revisiones verificables por DOI.
-- `experiments/catalog.yaml`: índice resumido legible por máquina.
-- `experiments/specifications.yaml`: especificaciones ejecutables de E01–E15, con hipótesis nula, controles, exclusiones, parada y análisis.
-- `experiments/specifications.schema.json`: contrato formal de las especificaciones.
-- `ontology/tbox.ttl`: ontología OWL del dominio científico.
-- `ontology/execution-extension.ttl`: campañas, backends, datasets y análisis de potencia.
-- `ontology/abox-shapes.ttl`: contrato SHACL base.
-- `ontology/execution-shapes.ttl`: shapes para planes, ejecuciones, datasets y campañas.
-- `ontology/abox.schema.json`: JSON Schema para documentos ABox en JSON-LD.
-- `ontology/context.jsonld`: contexto JSON-LD reutilizable.
-- `ontology/queries/`: biblioteca de consultas SPARQL para humanos y agentes.
-- `schemas/event.schema.json`: contrato de datos evento a evento.
-- `contracts/v1/visualization-scene.schema.json`: proyección 3D versionada con coordenadas, capas científicas y procedencia explícitas.
-- `contracts/v1/control-plane-run.schema.json`: estados y transiciones durables de la API operacional.
-- `visualizer/`: núcleo Rust/WASM WebGPU con fallback WebGL2, sin lógica de aplicación JavaScript o TypeScript.
-- `src/metastable_suite/hardware.py`: interfaz común de backends físicos y simulados.
-- `src/metastable_suite/transports.py`: transportes JSON Serial, TCP y VISA.
-- `src/metastable_suite/hardware_adapters.py`: backends concretos sobre cada transporte.
-- `src/metastable_suite/execution.py`: motor de ejecución semántico.
-- `src/metastable_suite/monte_carlo_power.py`: potencia empírica mediante simulación.
-- `scripts/semantic_execute.py`: ejecución de ABoxes `Planned`.
-- `scripts/monte_carlo_power.py`: CLI de potencia Monte Carlo.
-- `tests/`: pruebas matemáticas, estadísticas, bibliográficas, adversariales, semánticas y de hardware.
+1. **Materia, nucleación y polimorfismo**: selección de fases, dominios, memoria, contaminación por semillas, ferroicos, sistemas magnéticos, iónicos, mecánicos y vítreos.
+2. **Metaestados fotónicos y física fundamental**: sistemas ópticos, electromagnéticos, polaritónicos, colectivos y fuera del equilibrio, incluidas pruebas de correlación y no señalización con controles explícitos.
 
-## Inicio rápido
+Ningún programa es una capa auxiliar del otro. La arquitectura, el **Metastate Atlas** y la investigación sobre circuitería definida por nucleación se siguen en [#63](https://github.com/Papishushi/metastable-nucleation-suite/issues/63) y [#64](https://github.com/Papishushi/metastable-nucleation-suite/issues/64).
+
+El **Nucleation-Encoded Chalcogenide Ensemble (NECE)** es una rama material específica, no otro nombre para MNS. Su definición, falsificación y programa experimental se siguen en [#50](https://github.com/Papishushi/metastable-nucleation-suite/issues/50).
+
+## Estado real del proyecto
+
+| Área | Estado |
+|---|---|
+| Protocolos E01–E15, modelos de referencia y pruebas adversariales | Implementados y verificables por software |
+| Contratos JSON/JSON-LD, ontología OWL, SHACL y procedencia | Implementados |
+| Backends simulados, Serial, TCP y VISA | Implementados |
+| Control plane Kestrel, Extend0 y MetaDB | Implementado como capa operativa opcional |
+| CLI y artefactos autocontenidos para Windows, Linux y macOS | Publicados mediante releases |
+| Imágenes OCI multi-arquitectura, SBOM y attestations | Automatizados en el pipeline de release |
+| Visualizador Rust/WASM | En desarrollo; los límites de validación y procedencia existen antes del renderizado completo |
+| Validación física Stage 1 | Pendiente; no debe confundirse con CI o simulación |
+| Arquitectura general Metastate Atlas | Borrador científico en PR [#59](https://github.com/Papishushi/metastable-nucleation-suite/pull/59) |
+| Modelos escalares y NECE | Borradores científicos en PR [#60](https://github.com/Papishushi/metastable-nucleation-suite/pull/60), [#61](https://github.com/Papishushi/metastable-nucleation-suite/pull/61) y [#62](https://github.com/Papishushi/metastable-nucleation-suite/pull/62); no forman parte de la release estable mientras sigan abiertos |
+
+Una comprobación verde significa que el código es coherente con sus contratos y tests. No equivale a observación experimental, revisión científica independiente ni replicación.
+
+## Capacidades actuales
+
+- Catálogo y especificaciones ejecutables de E01–E15.
+- Simulación de nucleación local, siembra, causa común, modelos locales de Bell, referencias cuánticas, no señalización y bifurcación óptica.
+- Escenarios adversariales con deriva compartida, memoria, modulación temporal, pérdidas dependientes del ajuste y selección problemática.
+- Planificación analítica y Monte Carlo de potencia estadística.
+- Ejecución semántica desde ABoxes `Planned` hasta artefactos `Completed` validados mediante SHACL.
+- Registro NDJSON de eventos, hashes SHA-256 y procedencia RDF/JSON-LD.
+- Adaptadores de hardware con semántica explícita de timeout, desconexión, error de protocolo y ensayo inválido.
+- Control plane distribuido opcional con estados durables, recuperación y orquestación cross-process.
+- Contrato de escena 3D que separa observaciones medidas, geometría derivada, abstracciones e incertidumbre.
+- Releases reproducibles con binarios autocontenidos, paquetes Python, imágenes OCI, SBOM, checksums y attestations.
+
+## Instalación
+
+Para utilizar una release sin clonar el repositorio, consulta [INSTALL.md](INSTALL.md) y la página de [releases](https://github.com/Papishushi/metastable-nucleation-suite/releases).
+
+Para desarrollo:
 
 ```bash
 python -m venv .venv
@@ -73,7 +76,31 @@ pip install -e .[hardware]
 
 TCP no requiere dependencias adicionales.
 
-La comprobación completa valida catálogo, especificaciones, bibliografía, ontología, ABoxes, backends, datasets, potencia y ejecución de referencia.
+## Citación, archivado y preprints
+
+- [DOI conceptual `10.5281/zenodo.21387010`](https://doi.org/10.5281/zenodo.21387010): representa todas las versiones de MNS y resuelve siempre a la versión más reciente. Utilízalo para citar el proyecto en general.
+- [DOI de versión `10.5281/zenodo.21387011`](https://doi.org/10.5281/zenodo.21387011): identifica de forma inmutable la release `v0.4.0`. Utilízalo cuando la reproducibilidad dependa exactamente de esa versión.
+- [`CITATION.cff`](CITATION.cff) describe la release actual y conserva su DOI de versión exacto.
+- [#104](https://github.com/Papishushi/metastable-nucleation-suite/issues/104) sigue la integración de Zenodo y la propagación de sus identificadores.
+- [#105](https://github.com/Papishushi/metastable-nucleation-suite/issues/105) sigue el manuscrito reproducible y la entrega manual del preprint a arXiv.
+- [El workflow Zenodo/arXiv](docs/20_zenodo_arxiv_archiving_workflow.md) define identificadores, higiene de fuentes y enlaces cruzados.
+- [#103](https://github.com/Papishushi/metastable-nucleation-suite/issues/103) coordina archivado, preprint, software paper y difusión.
+
+El DOI conceptual es estable entre releases; el DOI de versión conserva la trazabilidad exacta de `v0.4.0`. Ninguno de los dos demuestra una hipótesis física ni sustituye revisión por pares o replicación.
+
+## Contribuir o revisar sin aprender todo el repositorio
+
+- [ONBOARDING.md](ONBOARDING.md): ruta de 30 minutos y carriles por perfil.
+- [Mapa de arquitectura y contribución](docs/18_architecture_and_contribution_map.md): qué capa modifica cada tipo de cambio.
+- [CONTRIBUTING.md](CONTRIBUTING.md): PBIs, criterios científicos y validación de PRs.
+- [REVIEWING.md](REVIEWING.md): revisión crítica focalizada, incluida una conclusión no-go.
+- [Issue #93](https://github.com/Papishushi/metastable-nucleation-suite/issues/93): preguntas de instalación y asignación de una primera tarea acotada.
+- [Issue #74](https://github.com/Papishushi/metastable-nucleation-suite/issues/74): llamada a revisores científicos y técnicos independientes.
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) y [SECURITY.md](SECURITY.md): convivencia y reporte privado de vulnerabilidades.
+
+No es necesario dominar Python, .NET, Rust, semántica y hardware a la vez. Elige una frontera concreta, enlaza una issue y valida únicamente las capas afectadas sin debilitar `make check`.
+
+## Flujo científico reproducible
 
 ### Ejecutar un plan ontológico
 
@@ -83,7 +110,7 @@ python scripts/semantic_execute.py \
   artifacts/execution
 ```
 
-El motor valida la ABox `Planned`, materializa la configuración, ejecuta el backend, escribe eventos NDJSON con SHA-256 y genera una ABox `Completed` que vuelve a pasar SHACL.
+El motor valida la ABox `Planned`, materializa la configuración, ejecuta el backend, conserva eventos NDJSON y genera una ABox `Completed` que vuelve a pasar SHACL.
 
 ### Materializar un informe agregado
 
@@ -106,7 +133,12 @@ python scripts/semantic_graph.py query \
 ### Potencia analítica y Monte Carlo
 
 ```bash
-python scripts/plan_experiment.py --experiment chsh --target-s 2.4 --alpha 0.001 --power 0.90
+python scripts/plan_experiment.py \
+  --experiment chsh \
+  --target-s 2.4 \
+  --alpha 0.001 \
+  --power 0.90
+
 python scripts/monte_carlo_power.py \
   --design chsh \
   --sample-size 10000 \
@@ -118,59 +150,99 @@ python scripts/monte_carlo_power.py \
 
 La aproximación analítica sirve para órdenes de magnitud. Monte Carlo permite introducir memoria, pérdida dependiente del ajuste, multiplicidad y parámetros específicos del dispositivo.
 
-### Diagnóstico de Extend0
+## Capa operativa .NET
 
-La capa operativa .NET integra Extend0 como dependencia acotada para coordinación y metadatos operativos. La integración puede verificarse sin iniciar el worker científico:
+### Diagnóstico de Extend0
 
 ```bash
 dotnet run --project dotnet/Metastable.Platform.Cli -- extend0 doctor
 ```
 
-El comando informa de la versión cargada y construye un gestor local mediante la fachada pública `MetaDB.CreateManager()`. La versión fijada de Extend0 incluye semánticas de archivo validadas en Windows, Linux y macOS, además de smoke nativo ARM64; los esquemas persistentes y la recuperación concretos de la suite siguen definidos por el control plane. Los artefactos científicos, ABoxes y datasets continúan siendo la fuente de verdad según [ADR 0003](docs/adr/0003-extend0-operational-integration.md).
+El comando verifica la versión cargada y la creación del gestor local mediante la fachada pública de MetaDB. Los artefactos científicos, ABoxes y datasets siguen siendo la fuente de verdad; Extend0 coordina ejecución y metadatos operativos según [ADR 0003](docs/adr/0003-extend0-operational-integration.md).
 
 ### Control plane distribuido
-
-El servicio Kestrel opcional usa un único orquestador cross-process de Extend0 y dos índices MetaDB durables. Se inicia sin cambiar el flujo standalone:
 
 ```bash
 docker compose --profile distributed up --build --wait control-plane
 ```
 
-La API queda en `http://127.0.0.1:8080`; el contrato y las reglas de recuperación están en [docs/17_control_plane.md](docs/17_control_plane.md).
+La API Kestrel queda disponible en `http://127.0.0.1:8080`. Su contrato, recuperación y límites están documentados en [docs/17_control_plane.md](docs/17_control_plane.md).
 
-## Qué comprueba el software
+## Estructura del repositorio
 
-El simulador no pretende modelar un dispositivo concreto con precisión microscópica. Sirve para comprobar que la canalización estadística distingue correctamente nucleación Poisson local, sesgo por semillas, causa común clásica, modelos locales de Bell, benchmarks cuánticos, no señalización y bifurcaciones ópticas con ruido local.
+### Ciencia y protocolos
 
-La suite adversarial añade mecanismos que pueden fabricar descubrimientos aparentes: deriva compartida, modulación de reloj, memoria entre ensayos y pérdidas dependientes del ajuste. Los tests deben demostrar que esos mecanismos son detectables y que los controles reducen la señal espuria.
+- [docs/01_marco_cientifico.md](docs/01_marco_cientifico.md): términos, supuestos y límites.
+- [docs/02_matriz_hipotesis.md](docs/02_matriz_hipotesis.md): hipótesis desde química ordinaria hasta nueva física.
+- [docs/03_suite_experimentos.md](docs/03_suite_experimentos.md): desarrollo científico de E01–E15.
+- [docs/04_laboratorio_metaestados_opticos.md](docs/04_laboratorio_metaestados_opticos.md): laboratorio óptico distribuido.
+- [docs/05_estadistica_y_falsacion.md](docs/05_estadistica_y_falsacion.md): preregistro, Bell, no señalización y multiplicidad.
+- [docs/06_hoja_de_ruta.md](docs/06_hoja_de_ruta.md): fases y criterios go/no-go.
+- [docs/07_seguridad_y_limites.md](docs/07_seguridad_y_limites.md): seguridad y límites epistemológicos.
+- [docs/09_fuentes_por_experimento.md](docs/09_fuentes_por_experimento.md): trazabilidad a literatura primaria.
+- [docs/10_plantilla_preregistro.md](docs/10_plantilla_preregistro.md): plantilla confirmatoria.
+- [docs/12_matriz_de_fallos_y_lagunas.md](docs/12_matriz_de_fallos_y_lagunas.md): amenazas y falsos positivos.
+- [docs/19_community_outreach_and_publication_plan.md](docs/19_community_outreach_and_publication_plan.md): captación, revisión y publicación de software.
+- [docs/20_zenodo_arxiv_archiving_workflow.md](docs/20_zenodo_arxiv_archiving_workflow.md): DOI de releases, preprint y enlaces persistentes.
 
-Los backends físicos y simulados comparten el mismo ciclo de vida. Los fallos no se descartan silenciosamente: se conservan como ensayos inválidos con motivos de exclusión auditables. RDF representa significado y procedencia; NDJSON conserva el volumen de eventos; el manifiesto enlaza ambos mediante hash criptográfico.
+### Datos, semántica y ejecución
 
-Los transportes físicos distinguen timeout, desconexión y error de protocolo. Los fallos agotados durante un ensayo se convierten en un evento inválido con `transport_failure`; los fallos de preparación y calibración siguen siendo errores de ejecución explícitos.
+- `experiments/catalog.yaml` y `experiments/specifications.yaml`.
+- `schemas/` y `contracts/v1/`.
+- `ontology/`: TBox, shapes, contexto JSON-LD, ejemplos y consultas SPARQL.
+- [docs/11_contrato_de_datos.md](docs/11_contrato_de_datos.md).
+- [docs/13_ontologia_semantica.md](docs/13_ontologia_semantica.md).
+- [docs/14_motor_ejecucion_hardware_y_potencia.md](docs/14_motor_ejecucion_hardware_y_potencia.md).
+- [docs/15_adaptadores_hardware.md](docs/15_adaptadores_hardware.md).
+- [docs/17_control_plane.md](docs/17_control_plane.md).
+- [docs/18_architecture_and_contribution_map.md](docs/18_architecture_and_contribution_map.md).
 
-## Principio de diseño
+### Implementación
+
+- `src/metastable_suite/`: modelos, análisis y ejecución Python.
+- `dotnet/`: CLI y control plane .NET.
+- `visualizer/`: núcleo Rust/WASM WebGPU con fallback WebGL2.
+- `deploy/` y `compose.yaml`: despliegue reproducible.
+- `tests/`: pruebas matemáticas, estadísticas, bibliográficas, semánticas, de hardware y release.
+- `references.bib`: bibliografía DOI verificada por CI.
+
+## Evidencia, gates y revisión
+
+El gate de validación física sigue la dependencia de cada afirmación; no bloquea por número de experimento ni permite que una plataforma herede evidencia de otra. Véase [#66](https://github.com/Papishushi/metastable-nucleation-suite/issues/66).
+
+MNS separa origen de evidencia, protocolo, revisión, replicación y alcance de la afirmación. El trabajo para hacer esos metadatos verificables se sigue en [#70](https://github.com/Papishushi/metastable-nucleation-suite/issues/70) y [#77](https://github.com/Papishushi/metastable-nucleation-suite/issues/77).
+
+Las revisiones críticas y recomendaciones no-go son bienvenidas. Consulta [REVIEWING.md](REVIEWING.md) y la llamada abierta [#74](https://github.com/Papishushi/metastable-nucleation-suite/issues/74).
+
+## Roadmap principal
+
+- [#37](https://github.com/Papishushi/metastable-nucleation-suite/issues/37): validación física de un nodo.
+- [#41](https://github.com/Papishushi/metastable-nucleation-suite/issues/41): visualización científica 3D.
+- [#50](https://github.com/Papishushi/metastable-nucleation-suite/issues/50): programa experimental NECE.
+- [#63](https://github.com/Papishushi/metastable-nucleation-suite/issues/63): programas generales de MNS y Metastate Atlas.
+- [#72](https://github.com/Papishushi/metastable-nucleation-suite/issues/72): gobernanza y dependencias.
+- [#76](https://github.com/Papishushi/metastable-nucleation-suite/issues/76): comparación entre plataformas y arquitecturas híbridas.
+- [#103](https://github.com/Papishushi/metastable-nucleation-suite/issues/103): publicación, Zenodo, arXiv y captación de colaboradores.
+
+## Principio de escalado experimental
 
 ```mermaid
 flowchart LR
-    A[Reproducibilidad] --> B[Siembra y contaminación]
+    A[Reproducibilidad local] --> B[Siembra y contaminación]
     B --> C[Variables locales multicanal]
-    C --> D[Correlación distribuida]
-    D --> E[Amplificación de entrelazamiento preparado]
-    E --> F[Test de Bell con salida metaestable]
-    F --> G[No localidad espontánea]
+    C --> D[Validación física del componente]
+    D --> E[Acoplamiento y correlación distribuida]
+    E --> F[Pruebas Bell con estados preparados]
+    F --> G[Hipótesis extraordinarias]
     G --> H[Test de no señalización]
 ```
 
-No se salta al último peldaño porque una correlación misteriosa casi siempre resulta ser un cable, un reloj compartido, una selección posterior de datos o un sesgo del detector. La física tiene sentido del humor, pero suele ser de laboratorio: el “fenómeno cósmico” era el aire acondicionado.
+No se salta al último peldaño porque una correlación misteriosa suele ser deriva, reloj compartido, selección posterior, contaminación, cross-talk o sesgo del detector antes que nueva física.
 
-## Estado del proyecto
+## Licencias
 
-Diseño conceptual, software de referencia y motor de ejecución semántico. **No afirma que exista no localidad espontánea en la nucleación.** Define cómo intentar refutar primero las explicaciones ordinarias y qué observación sería realmente extraordinaria.
+Código bajo MIT. Documentación bajo CC BY 4.0; véase [LICENSE](LICENSE) y [LICENSE-DOCS](LICENSE-DOCS).
 
-## Licencia
+## Contribuciones
 
-Código bajo MIT. Documentación bajo CC BY 4.0; véase `LICENSE` y `LICENSE-DOCS`.
-
-## Contribuciones experimentales
-
-Las propuestas nuevas deben declarar hipótesis, predicción nula, controles, confundidores, criterio de escalado y fuentes primarias. GitHub incluye plantillas específicas para propuestas experimentales y fallos reproducibles.
+Las propuestas nuevas deben declarar hipótesis, predicción nula, controles, confundidores, criterio de escalado, evidencia requerida y fuentes primarias. GitHub incluye plantillas para propuestas experimentales, PBIs, onboarding y fallos reproducibles.

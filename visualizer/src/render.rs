@@ -1,0 +1,432 @@
+//! Deterministic render state derived exclusively from a validated scene.
+
+/// How a rendered element relates to the scientific source data.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum VisualRole {
+    Measured,
+    Derived,
+    Inferred,
+    Illustrative,
+}
+
+/// A non-colour cue applied to rendered transition geometry.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum LinePattern {
+    Solid,
+    Dashed,
+}
+
+/// Orientation of the validated coordinate system.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum RenderHandedness {
+    Right,
+    Left,
+}
+
+/// A stable reference back to one source record.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ProvenanceRef {
+    pub artifact_id: String,
+    pub run_id: String,
+    pub record_id: String,
+    pub event_id: Option<String>,
+    pub partition: Option<String>,
+    pub row_group: Option<u64>,
+}
+
+/// Uncertainty retained for inspection and later GPU encodings.
+#[derive(Clone, Debug, PartialEq)]
+pub struct RenderUncertainty {
+    pub standard_deviation: [f64; 3],
+    pub confidence_level: f64,
+}
+
+/// One validated layer and its initial presentation state.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RenderLayer {
+    pub id: String,
+    pub label: String,
+    pub role: VisualRole,
+    pub visible_by_default: bool,
+}
+
+/// One validated scene entity ready for GPU buffer construction.
+#[derive(Clone, Debug, PartialEq)]
+pub struct RenderEntity {
+    pub id: String,
+    pub layer_id: String,
+    pub label: String,
+    pub position: [f64; 3],
+    pub role: VisualRole,
+    pub provenance: Vec<ProvenanceRef>,
+    pub uncertainty: Option<RenderUncertainty>,
+}
+
+/// One validated transition ready for GPU buffer construction.
+#[derive(Clone, Debug, PartialEq)]
+pub struct RenderTransition {
+    pub id: String,
+    pub layer_id: String,
+    pub from_entity: usize,
+    pub to_entity: usize,
+    pub observation_role: VisualRole,
+    pub geometry_role: VisualRole,
+    pub valid: bool,
+    pub line_pattern: LinePattern,
+    pub exclusion_reasons: Vec<String>,
+    /// Source records for the observed transition.
+    pub provenance: Vec<ProvenanceRef>,
+    /// Source records used to derive the displayed geometry.
+    pub geometry_provenance: Vec<ProvenanceRef>,
+    pub uncertainty: Option<RenderUncertainty>,
+}
+
+/// Axis metadata that must remain visible beside abstract geometry.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RenderAxis {
+    pub label: String,
+    pub unit: String,
+}
+
+/// Coordinate metadata retained by every rendered frame.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RenderCoordinates {
+    pub frame_id: String,
+    pub handedness: RenderHandedness,
+    pub abstract_space: bool,
+    pub warning: String,
+    pub axes: [RenderAxis; 3],
+}
+
+/// Immutable, deterministic state consumed by the upcoming GPU renderer.
+#[derive(Clone, Debug, PartialEq)]
+pub struct RenderScene {
+    pub scene_id: String,
+    pub coordinates: RenderCoordinates,
+    pub layers: Vec<RenderLayer>,
+    pub entities: Vec<RenderEntity>,
+    pub transitions: Vec<RenderTransition>,
+}
+
+/// Identifier used by pointer and keyboard selection.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum RenderSelectionId {
+    Entity(String),
+    Transition(String),
+}
+
+/// Inspection data returned without exposing internal scene models.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SelectionDetails {
+    pub id: RenderSelectionId,
+    pub layer_id: String,
+    pub label: String,
+    pub valid: bool,
+    pub exclusion_reasons: Vec<String>,
+    /// Source records for the selected entity or observed transition.
+    pub provenance: Vec<ProvenanceRef>,
+    /// Source records used to derive selected transition geometry.
+    pub geometry_provenance: Vec<ProvenanceRef>,
+}
+
+impl RenderScene {
+    /// Resolve a rendered identifier to record-level provenance.
+    #[must_use]
+    pub fn selection(&self, id: &RenderSelectionId) -> Option<SelectionDetails> {
+        match id {
+            RenderSelectionId::Entity(target) => self
+                .entities
+                .iter()
+                .find(|entity| entity.id == *target)
+                .map(|entity| SelectionDetails {
+                    id: id.clone(),
+                    layer_id: entity.layer_id.clone(),
+                    label: entity.label.clone(),
+                    valid: true,
+                    exclusion_reasons: Vec::new(),
+                    provenance: entity.provenance.clone(),
+                    geometry_provenance: Vec::new(),
+                }),
+            RenderSelectionId::Transition(target) => self
+                .transitions
+                .iter()
+                .find(|transition| transition.id == *target)
+                .map(|transition| SelectionDetails {
+                    id: id.clone(),
+                    layer_id: transition.layer_id.clone(),
+                    label: transition.id.clone(),
+                    valid: transition.valid,
+                    exclusion_reasons: transition.exclusion_reasons.clone(),
+                    provenance: transition.provenance.clone(),
+                    geometry_provenance: transition.geometry_provenance.clone(),
+                }),
+        }
+    }
+}
+
+/// Camera input expressed independently of browser events.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum CameraAction {
+    Orbit { yaw_delta: f64, pitch_delta: f64 },
+    Pan { x_delta: f64, y_delta: f64 },
+    Zoom { factor: f64 },
+    Focus { position: [f64; 3] },
+    Reset,
+}
+
+/// Deterministic orbit-camera state shared by native and browser builds.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct CameraState {
+    pub target: [f64; 3],
+    pub yaw: f64,
+    pub pitch: f64,
+    pub distance: f64,
+    initial: CameraSnapshot,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct CameraSnapshot {
+    target: [f64; 3],
+    yaw: f64,
+    pitch: f64,
+    distance: f64,
+}
+
+impl CameraState {
+    const MIN_DISTANCE: f64 = 0.05;
+    const MAX_PITCH: f64 = 1.553_343_034_274_953_2;
+
+    /// Create a camera centered on the renderable entity bounds.
+    #[must_use]
+    pub fn for_scene(scene: &RenderScene) -> Self {
+        let (target, distance) = scene_bounds(scene);
+        let initial = CameraSnapshot {
+            target,
+            yaw: 0.0,
+            pitch: 0.0,
+            distance,
+        };
+        Self {
+            target,
+            yaw: initial.yaw,
+            pitch: initial.pitch,
+            distance,
+            initial,
+        }
+    }
+
+    /// Apply one normalized interaction action.
+    pub fn apply(&mut self, action: CameraAction) {
+        match action {
+            CameraAction::Orbit {
+                yaw_delta,
+                pitch_delta,
+            } => {
+                self.yaw += yaw_delta;
+                self.pitch = (self.pitch + pitch_delta).clamp(-Self::MAX_PITCH, Self::MAX_PITCH);
+            }
+            CameraAction::Pan { x_delta, y_delta } => {
+                self.target[0] += x_delta;
+                self.target[1] += y_delta;
+            }
+            CameraAction::Zoom { factor } if factor.is_finite() && factor > 0.0 => {
+                self.distance = (self.distance * factor).clamp(Self::MIN_DISTANCE, f64::MAX);
+            }
+            CameraAction::Focus { position } => self.target = position,
+            CameraAction::Reset => {
+                self.target = self.initial.target;
+                self.yaw = self.initial.yaw;
+                self.pitch = self.initial.pitch;
+                self.distance = self.initial.distance;
+            }
+            CameraAction::Zoom { .. } => {}
+        }
+    }
+}
+
+fn scene_bounds(scene: &RenderScene) -> ([f64; 3], f64) {
+    let has_visible_entities = scene
+        .entities
+        .iter()
+        .any(|entity| entity_is_visible_by_default(scene, entity));
+    let mut entities = scene
+        .entities
+        .iter()
+        .filter(|entity| !has_visible_entities || entity_is_visible_by_default(scene, entity));
+    let Some(first) = entities.next() else {
+        return ([0.0; 3], 1.0);
+    };
+    let mut minimum = first.position;
+    let mut maximum = first.position;
+    for entity in entities {
+        for (axis, value) in entity.position.iter().copied().enumerate() {
+            minimum[axis] = minimum[axis].min(value);
+            maximum[axis] = maximum[axis].max(value);
+        }
+    }
+    let target = [
+        f64::midpoint(minimum[0], maximum[0]),
+        f64::midpoint(minimum[1], maximum[1]),
+        f64::midpoint(minimum[2], maximum[2]),
+    ];
+    let half_extent =
+        |axis: usize| (maximum[axis] - target[axis]).max(target[axis] - minimum[axis]);
+    let radius = half_extent(0).hypot(half_extent(1)).hypot(half_extent(2));
+    let distance = (radius * 3.0).clamp(1.5, f64::MAX);
+    (target, distance)
+}
+
+fn entity_is_visible_by_default(scene: &RenderScene, entity: &RenderEntity) -> bool {
+    scene
+        .layers
+        .iter()
+        .any(|layer| layer.id == entity.layer_id && layer.visible_by_default)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_scene() -> RenderScene {
+        RenderScene {
+            scene_id: "test".to_owned(),
+            coordinates: RenderCoordinates {
+                frame_id: "test-frame".to_owned(),
+                handedness: RenderHandedness::Right,
+                abstract_space: true,
+                warning: "abstract".to_owned(),
+                axes: [
+                    RenderAxis {
+                        label: "x".to_owned(),
+                        unit: "1".to_owned(),
+                    },
+                    RenderAxis {
+                        label: "y".to_owned(),
+                        unit: "1".to_owned(),
+                    },
+                    RenderAxis {
+                        label: "z".to_owned(),
+                        unit: "1".to_owned(),
+                    },
+                ],
+            },
+            layers: vec![RenderLayer {
+                id: "test-layer".to_owned(),
+                label: "Test layer".to_owned(),
+                role: VisualRole::Derived,
+                visible_by_default: true,
+            }],
+            entities: vec![
+                RenderEntity {
+                    id: "a".to_owned(),
+                    layer_id: "test-layer".to_owned(),
+                    label: "A".to_owned(),
+                    position: [-1.0, -2.0, 0.0],
+                    role: VisualRole::Derived,
+                    provenance: Vec::new(),
+                    uncertainty: None,
+                },
+                RenderEntity {
+                    id: "b".to_owned(),
+                    layer_id: "test-layer".to_owned(),
+                    label: "B".to_owned(),
+                    position: [1.0, 2.0, 0.0],
+                    role: VisualRole::Derived,
+                    provenance: Vec::new(),
+                    uncertainty: None,
+                },
+            ],
+            transitions: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn initial_camera_ignores_hidden_outliers_and_falls_back_when_all_layers_are_hidden() {
+        let visible_scene = test_scene();
+        let expected = CameraState::for_scene(&visible_scene);
+        let mut scene = visible_scene;
+        scene.layers.push(RenderLayer {
+            id: "hidden-layer".to_owned(),
+            label: "Hidden layer".to_owned(),
+            role: VisualRole::Illustrative,
+            visible_by_default: false,
+        });
+        scene.entities.push(RenderEntity {
+            id: "hidden-outlier".to_owned(),
+            layer_id: "hidden-layer".to_owned(),
+            label: "Hidden outlier".to_owned(),
+            position: [1.0e6; 3],
+            role: VisualRole::Illustrative,
+            provenance: Vec::new(),
+            uncertainty: None,
+        });
+
+        assert_eq!(CameraState::for_scene(&scene), expected);
+
+        scene.layers[0].visible_by_default = false;
+        let fallback = CameraState::for_scene(&scene);
+        assert!(fallback.target[0] > expected.target[0]);
+        assert!(fallback.distance > expected.distance);
+        assert!(fallback.distance.is_finite());
+    }
+
+    #[test]
+    fn camera_actions_are_deterministic_and_resettable() {
+        let mut camera = CameraState::for_scene(&test_scene());
+        let initial = camera;
+
+        camera.apply(CameraAction::Orbit {
+            yaw_delta: 0.5,
+            pitch_delta: 10.0,
+        });
+        camera.apply(CameraAction::Pan {
+            x_delta: 2.0,
+            y_delta: -1.0,
+        });
+        camera.apply(CameraAction::Zoom { factor: 0.5 });
+        camera.apply(CameraAction::Focus {
+            position: [4.0, 5.0, 6.0],
+        });
+
+        assert!(
+            camera
+                .target
+                .iter()
+                .zip([4.0, 5.0, 6.0])
+                .all(|(actual, expected)| (*actual - expected).abs() < f64::EPSILON)
+        );
+        assert!((camera.yaw - 0.5).abs() < f64::EPSILON);
+        assert!((camera.pitch - CameraState::MAX_PITCH).abs() < f64::EPSILON);
+        assert!(camera.distance < initial.distance);
+
+        camera.apply(CameraAction::Reset);
+        assert_eq!(camera, initial);
+    }
+
+    #[test]
+    fn invalid_zoom_is_ignored() {
+        let mut camera = CameraState::for_scene(&test_scene());
+        let distance = camera.distance;
+
+        camera.apply(CameraAction::Zoom { factor: 0.0 });
+        camera.apply(CameraAction::Zoom { factor: f64::NAN });
+
+        assert!((camera.distance - distance).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn camera_distance_stays_finite_for_extreme_bounds_and_zoom() {
+        let mut scene = test_scene();
+        scene.entities[0].position = [-1.0e308; 3];
+        scene.entities[1].position = [1.0e308; 3];
+
+        let mut camera = CameraState::for_scene(&scene);
+        assert!(camera.distance.is_finite());
+
+        camera.apply(CameraAction::Zoom { factor: 2.0 });
+        assert!(camera.distance.is_finite());
+
+        camera.apply(CameraAction::Zoom { factor: 0.5 });
+        assert!(camera.distance < f64::MAX);
+    }
+}

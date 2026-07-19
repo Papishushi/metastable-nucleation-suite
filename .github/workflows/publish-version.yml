@@ -1,0 +1,159 @@
+name: publish-version
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - VERSION
+      - CITATION.cff
+      - dotnet/Directory.Build.props
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: publish-version-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  tag-and-dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.0
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v6.3.0
+        with:
+          python-version: "3.14"
+
+      - name: Install release metadata dependencies
+        run: python -m pip install packaging
+
+      - name: Validate canonical release metadata
+        run: python scripts/check_release_version.py
+
+      - name: Resolve canonical tag
+        id: release
+        shell: bash
+        run: |
+          version="$(cat VERSION)"
+          tag="v${version}"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Create canonical version tag if absent
+        shell: bash
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          git fetch --tags --force
+
+          if git rev-parse --verify --quiet "refs/tags/$TAG" >/dev/null; then
+            existing_commit="$(git rev-list -n 1 "$TAG")"
+            echo "Tag $TAG already exists at $existing_commit; preserving the immutable release tag"
+          else
+            git tag "$TAG" "$GITHUB_SHA"
+            git push origin "refs/tags/$TAG"
+          fi
+
+      - name: Dispatch immutable release workflow
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          set -euo pipefail
+
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; nothing to publish"
+            exit 0
+          fi
+
+          tag_commit="$(git rev-list -n 1 "$TAG")"
+          matching_runs="$(
+            gh run list \
+              --repo "$GITHUB_REPOSITORY" \
+              --workflow release.yml \
+              --branch "$TAG" \
+              --limit 100 \
+              --json databaseId,event,headBranch,headSha,status,conclusion,url
+          )"
+
+          active_run="$(
+            jq -r --arg tag "$TAG" --arg commit "$tag_commit" '
+              first(
+                .[]
+                | select(
+                    .headBranch == $tag
+                    and .headSha == $commit
+                    and (.event == "workflow_dispatch" or .event == "push")
+                    and .status != "completed"
+                  )
+                | "\(.databaseId)\t\(.status)\t\(.url)"
+              ) // empty
+            ' <<< "$matching_runs"
+          )"
+
+          if [[ -n "$active_run" ]]; then
+            IFS=$'\t' read -r run_id run_status run_url <<< "$active_run"
+            echo "Release workflow for $TAG at $tag_commit is already $run_status (run $run_id); not dispatching a duplicate"
+            echo "Existing run: $run_url"
+            exit 0
+          fi
+
+          previous_run="$(
+            jq -r --arg tag "$TAG" --arg commit "$tag_commit" '
+              first(
+                .[]
+                | select(
+                    .headBranch == $tag
+                    and .headSha == $commit
+                    and (.event == "workflow_dispatch" or .event == "push")
+                    and .status == "completed"
+                  )
+                | (.conclusion // "unknown") as $conclusion
+                | "\(.databaseId)\t\($conclusion)\t\(.url)"
+              ) // empty
+            ' <<< "$matching_runs"
+          )"
+
+          if [[ "$tag_commit" != "$GITHUB_SHA" && -z "$previous_run" ]]; then
+            echo "::error::Tag $TAG points to $tag_commit, but no release or prior release workflow run exists for that exact commit"
+            echo "::error::Refusing to publish recovery artifacts from an unverified tag"
+            exit 1
+          fi
+
+          if [[ -n "$previous_run" ]]; then
+            IFS=$'\t' read -r previous_id previous_conclusion previous_url <<< "$previous_run"
+            echo "Verified prior release attempt for $TAG at $tag_commit: run $previous_id concluded $previous_conclusion"
+            echo "Prior run: $previous_url"
+          fi
+
+          for attempt in 1 2 3 4 5; do
+            if gh workflow run release.yml \
+              --repo "$GITHUB_REPOSITORY" \
+              --ref "$TAG"; then
+              echo "Dispatched release.yml for $TAG"
+              exit 0
+            fi
+            echo "Tag ref not ready for dispatch yet; retrying ($attempt/5)"
+            sleep $((attempt * 2))
+          done
+
+          echo "::error::Could not dispatch release.yml for $TAG"
+          exit 1
+
+      - name: Publish summary
+        shell: bash
+        run: |
+          {
+            echo "## Version publication"
+            echo
+            echo "- Version: \`${{ steps.release.outputs.version }}\`"
+            echo "- Tag: \`${{ steps.release.outputs.tag }}\`"
+            echo "- Release workflow: \`release.yml\`"
+          } >> "$GITHUB_STEP_SUMMARY"
