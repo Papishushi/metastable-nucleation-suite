@@ -6,13 +6,14 @@ Este documento define un modelo paramétrico para medios tridimensionales formad
 
 El modelo estima:
 
-- densidad de información por volumen y por masa activa;
-- energía activa de reescritura;
+- densidad de información por volumen total modelado;
+- densidad de información por kilogramo de material activo;
+- energía activa de reescritura con ambas bases;
 - límite termodinámico de Landauer;
-- techo geométrico de operaciones;
-- techo energético o térmico bajo un presupuesto de potencia.
+- techos geométricos de operaciones;
+- techo energético bajo un presupuesto de potencia específico del material activo.
 
-Es una herramienta de sensibilidad, no un simulador de dispositivo ni una predicción tecnológica.
+Es una herramienta de sensibilidad. No es un simulador de dispositivo, una estimación de sistema completo ni una predicción tecnológica.
 
 ## 22.2 Límite conceptual
 
@@ -23,11 +24,30 @@ El modelo **no** cuenta como capacidad:
 - mínimos microscópicos invisibles;
 - configuraciones que no puedan escribirse de forma reproducible;
 - diferencias estructurales que el protocolo de lectura no pueda recuperar;
-- estados correlacionados tratados falsamente como celdas independientes.
+- estados correlacionados tratados falsamente como celdas independientes;
+- masa o prestaciones de sistema que no hayan sido modeladas explícitamente.
 
-La capacidad de una **Nucleation-Encoded Chalcogenide Ensemble (NECE)**, donde la configuración interna constituye la palabra de código, se modela por separado en #50 y PR #61. El marco general de la Metastable Nucleation Suite (MNS), el Metastate Atlas y la circuitería definida por nucleación se documenta en #63, #64 y PR #59.
+La capacidad de una **Nucleation-Encoded Chalcogenide Ensemble (NECE)**, donde la configuración interna constituye la palabra de código, se modela por separado en #50 y PR #61. El marco general de la **Metastable Nucleation Suite (MNS)**, el Metastate Atlas y la circuitería definida por nucleación se documenta en #63, #64 y PR #59.
 
-## 22.3 Implementación reproducible
+## 22.3 Convenciones de base y valores desconocidos
+
+El modelo utiliza dos denominadores distintos y los expone en cada nombre de salida:
+
+- `per_total_m3`: un metro cúbico del medio modelado, incluida la fracción no activa;
+- `per_active_kg`: un kilogramo del material activo únicamente.
+
+No se calculan métricas `per_system_kg`. Para obtenerlas sería necesario declarar la masa de sustratos, aislamiento, electrodos, selectores, guías, fuentes, detectores, electrónica, control y refrigeración.
+
+`active_volume_fraction` reduce las magnitudes por volumen total. No reduce las magnitudes por kilogramo activo, porque al disminuir el volumen activo disminuyen en la misma proporción tanto el número de celdas como la masa activa.
+
+Una magnitud física no medida se representa mediante JSON `null`, nunca mediante cero. Por tanto:
+
+- energía desconocida no significa operación gratuita;
+- frecuencia desconocida no significa dispositivo detenido;
+- un techo térmico no se calcula si falta la energía por evento;
+- la salida se serializa como JSON estricto, sin `NaN` ni `Infinity`.
+
+## 22.4 Implementación reproducible
 
 El modelo está implementado en:
 
@@ -35,20 +55,27 @@ El modelo está implementado en:
 - `scripts/metastate_capacity.py`;
 - `tests/test_metastate_capacity.py`.
 
-Sin argumentos personalizados, la CLI devuelve escenarios de referencia en JSON:
+Sin argumentos personalizados, la CLI devuelve los escenarios de referencia:
 
 ```bash
 python scripts/metastate_capacity.py
 ```
 
-Un escenario personalizado requiere densidad, pitch y número de estados:
+Para reproducir además el techo bajo `1000 W/kg` de material activo:
+
+```bash
+python scripts/metastate_capacity.py \
+  --power-budget-w-per-active-kg 1000
+```
+
+Un escenario personalizado requiere densidad del material activo, pitch de celda y número de estados:
 
 ```bash
 python scripts/metastate_capacity.py \
   --custom \
   --name example \
-  --density-kg-m3 6100 \
-  --pitch-nm 100 \
+  --active-material-density-kg-m3 6100 \
+  --cell-pitch-nm 100 \
   --states 16 \
   --active-volume-fraction 0.25 \
   --coding-efficiency 0.70 \
@@ -57,16 +84,16 @@ python scripts/metastate_capacity.py \
   --event-rate-hz 1e9 \
   --active-utilization 1e-3 \
   --operations-per-event 2 \
-  --power-budget-w-per-kg 1000
+  --power-budget-w-per-active-kg 1000
 ```
 
-Cada escenario declara un nivel de evidencia:
+Cada escenario declara uno de estos niveles:
 
 - `measured`;
 - `engineering_scenario`;
 - `speculative_bound`.
 
-## 22.4 Capacidad por celda
+## 22.5 Capacidad por celda y por volumen total
 
 Si una celda tiene \(K\) estados fiables:
 
@@ -82,25 +109,51 @@ N_{cell,V}=\frac{f}{a^3},
 B_V=\frac{f\,\eta\,\log_2 K}{a^3}.
 \]
 
-Para una densidad material \(\rho\):
+Estas magnitudes utilizan volumen total modelado. `coding_efficiency` agrupa ECC, guardas, calibración, celdas defectuosas y margen entre niveles.
+
+## 22.6 Capacidad por masa activa
+
+Si la densidad del material activo es \(\rho\), la masa activa contenida en un metro cúbico total es:
 
 \[
-B_M=\frac{B_V}{\rho}.
+M_{active,V}=f\rho.
 \]
 
-`coding_efficiency` agrupa ECC, guardas, calibración, celdas defectuosas y margen entre niveles. La masa de encapsulado, guías, electrodos, selectores, fuentes, detectores y refrigeración debe contabilizarse por separado.
-
-## 22.5 Energía de escritura
-
-Si cada celda consume \(E_w\) durante su programación:
+Por tanto, el número de celdas por kilogramo activo es:
 
 \[
-E_{rewrite,M}=\frac{f}{a^3\rho}E_w.
+N_{cell,M_a}
+=
+\frac{N_{cell,V}}{M_{active,V}}
+=
+\frac{1}{a^3\rho}.
 \]
 
-Esta magnitud representa la energía activa para reescribir una vez todas las celdas del medio modelado. No incluye distribución eléctrica u óptica, conversión, control, verificación, calibración ni refrigeración.
+La densidad útil por kilogramo activo es:
 
-## 22.6 Límite de Landauer
+\[
+B_{M_a}
+=
+\frac{\eta\log_2 K}{a^3\rho}.
+\]
+
+La fracción activa \(f\) se cancela. Aplicarla de nuevo en esta ecuación mezclaría masa activa con masa de sistema y subestimaría artificialmente las magnitudes por kilogramo activo.
+
+## 22.7 Energía de escritura
+
+Si cada celda consume una energía conocida \(E_w\) durante su programación:
+
+\[
+E_{rewrite,V}=\frac{f}{a^3}E_w,
+\qquad
+E_{rewrite,M_a}=\frac{1}{a^3\rho}E_w.
+\]
+
+Estas magnitudes representan únicamente la energía activa para reescribir una vez las celdas modeladas. No incluyen distribución eléctrica u óptica, conversión, control, verificación, calibración ni refrigeración.
+
+Cuando \(E_w\) no se ha declarado, ambas salidas de reescritura son `null`.
+
+## 22.8 Límite de Landauer
 
 A temperatura \(T\), borrar irreversiblemente un bit tiene el límite:
 
@@ -110,49 +163,53 @@ E_L=k_B T\ln 2.
 
 A 300 K resulta aproximadamente \(2.87\times10^{-21}\) J por bit. Este valor no incluye barreras de retención, calentamiento, direccionamiento, láseres, pérdidas ni márgenes de error y no debe confundirse con una energía de dispositivo.
 
-El modelo devuelve tanto `landauer_j_per_erased_bit` como `landauer_full_erase_j_per_kg`, pero estas magnitudes son referencias termodinámicas, no objetivos de ingeniería inmediatos.
+El modelo devuelve el límite por bit, por volumen total y por kilogramo activo. Son referencias termodinámicas, no objetivos de ingeniería inmediatos.
 
-## 22.7 Densidad de cálculo
+## 22.9 Densidad de cálculo
 
 Si cada celda participa a frecuencia \(r\), con utilización \(u\), \(o\) operaciones por evento y factor de multiplexación \(m\):
 
 \[
-R_{geom,M}=\frac{f}{a^3\rho}r u o m.
+R_{geom,V}=\frac{f}{a^3}r u o m,
+\qquad
+R_{geom,M_a}=\frac{1}{a^3\rho}r u o m.
 \]
 
-Es un techo geométrico. Si cada evento consume \(E_{op}\), la eficiencia activa es:
+Si cada evento consume una energía conocida \(E_{op}\), la eficiencia activa es:
 
 \[
 \epsilon_{op}=\frac{o m}{E_{op}}.
 \]
 
-Con un presupuesto térmico específico \(P_M\), el techo energético es:
+Con un presupuesto específico de potencia activa \(P_{M_a}\), el techo energético es:
 
 \[
-R_{thermal,M}=P_M\epsilon_{op}.
+R_{thermal,M_a}=P_{M_a}\epsilon_{op}.
 \]
 
-La estimación utilizable debe ser el mínimo entre límites geométricos, térmicos, ópticos, eléctricos, de lectura, de comunicación y de precisión.
+Si \(r\) o \(E_{op}\) no están declarados, las salidas dependientes permanecen `null`. La estimación utilizable debe ser el mínimo entre límites geométricos, térmicos, ópticos, eléctricos, de lectura, de comunicación y de precisión.
 
-## 22.8 Escenarios de sensibilidad
+## 22.10 Escenarios de sensibilidad
 
-Los escenarios incorporados muestran cómo cambian los resultados al variar pitch, estados, fracción activa, eficiencia de codificación y energía. Solo la conversión equivalente del vidrio escrito por láser está etiquetada como `measured`; el resto son escenarios o límites paramétricos.
+Los escenarios incorporados muestran cómo cambian los resultados al variar pitch, estados, fracción activa, eficiencia de codificación y energía. Solo la conversión equivalente del vidrio escrito por láser está etiquetada como `measured`; el resto son escenarios o límites paramétricos cuyos valores no han sido demostrados conjuntamente.
 
-| Escenario | Nivel | Densidad útil | Reescritura activa | Cálculo con 1 kW/kg |
+Todas las cifras de masa de la tabla usan **kilogramos de material activo**, no kilogramos de sistema completo.
+
+| Escenario | Nivel | Densidad útil activa | Reescritura activa | Techo con 1 kW/kg activo |
 |---|---|---:|---:|---:|
-| Vidrio de sílice escrito por láser, equivalente | medido | 917 TB/kg | no estimada | no aplicable |
-| PCM 3D, 100 nm, 16 estados | ingeniería | 14.3 PB/kg | 4.10 MJ/kg; 1.14 kWh/kg | 2.0e17 op/s/kg |
-| PCM 3D, 20 nm, 16 estados | ingeniería agresiva | 1.28 EB/kg | 5.12 MJ/kg; 1.42 kWh/kg | 1.6e19 op/s/kg |
-| PCM, 5 nm, 64 estados | límite especulativo | 24.6 EB/kg | 3.93 MJ/kg; 1.09 kWh/kg | 3.2e20 op/s/kg |
-| Vidrio amorfo local, 10 nm, 8 estados | límite especulativo | 9.0 EB/kg | 800 MJ/kg; 222 kWh/kg | 2.0e18 op/s/kg |
+| Vidrio de sílice escrito por láser, equivalente | medido | 917 TB/kg | desconocida | desconocido |
+| PCM 3D, 100 nm, 16 estados | ingeniería | 57.4 PB/kg | 16.4 MJ/kg; 4.55 kWh/kg | 2.0e17 op/s/kg |
+| PCM 3D, 20 nm, 16 estados | ingeniería agresiva | 5.12 EB/kg | 20.5 MJ/kg; 5.69 kWh/kg | 1.6e19 op/s/kg |
+| PCM, 5 nm, 64 estados | límite especulativo | 246 EB/kg | 39.3 MJ/kg; 10.9 kWh/kg | 3.2e20 op/s/kg |
+| Vidrio amorfo local, 10 nm, 8 estados | límite especulativo | 45.0 EB/kg | 4.00 GJ/kg; 1111 kWh/kg | 2.0e18 op/s/kg |
 
 El valor equivalente del vidrio procede de convertir 4.84 TB almacenados en una placa de 12 cm² y 2 mm de espesor, con densidad aproximada de 2200 kg/m³. Equivale a unos \(1.61\times10^{19}\) bits/m³ o a un pitch cúbico efectivo de aproximadamente 396 nm si cada voxel representara un bit.
 
-Esa conversión no demuestra celdas nanométricas independientemente direccionables. Solo transforma una densidad archivística publicada a unidades comparables.
+Esa conversión no demuestra una matriz de celdas nanométricas independientemente direccionables. Solo transforma una densidad archivística publicada a unidades comparables. La energía y el rendimiento permanecen desconocidos en el JSON del escenario, en vez de convertirse en cero o infinito.
 
-## 22.9 Interpretación correcta
+## 22.11 Interpretación correcta
 
-Las cifras nanométricas pueden resultar enormes porque dividen por la masa del material activo. En un sistema real deben reducirse al incluir:
+Las cifras nanométricas por kilogramo activo pueden resultar enormes porque excluyen toda masa auxiliar. En un sistema real deben reducirse al incluir:
 
 - aislamiento y separación térmica;
 - selectores, electrodos, heaters y guías;
@@ -163,9 +220,9 @@ Las cifras nanométricas pueden resultar enormes porque dividen por la masa del 
 - refrigeración;
 - utilización instantánea limitada para evitar calentamiento acumulativo.
 
-Por ejemplo, un techo geométrico puede exigir una potencia dinámica varios órdenes de magnitud superior al presupuesto térmico. En ese caso, añadir más celdas no aumenta el rendimiento útil: el sistema queda limitado por energía y evacuación de calor.
+Un techo geométrico puede exigir una potencia dinámica varios órdenes de magnitud superior al presupuesto térmico. En ese caso, añadir más celdas no aumenta el rendimiento útil: el sistema queda limitado por energía y evacuación de calor.
 
-## 22.10 Reglas de uso
+## 22.12 Reglas de uso
 
 Un resultado solo puede presentarse como estimación de sistema cuando:
 
@@ -176,9 +233,9 @@ Un resultado solo puede presentarse como estimación de sistema cuando:
 5. la utilización térmica es físicamente compatible con el encapsulado;
 6. el nivel de evidencia queda visible junto al resultado.
 
-En ausencia de estas condiciones, el resultado es un techo del medio activo o un análisis de sensibilidad.
+El modelo actual no recibe suficientes entradas para satisfacer estas condiciones. Sus resultados son techos del medio activo o análisis de sensibilidad.
 
-## 22.11 Referencias de partida
+## 22.13 Referencias de partida
 
 - R. Landauer, *Irreversibility and Heat Generation in the Computing Process*, IBM Journal of Research and Development 5, 183–191 (1961).
 - K. Stern et al., *Uncovering Phase Change Memory Energy Limits by Sub-Nanosecond Probing of Power Dissipation Dynamics*, arXiv:2104.11545.
