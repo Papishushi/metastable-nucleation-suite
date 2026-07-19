@@ -54,11 +54,7 @@ jobs:
 
           if git rev-parse --verify --quiet "refs/tags/$TAG" >/dev/null; then
             existing_commit="$(git rev-list -n 1 "$TAG")"
-            if [[ "$existing_commit" != "$GITHUB_SHA" ]]; then
-              echo "::error::Tag $TAG already points to $existing_commit instead of $GITHUB_SHA"
-              exit 1
-            fi
-            echo "Tag $TAG already points to the release commit"
+            echo "Tag $TAG already exists at $existing_commit; preserving the immutable release tag"
           else
             git tag "$TAG" "$GITHUB_SHA"
             git push origin "refs/tags/$TAG"
@@ -70,9 +66,71 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.release.outputs.tag }}
         run: |
+          set -euo pipefail
+
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "Release $TAG already exists; nothing to publish"
             exit 0
+          fi
+
+          tag_commit="$(git rev-list -n 1 "$TAG")"
+          matching_runs="$(
+            gh run list \
+              --repo "$GITHUB_REPOSITORY" \
+              --workflow release.yml \
+              --branch "$TAG" \
+              --limit 100 \
+              --json databaseId,event,headBranch,headSha,status,conclusion,url
+          )"
+
+          active_run="$(
+            jq -r --arg tag "$TAG" --arg commit "$tag_commit" '
+              first(
+                .[]
+                | select(
+                    .headBranch == $tag
+                    and .headSha == $commit
+                    and (.event == "workflow_dispatch" or .event == "push")
+                    and .status != "completed"
+                  )
+                | "\(.databaseId)\t\(.status)\t\(.url)"
+              ) // empty
+            ' <<< "$matching_runs"
+          )"
+
+          if [[ -n "$active_run" ]]; then
+            IFS=$'\t' read -r run_id run_status run_url <<< "$active_run"
+            echo "Release workflow for $TAG at $tag_commit is already $run_status (run $run_id); not dispatching a duplicate"
+            echo "Existing run: $run_url"
+            exit 0
+          fi
+
+          previous_run="$(
+            jq -r --arg tag "$TAG" --arg commit "$tag_commit" '
+              first(
+                .[]
+                | select(
+                    .headBranch == $tag
+                    and .headSha == $commit
+                    and (.event == "workflow_dispatch" or .event == "push")
+                    and .status == "completed"
+                  )
+                | (.conclusion // "unknown") as $conclusion
+                | "\(.databaseId)\t\($conclusion)\t\(.url)"
+              ) // empty
+            ' <<< "$matching_runs"
+          )"
+
+          if [[ "$tag_commit" != "$GITHUB_SHA" && -z "$previous_run" ]]; then
+            echo "::error::Tag $TAG points to $tag_commit, but no release or prior release workflow run exists for that exact commit"
+            echo "::error::Refusing to publish recovery artifacts from an unverified tag"
+            exit 1
+          fi
+
+          if [[ -n "$previous_run" ]]; then
+            IFS=$'\t' read -r previous_id previous_conclusion previous_url <<< "$previous_run"
+            echo "Verified prior release attempt for $TAG at $tag_commit: run $previous_id concluded $previous_conclusion"
+            echo "Prior run: $previous_url"
           fi
 
           for attempt in 1 2 3 4 5; do
