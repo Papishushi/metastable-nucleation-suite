@@ -34,7 +34,7 @@ jobs:
       publish: ${{ steps.metadata.outputs.publish }}
       stable: ${{ steps.metadata.outputs.stable }}
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0
       - uses: actions/setup-python@v7.0.0
@@ -80,7 +80,7 @@ jobs:
         python-version: ["3.10", "3.14"]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
       - uses: actions/setup-python@v7.0.0
         with:
           python-version: ${{ matrix.python-version }}
@@ -133,7 +133,7 @@ jobs:
     env:
       SOURCE_DATE_EPOCH: ${{ needs.metadata.outputs.source-date-epoch }}
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
       - uses: actions/setup-dotnet@v6.0.0
         with:
           dotnet-version: "10.0.x"
@@ -236,7 +236,7 @@ jobs:
     env:
       SOURCE_DATE_EPOCH: ${{ needs.metadata.outputs.source-date-epoch }}
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
       - uses: actions/setup-python@v7.0.0
         with:
           python-version: "3.14"
@@ -305,7 +305,7 @@ jobs:
       attestations: write
       artifact-metadata: write
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
       - uses: docker/setup-qemu-action@v4.2.0
       - uses: docker/setup-buildx-action@v4.2.0
       - name: Login to GHCR
@@ -361,7 +361,7 @@ jobs:
       attestations: write
       artifact-metadata: write
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
       - uses: actions/download-artifact@v8.0.1
         with:
           pattern: release-*
