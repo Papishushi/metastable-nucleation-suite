@@ -29,6 +29,8 @@ jobs:
               chmod +x "$file"
             fi
           done < <(find scripts services -type f -name '*.py' -print0)
+      - name: Apply reviewed remediation
+        run: python .github/scripts/apply_ruff_016_remediation.py
       - name: Apply safe Ruff fixes
         run: ruff check . --fix || true
       - name: Capture remaining diagnostics
@@ -43,5 +45,5 @@ jobs:
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add --all
-          git commit -m "chore(python): capture remaining Ruff diagnostics [skip ruff-remediation]"
+          git commit -m "fix(python): satisfy Ruff 0.16 rules [skip ruff-remediation]"
           git push
