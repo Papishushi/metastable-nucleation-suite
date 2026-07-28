@@ -1,0 +1,83 @@
+All checks passed!
+........................................................................ [ 47%]
+.......................................FF............................... [ 94%]
+.........                                                                [100%]
+=================================== FAILURES ===================================
+____________ test_canonical_request_id_rejects_unsafe_values[None] _____________
+
+value = None
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            "../tmp/pwn",
+            "not-a-uuid",
+            "",
+            None,
+            123,
+        ],
+    )
+    def test_canonical_request_id_rejects_unsafe_values(value):
+        with pytest.raises(ValueError):
+>           canonical_request_id(value)
+
+tests/test_scientific_worker.py:89: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+value = None
+
+    def canonical_request_id(value: object) -> str:
+        if not isinstance(value, str):
+>           raise TypeError("request_id must be a UUID string")
+E           TypeError: request_id must be a UUID string
+
+services/scientific_worker.py:87: TypeError
+_____________ test_canonical_request_id_rejects_unsafe_values[123] _____________
+
+value = 123
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            "../tmp/pwn",
+            "not-a-uuid",
+            "",
+            None,
+            123,
+        ],
+    )
+    def test_canonical_request_id_rejects_unsafe_values(value):
+        with pytest.raises(ValueError):
+>           canonical_request_id(value)
+
+tests/test_scientific_worker.py:89: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+value = 123
+
+    def canonical_request_id(value: object) -> str:
+        if not isinstance(value, str):
+>           raise TypeError("request_id must be a UUID string")
+E           TypeError: request_id must be a UUID string
+
+services/scientific_worker.py:87: TypeError
+=============================== warnings summary ===============================
+tests/test_campaign_execution_kind_resume.py: 2 warnings
+tests/test_campaigns.py: 20 warnings
+tests/test_columnar_datasets.py: 3 warnings
+tests/test_execution_engine.py: 5 warnings
+tests/test_injected_registry_resume.py: 11 warnings
+tests/test_semantic.py: 5 warnings
+tests/test_semantic_execute_cli.py: 2 warnings
+tests/test_semantic_hardware_execution.py: 4 warnings
+  /opt/hostedtoolcache/Python/3.12.13/x64/lib/python3.12/site-packages/rdflib/plugins/parsers/jsonld.py:159: DeprecationWarning: ConjunctiveGraph is deprecated, use Dataset instead.
+    conj_sink = ConjunctiveGraph(store=sink.store, identifier=sink.identifier)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_scientific_worker.py::test_canonical_request_id_rejects_unsafe_values[None] - TypeError: request_id must be a UUID string
+FAILED tests/test_scientific_worker.py::test_canonical_request_id_rejects_unsafe_values[123] - TypeError: request_id must be a UUID string
+2 failed, 151 passed, 52 warnings in 84.51s (0:01:24)
+
+ruff_status=0
+pytest_status=1
