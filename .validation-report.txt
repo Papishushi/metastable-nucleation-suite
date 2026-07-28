@@ -1,0 +1,21 @@
+All checks passed!
+........................................................................ [ 47%]
+........................................................................ [ 94%]
+.........                                                                [100%]
+=============================== warnings summary ===============================
+tests/test_campaign_execution_kind_resume.py: 2 warnings
+tests/test_campaigns.py: 20 warnings
+tests/test_columnar_datasets.py: 3 warnings
+tests/test_execution_engine.py: 5 warnings
+tests/test_injected_registry_resume.py: 11 warnings
+tests/test_semantic.py: 5 warnings
+tests/test_semantic_execute_cli.py: 2 warnings
+tests/test_semantic_hardware_execution.py: 4 warnings
+  /opt/hostedtoolcache/Python/3.12.13/x64/lib/python3.12/site-packages/rdflib/plugins/parsers/jsonld.py:159: DeprecationWarning: ConjunctiveGraph is deprecated, use Dataset instead.
+    conj_sink = ConjunctiveGraph(store=sink.store, identifier=sink.identifier)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+153 passed, 52 warnings in 96.48s (0:01:36)
+
+ruff_status=0
+pytest_status=0
