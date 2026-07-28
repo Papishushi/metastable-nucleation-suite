@@ -40,7 +40,7 @@ jobs:
       - name: Materialize semantic ABox
         run: python scripts/semantic_graph.py from-report artifacts/reference_report.json artifacts/reference_run.jsonld --run-id ci-${{ github.run_id }}
       - name: Upload scientific artifacts
-        if: always()
+        if: always() && hashFiles('artifacts/**') != ''
         uses: actions/upload-artifact@v7.0.1
         with:
           name: scientific-artifacts-${{ github.run_id }}
