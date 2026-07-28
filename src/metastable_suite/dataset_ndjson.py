@@ -87,7 +87,10 @@ def read_ndjson_events(path: str | Path) -> Iterator[dict[str, object]]:
             except json.JSONDecodeError as exc:
                 raise ValueError(f"invalid NDJSON at line {line_number}: {exc}") from exc
             if not isinstance(value, dict):
-                raise TypeError(f"event at line {line_number} is not an object")
+                # Preserve the corrupt-artifact contract used by campaign resume.
+                raise ValueError(  # noqa: TRY004
+                    f"event at line {line_number} is not an object"
+                )
             yield value
 
 
