@@ -180,3 +180,25 @@ def test_registry_rejects_non_canonical_extra_properties(tmp_path):
 
     with pytest.raises(ValueError, match="is not canonical"):
         DatasetRegistry(registry_path).get(manifest.dataset_id)
+
+
+@pytest.mark.parametrize(
+    ("document", "message"),
+    [
+        ([], "dataset registry must be an object"),
+        (
+            {"schema_version": "1.0.0", "datasets": []},
+            "must contain a datasets object",
+        ),
+        (
+            {"schema_version": "1.0.0", "datasets": {"broken": []}},
+            "entry 'broken' must be an object",
+        ),
+    ],
+)
+def test_registry_malformed_shapes_preserve_value_error(tmp_path, document, message):
+    registry_path = tmp_path / "datasets.registry.json"
+    registry_path.write_text(json.dumps(document), encoding="utf-8")
+
+    with pytest.raises(ValueError, match=message):
+        DatasetRegistry(registry_path).manifests()
