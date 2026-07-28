@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from metastable_suite.datasets import EventDatasetWriter
+from metastable_suite.datasets import EventDatasetWriter, read_events
 
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA = json.loads((ROOT / "schemas" / "event.schema.json").read_text(encoding="utf-8"))
@@ -50,3 +50,11 @@ def test_invalid_or_timezone_less_timestamps_are_rejected(tmp_path, timestamp):
     writer = EventDatasetWriter(target, "dataset-1", SCHEMA)
     with writer, pytest.raises(ValueError, match="timestamp_utc"):
         writer.write(event(timestamp))
+
+
+def test_non_object_ndjson_is_rejected_as_invalid_artifact(tmp_path):
+    target = tmp_path / "events.ndjson"
+    target.write_text("null\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="not an object"):
+        list(read_events(target))
