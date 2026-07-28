@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - chore/ruff-0.16-remediation
+  workflow_dispatch:
 
 permissions:
   contents: write
