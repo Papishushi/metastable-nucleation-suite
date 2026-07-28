@@ -30,7 +30,8 @@ class EventDatasetWriter:
         self._stream = None
         self._count = 0
 
-    def __enter__(self) -> EventDatasetWriter:
+    # Keep Python 3.10 support without adding typing_extensions solely for Self.
+    def __enter__(self) -> EventDatasetWriter:  # noqa: PYI034
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._stream = self.path.open("w", encoding="utf-8", newline="\n")
         return self
@@ -86,7 +87,7 @@ def read_ndjson_events(path: str | Path) -> Iterator[dict[str, object]]:
             except json.JSONDecodeError as exc:
                 raise ValueError(f"invalid NDJSON at line {line_number}: {exc}") from exc
             if not isinstance(value, dict):
-                raise ValueError(f"event at line {line_number} is not an object")
+                raise TypeError(f"event at line {line_number} is not an object")
             yield value
 
 

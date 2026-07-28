@@ -370,7 +370,7 @@ def _valid_completed_artifact(
         try:
             if not artifact_validator(abox):
                 return False
-        except Exception:
+        except Exception:  # noqa: BLE001 -- isolate validator plugin failures
             return False
 
     try:
@@ -466,11 +466,10 @@ def _valid_completed_artifact(
     if _literal_value(dataset.get("mns:eventCount")) != event_count:
         return False
     dataset_path = dataset.get("mns:datasetPath")
-    if not isinstance(dataset_path, str) or (
-        Path(dataset_path).resolve() != events.resolve()
-    ):
-        return False
-    return True
+    return (
+        isinstance(dataset_path, str)
+        and Path(dataset_path).resolve() == events.resolve()
+    )
 
 
 def _campaign_abox(
@@ -652,7 +651,7 @@ def execute_campaign(
             record["abox_file"] = run_abox_path.name
             record["events_file"] = events_path.name
             record["sha256"] = result.manifest.sha256
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 -- failure policy records backend errors
             events_path.unlink(missing_ok=True)
             run_abox_path.unlink(missing_ok=True)
             record["status"] = "Failed"

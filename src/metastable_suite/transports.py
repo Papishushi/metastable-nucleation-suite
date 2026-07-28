@@ -5,6 +5,7 @@ import socket
 import time
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Mapping
+from contextlib import suppress
 from dataclasses import dataclass
 from typing import Any, Protocol
 
@@ -98,11 +99,9 @@ class JsonCommandTransport(ABC):
                 delay = min(delay * self.retry_policy.backoff, self.retry_policy.maximum_delay_s)
 
         assert last_error is not None
-        try:
+        # Preserve the terminal transport error even if closing the failed handle also fails.
+        with suppress(Exception):
             self.disconnect()
-        except Exception:
-            # Preserve the terminal transport error even if closing the failed handle also fails.
-            pass
         raise last_error
 
 
@@ -349,15 +348,11 @@ class VisaTransport(JsonCommandTransport):
         self._resource = None
         self._manager = None
         if resource is not None:
-            try:
+            with suppress(Exception):
                 resource.close()
-            except Exception:
-                pass
         if manager is not None:
-            try:
+            with suppress(Exception):
                 manager.close()
-            except Exception:
-                pass
 
     def _round_trip(self, payload: bytes) -> bytes:
         if self._resource is None:

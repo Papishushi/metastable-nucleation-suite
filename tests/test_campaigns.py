@@ -131,7 +131,7 @@ def semantic_artifact_validator(path):
     try:
         completed = load_abox(path, ABOX_SCHEMA)
         return validate_abox(completed, SHAPES, load_tbox(TBOX)).conforms
-    except Exception:
+    except Exception:  # noqa: BLE001 -- test helper mirrors validator isolation
         return False
 
 

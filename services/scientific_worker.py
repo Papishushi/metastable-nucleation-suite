@@ -84,7 +84,7 @@ def capability_manifest(*, generated_at_utc: str | None = None) -> dict[str, Any
 
 def canonical_request_id(value: object) -> str:
     if not isinstance(value, str):
-        raise ValueError("request_id must be a UUID string")
+        raise TypeError("request_id must be a UUID string")
     return str(UUID(value))
 
 

@@ -11,7 +11,7 @@ from .dataset_models import REGISTRY_SCHEMA_VERSION, DatasetManifest
 
 def _parse_registry_manifest(dataset_id: str, value: object) -> DatasetManifest:
     if not isinstance(value, Mapping):
-        raise ValueError(f"dataset registry entry {dataset_id!r} must be an object")
+        raise TypeError(f"dataset registry entry {dataset_id!r} must be an object")
     try:
         manifest = DatasetManifest.from_dict(value)
     except (KeyError, TypeError, ValueError) as exc:
@@ -35,14 +35,14 @@ class DatasetRegistry:
             return {"schema_version": REGISTRY_SCHEMA_VERSION, "datasets": {}}
         document = json.loads(self.path.read_text(encoding="utf-8"))
         if not isinstance(document, dict):
-            raise ValueError("dataset registry must be an object")
+            raise TypeError("dataset registry must be an object")
         if set(document) != {"schema_version", "datasets"}:
             raise ValueError("dataset registry contains unsupported properties")
         if document.get("schema_version") != REGISTRY_SCHEMA_VERSION:
             raise ValueError("unsupported dataset registry schema version")
         datasets = document.get("datasets")
         if not isinstance(datasets, dict):
-            raise ValueError("dataset registry must contain a datasets object")
+            raise TypeError("dataset registry must contain a datasets object")
         for dataset_id, value in datasets.items():
             _parse_registry_manifest(dataset_id, value)
         return document
