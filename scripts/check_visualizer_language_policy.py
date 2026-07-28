@@ -6,7 +6,6 @@ import subprocess
 from collections.abc import Iterable
 from pathlib import Path
 
-
 BANNED_SUFFIXES = {".js", ".mjs", ".cjs", ".ts", ".tsx"}
 GENERATED_BINDING_ALLOWLIST = {
     "visualizer/generated/metastable_visualizer.js",

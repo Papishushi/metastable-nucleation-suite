@@ -4,11 +4,11 @@ from __future__ import annotations
 import argparse
 import gzip
 import os
-from pathlib import Path
 import stat
 import tarfile
 import time
 import zipfile
+from pathlib import Path
 
 
 def normalized_epoch() -> int:

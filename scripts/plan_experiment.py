@@ -4,8 +4,8 @@ from __future__ import annotations
 import argparse
 import json
 import math
-from statistics import NormalDist
 import sys
+from statistics import NormalDist
 
 
 def z_for_two_sided_alpha(alpha: float) -> float:

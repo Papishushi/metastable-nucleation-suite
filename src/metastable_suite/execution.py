@@ -1,13 +1,14 @@
 from __future__ import annotations
 
+import json
+import re
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, replace
 from datetime import datetime, timezone
-import json
 from pathlib import Path
-import re
-from typing import Any, Callable, Mapping
+from typing import Any
 
-from rdflib import Graph, Namespace, RDF, URIRef
+from rdflib import RDF, Graph, Namespace, URIRef
 
 from .datasets import DatasetManifest, EventDatasetWriter
 from .hardware import ExperimentalBackend, SimulatorBackend, TrialRequest

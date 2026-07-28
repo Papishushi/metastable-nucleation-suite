@@ -5,7 +5,6 @@ from pathlib import Path
 
 from jsonschema import Draft202012Validator, FormatChecker
 
-
 ROOT = Path(__file__).parents[1]
 SCHEMA_PATH = ROOT / "contracts/v1/visualization-scene.schema.json"
 FIXTURE_PATH = ROOT / "contracts/v1/fixtures/visualization-scene-e09.json"

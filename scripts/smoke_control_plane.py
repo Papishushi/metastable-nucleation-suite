@@ -3,8 +3,8 @@ from __future__ import annotations
 
 import argparse
 import json
-from pathlib import Path
 import time
+from pathlib import Path
 from typing import Any
 from urllib.request import Request, urlopen
 from uuid import uuid4

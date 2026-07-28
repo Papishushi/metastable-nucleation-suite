@@ -48,6 +48,5 @@ def test_valid_utc_timestamp_is_written_and_manifested(tmp_path):
 def test_invalid_or_timezone_less_timestamps_are_rejected(tmp_path, timestamp):
     target = tmp_path / "events.ndjson"
     writer = EventDatasetWriter(target, "dataset-1", SCHEMA)
-    with writer:
-        with pytest.raises(ValueError, match="timestamp_utc"):
-            writer.write(event(timestamp))
+    with writer, pytest.raises(ValueError, match="timestamp_utc"):
+        writer.write(event(timestamp))

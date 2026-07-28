@@ -1,5 +1,6 @@
 import numpy as np
-from metastable_suite.optical import simulate_double_well, independent_nodes_correlation
+
+from metastable_suite.optical import independent_nodes_correlation, simulate_double_well
 
 
 def test_symmetric_double_well_is_roughly_balanced():

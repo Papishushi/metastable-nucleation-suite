@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from importlib.metadata import PackageNotFoundError, version as installed_version
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as installed_version
 from pathlib import Path
 
 PACKAGE_NAME = "metastable-nucleation-suite"

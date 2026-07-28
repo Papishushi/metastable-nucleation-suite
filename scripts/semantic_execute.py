@@ -3,8 +3,8 @@ from __future__ import annotations
 
 import argparse
 import json
+from collections.abc import Callable, Iterable
 from pathlib import Path
-from typing import Callable, Iterable
 
 from rdflib import Graph, URIRef
 

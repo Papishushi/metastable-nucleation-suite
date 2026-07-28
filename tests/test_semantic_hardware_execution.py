@@ -1,7 +1,7 @@
 import copy
 import json
-from pathlib import Path
 import socketserver
+from pathlib import Path
 from threading import Thread
 
 import pytest

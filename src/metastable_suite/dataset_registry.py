@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import json
 import os
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
-from .dataset_models import DatasetManifest, REGISTRY_SCHEMA_VERSION
+from .dataset_models import REGISTRY_SCHEMA_VERSION, DatasetManifest
 
 
 def _parse_registry_manifest(dataset_id: str, value: object) -> DatasetManifest:

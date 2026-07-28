@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
-from dataclasses import dataclass
 import json
 import socket
 import time
-from typing import Any, Callable, Mapping, Protocol
+from abc import ABC, abstractmethod
+from collections.abc import Callable, Mapping
+from dataclasses import dataclass
+from typing import Any, Protocol
 
 
 class TransportError(RuntimeError):
@@ -145,7 +146,7 @@ class TCPTransport(JsonCommandTransport):
         connection.settimeout(self.timeout_s)
         try:
             connection.connect((self.host, self.port))
-        except socket.timeout as exc:
+        except TimeoutError as exc:
             connection.close()
             raise TransportTimeout(f"TCP connection to {self.host}:{self.port} timed out") from exc
         except OSError as exc:
@@ -177,7 +178,7 @@ class TCPTransport(JsonCommandTransport):
                 newline = response.find(b"\n")
                 if newline >= 0:
                     return bytes(response[:newline])
-        except socket.timeout as exc:
+        except TimeoutError as exc:
             raise TransportTimeout("TCP device response timed out") from exc
         except TransportError:
             raise

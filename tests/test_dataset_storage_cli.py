@@ -5,7 +5,6 @@ import pytest
 
 from scripts.dataset_storage import main
 
-
 ROOT = Path(__file__).resolve().parents[1]
 EVENT_SCHEMA = ROOT / "schemas" / "event.schema.json"
 

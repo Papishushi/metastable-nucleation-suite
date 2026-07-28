@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
 import importlib.metadata
 import json
-from pathlib import Path
 import platform
 import subprocess
+from datetime import datetime, timezone
+from pathlib import Path
 
 import numpy as np
 

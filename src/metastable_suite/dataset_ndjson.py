@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
 import json
+from collections.abc import Iterable, Iterator, Mapping
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Iterable, Iterator, Mapping
 
 from .dataset_models import (
+    NDJSON_MEDIA_TYPE,
     DatasetManifest,
     DatasetPartitionManifest,
-    NDJSON_MEDIA_TYPE,
     event_validator,
     sha256_file,
     validate_event,

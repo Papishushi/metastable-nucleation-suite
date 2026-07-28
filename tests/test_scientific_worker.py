@@ -3,13 +3,12 @@ from pathlib import Path
 import pytest
 
 from services.scientific_worker import (
-    capability_manifest,
     canonical_request_id,
+    capability_manifest,
     resolve_artifacts_path,
     resolve_server_version,
     validate_request_envelope,
 )
-
 
 VALID_REQUEST = {
     "schema_version": "1.0.0",

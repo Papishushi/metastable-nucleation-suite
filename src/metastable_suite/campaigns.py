@@ -1,28 +1,28 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import datetime, timezone
-from enum import Enum
 import hashlib
 import heapq
 import json
+from collections.abc import Callable, Mapping
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Mapping
+from typing import Any
 
-from rdflib import Graph, RDF, URIRef
+from rdflib import RDF, Graph, URIRef
 
 from .datasets import read_events, sha256_file
 from .execution import (
+    MNS,
     BackendRegistry,
     ExecutionRequest,
-    MNS,
     execute_request,
     request_from_graph,
     result_to_abox,
     safe_output_path,
     validate_run_id,
 )
-
 
 CompletedArtifactValidator = Callable[[Path], bool]
 

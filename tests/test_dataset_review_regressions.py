@@ -1,5 +1,5 @@
-from dataclasses import replace
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -10,7 +10,6 @@ from metastable_suite.datasets import (
     verify_manifest,
     write_events,
 )
-
 
 ROOT = Path(__file__).resolve().parents[1]
 EVENT_SCHEMA = json.loads(

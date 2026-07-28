@@ -2,13 +2,13 @@
 from __future__ import annotations
 
 import argparse
-from difflib import SequenceMatcher
 import json
-from pathlib import Path
 import re
 import sys
 import time
 import unicodedata
+from difflib import SequenceMatcher
+from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote
 from urllib.request import Request, urlopen

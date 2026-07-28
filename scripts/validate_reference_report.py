@@ -4,9 +4,8 @@ from __future__ import annotations
 import argparse
 import json
 import math
-from pathlib import Path
 import sys
-
+from pathlib import Path
 
 EXPECTED_KEYS = {
     "seed_odds_ratio_gt_1",
