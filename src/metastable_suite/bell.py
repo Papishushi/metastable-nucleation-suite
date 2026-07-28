@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+
 import numpy as np
 
 ANGLES_A = np.array([0.0, math.pi / 4])

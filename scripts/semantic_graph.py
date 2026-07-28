@@ -3,8 +3,8 @@ from __future__ import annotations
 
 import argparse
 import json
-from pathlib import Path
 import re
+from pathlib import Path
 from urllib.parse import quote
 
 from metastable_suite.semantic import execute_query, load_abox, load_tbox, union_graphs, validate_abox

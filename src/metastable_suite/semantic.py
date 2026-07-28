@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import json
+from collections.abc import Iterable, Sequence
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Sequence
 
 from jsonschema import Draft202012Validator, FormatChecker
 from pyshacl import validate
-from rdflib import Graph, Namespace, RDF, URIRef
+from rdflib import RDF, Graph, Namespace, URIRef
 
 MNS = Namespace("https://w3id.org/metastable-nucleation-suite/ontology#")
 

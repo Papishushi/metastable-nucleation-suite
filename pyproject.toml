@@ -22,7 +22,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "pytest>=8",
-  "ruff>=0.5",
+  "ruff==0.16.0",
   "pyarrow>=16",
   "build>=1.2",
   "packaging>=24",
@@ -44,3 +44,4 @@ testpaths = ["tests"]
 
 [tool.ruff]
 line-length = 110
+target-version = "py310"

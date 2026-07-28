@@ -4,11 +4,11 @@ from __future__ import annotations
 import argparse
 import gzip
 import os
-from pathlib import Path
 import stat
 import tarfile
 import time
 import zipfile
+from pathlib import Path
 
 
 def normalized_epoch() -> int:
@@ -33,19 +33,31 @@ def write_zip(source: Path, output: Path, epoch: int) -> None:
 
 
 def write_tar_gz(source: Path, output: Path, epoch: int) -> None:
-    with output.open("wb") as raw:
-        with gzip.GzipFile(filename="", mode="wb", fileobj=raw, mtime=epoch, compresslevel=9) as compressed:
-            with tarfile.open(fileobj=compressed, mode="w", format=tarfile.PAX_FORMAT) as archive:
-                for path in relative_files(source):
-                    relative = path.relative_to(source).as_posix()
-                    info = archive.gettarinfo(path, arcname=relative)
-                    info.uid = 0
-                    info.gid = 0
-                    info.uname = ""
-                    info.gname = ""
-                    info.mtime = epoch
-                    with path.open("rb") as content:
-                        archive.addfile(info, content)
+    with (
+        output.open("wb") as raw,
+        gzip.GzipFile(
+            filename="",
+            mode="wb",
+            fileobj=raw,
+            mtime=epoch,
+            compresslevel=9,
+        ) as compressed,
+        tarfile.open(
+            fileobj=compressed,
+            mode="w",
+            format=tarfile.PAX_FORMAT,
+        ) as archive,
+    ):
+        for path in relative_files(source):
+            relative = path.relative_to(source).as_posix()
+            info = archive.gettarinfo(path, arcname=relative)
+            info.uid = 0
+            info.gid = 0
+            info.uname = ""
+            info.gname = ""
+            info.mtime = epoch
+            with path.open("rb") as content:
+                archive.addfile(info, content)
 
 
 def main() -> int:

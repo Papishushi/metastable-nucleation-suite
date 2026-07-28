@@ -1,7 +1,7 @@
-from dataclasses import replace
 import json
-from pathlib import Path
 import shutil
+from dataclasses import replace
+from pathlib import Path
 
 import pytest
 from jsonschema import Draft202012Validator

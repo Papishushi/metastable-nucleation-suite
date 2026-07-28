@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Iterable, Iterator, Mapping
 from pathlib import Path
-from typing import Iterable, Iterator, Mapping
 
 from .dataset_models import DatasetManifest, DatasetPartitionManifest, sha256_file
 from .dataset_ndjson import EventDatasetWriter, read_ndjson_events, write_ndjson_events

@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
 import json
-from pathlib import Path
 import shutil
-from typing import Iterable, Iterator, Mapping
+from collections.abc import Iterable, Iterator, Mapping
+from datetime import datetime, timezone
+from pathlib import Path
 
 from .dataset_models import (
+    PARQUET_MEDIA_TYPE,
     DatasetManifest,
     DatasetPartitionManifest,
-    PARQUET_MEDIA_TYPE,
     aggregate_dataset_hash,
     event_validator,
     sha256_file,
@@ -33,7 +33,7 @@ def _pyarrow():
 
 def _temporary_partition_path(base: Path, index: int) -> Path:
     suffix = base.suffix or ".parquet"
-    stem = base.name[: -len(suffix)] if base.name.endswith(suffix) else base.name
+    stem = base.name.removesuffix(suffix)
     return base.with_name(f".{stem}.part-{index:05d}{suffix}.tmp")
 
 

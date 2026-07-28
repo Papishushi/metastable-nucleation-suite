@@ -3,10 +3,9 @@ from __future__ import annotations
 
 import argparse
 import json
-from pathlib import Path
 import re
+from pathlib import Path
 from typing import Any
-
 
 REQUIRED_PATHS = {
     "/v1/capabilities": "get",
@@ -72,14 +71,14 @@ def validate_openapi(document: dict[str, Any]) -> None:
         raise ValueError("control-plane OpenAPI must use 3.1.0")
     paths = document.get("paths")
     if not isinstance(paths, dict):
-        raise ValueError("control-plane OpenAPI has no paths object")
+        raise TypeError("control-plane OpenAPI has no paths object")
     for path, method in REQUIRED_PATHS.items():
         path_item = paths.get(path)
         if not isinstance(path_item, dict) or method not in path_item:
             raise ValueError(f"missing OpenAPI operation: {method.upper()} {path}")
         operation = path_item[method]
         if not isinstance(operation, dict):
-            raise ValueError(f"invalid OpenAPI operation: {method.upper()} {path}")
+            raise TypeError(f"invalid OpenAPI operation: {method.upper()} {path}")
 
         expected_parameters = set(re.findall(r"{([^{}]+)}", path))
         declared_parameters = {
@@ -142,10 +141,10 @@ def validate_openapi(document: dict[str, Any]) -> None:
 
     experiment_request = schemas["ExperimentRequest"]
     if not isinstance(experiment_request, dict):
-        raise ValueError("ExperimentRequest must be an object schema")
+        raise TypeError("ExperimentRequest must be an object schema")
     declared_properties = experiment_request.get("properties")
     if not isinstance(declared_properties, dict):
-        raise ValueError("ExperimentRequest must declare its properties")
+        raise TypeError("ExperimentRequest must declare its properties")
     if set(declared_properties) != EXPERIMENT_REQUEST_PROPERTIES:
         raise ValueError(
             "ExperimentRequest properties must be "
@@ -176,7 +175,7 @@ def validate_openapi(document: dict[str, Any]) -> None:
             raise ValueError(f"Run {timestamp} must use the date-time format")
     transitions = run_properties["transitions"]
     if not isinstance(transitions, dict):
-        raise ValueError("Run transitions must be an array schema")
+        raise TypeError("Run transitions must be an array schema")
     transition_properties = transitions.get("items", {}).get("properties", {})
     if set(transition_properties) != {"state", "at_utc", "reason"}:
         raise ValueError("Run transitions must declare state, at_utc and reason")

@@ -3,7 +3,6 @@ from pathlib import Path
 
 from metastable_suite.datasets import read_events, write_events
 
-
 ROOT = Path(__file__).resolve().parents[1]
 EVENT_SCHEMA = json.loads((ROOT / "schemas" / "event.schema.json").read_text(encoding="utf-8"))
 

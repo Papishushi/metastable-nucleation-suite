@@ -3,8 +3,8 @@ from __future__ import annotations
 
 import argparse
 import json
+from collections.abc import Callable, Iterable
 from pathlib import Path
-from typing import Callable, Iterable
 
 from rdflib import Graph, URIRef
 
@@ -61,7 +61,7 @@ def _completed_artifact_validator(ontology: Graph) -> Callable[[Path], bool]:
         try:
             graph = load_abox(path, ABOX_SCHEMA)
             return validate_abox(graph, SHAPES, ontology).conforms
-        except Exception:
+        except Exception:  # noqa: BLE001 -- reject any unreadable or invalid artifact
             return False
 
     return validate

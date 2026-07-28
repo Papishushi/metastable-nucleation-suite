@@ -6,7 +6,6 @@ import pytest
 
 from scripts.semantic_execute import main
 
-
 ROOT = Path(__file__).resolve().parents[1]
 CAMPAIGN_PLAN = ROOT / "ontology" / "examples" / "planned-campaign.jsonld"
 RESOURCE = "https://w3id.org/metastable-nucleation-suite/resource/"

@@ -1,5 +1,4 @@
 import json
-import socket
 
 import pytest
 
@@ -47,7 +46,7 @@ class FakeSocket:
 
 
 def test_tcp_transport_reconnects_after_timeout():
-    first = FakeSocket(recv_error=socket.timeout("slow"))
+    first = FakeSocket(recv_error=TimeoutError("slow"))
     second = FakeSocket(responses=[b'{"ok":true,"value":7}\n'])
     sockets = iter([first, second])
     transport = TCPTransport(
@@ -67,7 +66,7 @@ def test_tcp_transport_reconnects_after_timeout():
 
 
 def test_tcp_transport_drops_terminal_timeout_before_next_command():
-    first = FakeSocket(recv_error=socket.timeout("slow"))
+    first = FakeSocket(recv_error=TimeoutError("slow"))
     second = FakeSocket(responses=[b'{"ok":true,"value":8}\n'])
     sockets = iter([first, second])
     transport = TCPTransport(
@@ -251,7 +250,7 @@ def test_exhausted_trial_transport_failure_is_preserved_as_invalid_trial():
     )
     backend = TransportCommandBackend(transport, backend_id="counter-a")
     backend.prepare("E09", {})
-    connection.recv_error = socket.timeout("device stalled")
+    connection.recv_error = TimeoutError("device stalled")
 
     result = backend.execute_trial(TrialRequest("run-1", "E09", 0))
 

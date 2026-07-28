@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import os
-from pathlib import Path
 import re
+from datetime import datetime, timezone
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from typing import Any
 from uuid import UUID
 
@@ -84,7 +84,8 @@ def capability_manifest(*, generated_at_utc: str | None = None) -> dict[str, Any
 
 def canonical_request_id(value: object) -> str:
     if not isinstance(value, str):
-        raise ValueError("request_id must be a UUID string")
+        # Preserve the public validation contract: malformed envelope values raise ValueError.
+        raise ValueError("request_id must be a UUID string")  # noqa: TRY004
     return str(UUID(value))
 
 

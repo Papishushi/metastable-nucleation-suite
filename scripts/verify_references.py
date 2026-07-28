@@ -2,13 +2,13 @@
 from __future__ import annotations
 
 import argparse
-from difflib import SequenceMatcher
 import json
-from pathlib import Path
 import re
 import sys
 import time
 import unicodedata
+from difflib import SequenceMatcher
+from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote
 from urllib.request import Request, urlopen
@@ -133,9 +133,12 @@ def validate_metadata(key: str, fields: dict[str, str], metadata: dict) -> list[
 
     bib_pages = fields.get("pages")
     registered_pages = metadata.get("page") or metadata.get("article-number")
-    if bib_pages and registered_pages:
-        if normalize_text(bib_pages) != normalize_text(str(registered_pages)):
-            errors.append(f"{key}: pages mismatch: bib={bib_pages!r}, Crossref={registered_pages!r}")
+    if (
+        bib_pages
+        and registered_pages
+        and normalize_text(bib_pages) != normalize_text(str(registered_pages))
+    ):
+        errors.append(f"{key}: pages mismatch: bib={bib_pages!r}, Crossref={registered_pages!r}")
 
     return errors
 

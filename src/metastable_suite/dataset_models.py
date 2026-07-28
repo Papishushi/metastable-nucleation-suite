@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import hashlib
+import re
+from collections.abc import Iterable, Mapping
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime
-import hashlib
 from pathlib import Path
-import re
-from typing import Any, Iterable, Mapping
+from typing import Any
 
 from jsonschema import Draft202012Validator, FormatChecker
 

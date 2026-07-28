@@ -1,5 +1,6 @@
 import numpy as np
-from metastable_suite.nucleation import sample_competing_hazards, hazard_ratio_from_seed
+
+from metastable_suite.nucleation import hazard_ratio_from_seed, sample_competing_hazards
 
 
 def test_seed_increases_state_one_odds():

@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
-from dataclasses import dataclass
 import json
 import socket
 import time
-from typing import Any, Callable, Mapping, Protocol
+from abc import ABC, abstractmethod
+from collections.abc import Callable, Mapping
+from contextlib import suppress
+from dataclasses import dataclass
+from typing import Any, Protocol
 
 
 class TransportError(RuntimeError):
@@ -97,11 +99,9 @@ class JsonCommandTransport(ABC):
                 delay = min(delay * self.retry_policy.backoff, self.retry_policy.maximum_delay_s)
 
         assert last_error is not None
-        try:
+        # Preserve the terminal transport error even if closing the failed handle also fails.
+        with suppress(Exception):
             self.disconnect()
-        except Exception:
-            # Preserve the terminal transport error even if closing the failed handle also fails.
-            pass
         raise last_error
 
 
@@ -145,7 +145,7 @@ class TCPTransport(JsonCommandTransport):
         connection.settimeout(self.timeout_s)
         try:
             connection.connect((self.host, self.port))
-        except socket.timeout as exc:
+        except TimeoutError as exc:
             connection.close()
             raise TransportTimeout(f"TCP connection to {self.host}:{self.port} timed out") from exc
         except OSError as exc:
@@ -177,7 +177,7 @@ class TCPTransport(JsonCommandTransport):
                 newline = response.find(b"\n")
                 if newline >= 0:
                     return bytes(response[:newline])
-        except socket.timeout as exc:
+        except TimeoutError as exc:
             raise TransportTimeout("TCP device response timed out") from exc
         except TransportError:
             raise
@@ -348,15 +348,11 @@ class VisaTransport(JsonCommandTransport):
         self._resource = None
         self._manager = None
         if resource is not None:
-            try:
+            with suppress(Exception):
                 resource.close()
-            except Exception:
-                pass
         if manager is not None:
-            try:
+            with suppress(Exception):
                 manager.close()
-            except Exception:
-                pass
 
     def _round_trip(self, payload: bytes) -> bytes:
         if self._resource is None:
