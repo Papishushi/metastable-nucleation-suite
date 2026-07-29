@@ -22,6 +22,7 @@ def _build_parser() -> argparse.ArgumentParser:
         choices=["measured", "engineering_scenario", "speculative_bound"],
         default="engineering_scenario",
     )
+    parser.add_argument("--notes", default="", help="scenario assumptions and caveats")
     parser.add_argument("--active-material-density-kg-m3", type=float)
     parser.add_argument("--cell-pitch-nm", type=float)
     parser.add_argument("--states", type=int)
@@ -75,6 +76,7 @@ def main() -> int:
                 operations_per_cell_event=args.operations_per_event,
                 multiplexing_factor=args.multiplexing_factor,
                 temperature_k=args.temperature_k,
+                notes=args.notes,
             )
             payload: object = scenario.as_dict(args.power_budget_w_per_active_kg)
         else:
