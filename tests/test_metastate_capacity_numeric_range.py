@@ -84,6 +84,33 @@ def test_full_rewrite_energy_per_active_mass_must_not_underflow() -> None:
         )
 
 
+def _minimal_thermal_scenario() -> MetastateCapacityScenario:
+    return MetastateCapacityScenario(
+        name="minimal-thermal-efficiency",
+        evidence_level="engineering_scenario",
+        active_material_density_kg_m3=2000.0,
+        cell_pitch_nm=100.0,
+        distinguishable_states=2,
+        operation_energy_j_per_cell_event=1.0,
+        operations_per_cell_event=5e-324,
+    )
+
+
+def test_positive_thermal_budget_must_not_underflow_to_zero() -> None:
+    scenario = _minimal_thermal_scenario()
+
+    with pytest.raises(
+        ValueError, match="thermal_limited_operations_s_per_active_kg must be positive"
+    ):
+        scenario.thermal_limited_operations_s_per_active_kg(0.5)
+
+
+def test_zero_thermal_budget_may_produce_exact_zero() -> None:
+    scenario = _minimal_thermal_scenario()
+
+    assert scenario.thermal_limited_operations_s_per_active_kg(0.0) == 0.0
+
+
 def test_cli_rejects_underflowing_cell_pitch_without_traceback() -> None:
     script = Path(__file__).resolve().parents[1] / "scripts" / "metastate_capacity.py"
     result = subprocess.run(
@@ -184,5 +211,37 @@ def test_cli_rejects_rewrite_energy_underflow_without_reporting_free_energy() ->
     assert result.returncode == 1
     assert "full_rewrite_energy_j_per_total_m3 must be positive" in result.stderr
     assert '"full_rewrite_energy_j_per_total_m3": 0.0' not in result.stdout
+    assert "JSON encoding failed" not in result.stderr
+    assert "Traceback" not in result.stderr
+
+
+def test_cli_rejects_positive_thermal_ceiling_underflow() -> None:
+    script = Path(__file__).resolve().parents[1] / "scripts" / "metastate_capacity.py"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(script),
+            "--custom",
+            "--active-material-density-kg-m3",
+            "2000",
+            "--cell-pitch-nm",
+            "100",
+            "--states",
+            "2",
+            "--operation-energy-j",
+            "1",
+            "--operations-per-event",
+            "5e-324",
+            "--power-budget-w-per-active-kg",
+            "0.5",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 1
+    assert "thermal_limited_operations_s_per_active_kg must be positive" in result.stderr
+    assert '"thermal_limited_operations_s_per_active_kg": 0.0' not in result.stdout
     assert "JSON encoding failed" not in result.stderr
     assert "Traceback" not in result.stderr
