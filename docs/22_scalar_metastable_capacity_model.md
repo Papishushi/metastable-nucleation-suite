@@ -6,8 +6,8 @@ Este documento define un modelo paramétrico para medios tridimensionales formad
 
 El modelo estima:
 
-- densidad de información por volumen total modelado;
-- densidad de información por kilogramo de material activo;
+- densidad de información bruta y útil por volumen total modelado;
+- densidad de información bruta y útil por kilogramo de material activo;
 - energía activa de reescritura con ambas bases;
 - límite termodinámico de Landauer;
 - techos geométricos de operaciones;
@@ -53,7 +53,8 @@ El modelo está implementado en:
 
 - `src/metastable_suite/metastate_capacity.py`;
 - `scripts/metastate_capacity.py`;
-- `tests/test_metastate_capacity.py`.
+- `tests/test_metastate_capacity.py`;
+- `tests/test_metastate_capacity_numeric_range.py`.
 
 Sin argumentos personalizados, la CLI devuelve los escenarios de referencia:
 
@@ -68,12 +69,14 @@ python scripts/metastate_capacity.py \
   --power-budget-w-per-active-kg 1000
 ```
 
-Un escenario personalizado requiere densidad del material activo, pitch de celda y número de estados:
+Un escenario personalizado requiere densidad del material activo, pitch de celda y número de estados. El resto de entradas queda declarado mediante flags o valores predeterminados visibles en el JSON:
 
 ```bash
 python scripts/metastate_capacity.py \
   --custom \
   --name example \
+  --evidence-level engineering_scenario \
+  --notes "Sensitivity inputs; not jointly demonstrated." \
   --active-material-density-kg-m3 6100 \
   --cell-pitch-nm 100 \
   --states 16 \
@@ -106,7 +109,9 @@ Para un pitch cúbico \(a\), fracción activa \(f\) y eficiencia de codificació
 \[
 N_{cell,V}=\frac{f}{a^3},
 \qquad
-B_V=\frac{f\,\eta\,\log_2 K}{a^3}.
+B_{raw,V}=\frac{f\,\log_2 K}{a^3},
+\qquad
+B_{usable,V}=\frac{f\,\eta\,\log_2 K}{a^3}.
 \]
 
 Estas magnitudes utilizan volumen total modelado. `coding_efficiency` agrupa ECC, guardas, calibración, celdas defectuosas y margen entre niveles.
@@ -129,15 +134,19 @@ N_{cell,M_a}
 \frac{1}{a^3\rho}.
 \]
 
-La densidad útil por kilogramo activo es:
+Las densidades bruta y útil por kilogramo activo son:
 
 \[
-B_{M_a}
+B_{raw,M_a}
+=
+\frac{\log_2 K}{a^3\rho},
+\qquad
+B_{usable,M_a}
 =
 \frac{\eta\log_2 K}{a^3\rho}.
 \]
 
-La fracción activa \(f\) se cancela. Aplicarla de nuevo en esta ecuación mezclaría masa activa con masa de sistema y subestimaría artificialmente las magnitudes por kilogramo activo.
+La fracción activa \(f\) se cancela. Aplicarla de nuevo en estas ecuaciones mezclaría masa activa con masa de sistema y subestimaría artificialmente las magnitudes por kilogramo activo.
 
 ## 22.7 Energía de escritura
 
