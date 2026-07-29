@@ -110,6 +110,7 @@ class MetastateCapacityScenario:
                 self.active_material_mass_kg_per_total_m3,
             ),
             ("raw_bits_per_total_m3", self.raw_bits_per_total_m3),
+            ("raw_bits_per_active_kg", self.raw_bits_per_active_kg),
             ("usable_bits_per_total_m3", self.usable_bits_per_total_m3),
             ("usable_bits_per_active_kg", self.usable_bits_per_active_kg),
             (
@@ -187,12 +188,16 @@ class MetastateCapacityScenario:
         return self.cells_per_total_m3 * self.bits_per_cell
 
     @property
+    def raw_bits_per_active_kg(self) -> float:
+        return self.cells_per_active_kg * self.bits_per_cell
+
+    @property
     def usable_bits_per_total_m3(self) -> float:
         return self.raw_bits_per_total_m3 * self.coding_efficiency
 
     @property
     def usable_bits_per_active_kg(self) -> float:
-        return self.cells_per_active_kg * self.bits_per_cell * self.coding_efficiency
+        return self.raw_bits_per_active_kg * self.coding_efficiency
 
     @property
     def usable_decimal_tb_per_active_kg(self) -> float:
@@ -320,6 +325,7 @@ class MetastateCapacityScenario:
                 "active_material_mass_kg_per_total_m3": self.active_material_mass_kg_per_total_m3,
                 "cells_per_active_kg": self.cells_per_active_kg,
                 "raw_bits_per_total_m3": self.raw_bits_per_total_m3,
+                "raw_bits_per_active_kg": self.raw_bits_per_active_kg,
                 "usable_bits_per_total_m3": self.usable_bits_per_total_m3,
                 "usable_bits_per_active_kg": self.usable_bits_per_active_kg,
                 "usable_decimal_tb_per_active_kg": self.usable_decimal_tb_per_active_kg,
