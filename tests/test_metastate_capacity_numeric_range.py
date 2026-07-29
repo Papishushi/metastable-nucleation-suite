@@ -23,6 +23,17 @@ def test_cell_pitch_must_produce_a_finite_positive_cell_volume(
         )
 
 
+def test_active_cell_mass_must_remain_finite_and_positive() -> None:
+    with pytest.raises(ValueError, match="non-finite or zero active cell mass"):
+        MetastateCapacityScenario(
+            name="invalid-active-cell-mass",
+            evidence_level="engineering_scenario",
+            active_material_density_kg_m3=1e-308,
+            cell_pitch_nm=1.0,
+            distinguishable_states=2,
+        )
+
+
 def test_cli_rejects_underflowing_cell_pitch_without_traceback() -> None:
     script = Path(__file__).resolve().parents[1] / "scripts" / "metastate_capacity.py"
     result = subprocess.run(
@@ -44,5 +55,30 @@ def test_cli_rejects_underflowing_cell_pitch_without_traceback() -> None:
 
     assert result.returncode == 1
     assert "Estimation failed: cell_pitch_nm produces a non-finite or zero cell volume" in result.stderr
+    assert "ZeroDivisionError" not in result.stderr
+    assert "Traceback" not in result.stderr
+
+
+def test_cli_rejects_underflowing_active_cell_mass_without_traceback() -> None:
+    script = Path(__file__).resolve().parents[1] / "scripts" / "metastate_capacity.py"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(script),
+            "--custom",
+            "--active-material-density-kg-m3",
+            "1e-308",
+            "--cell-pitch-nm",
+            "1",
+            "--states",
+            "2",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 1
+    assert "non-finite or zero active cell mass" in result.stderr
     assert "ZeroDivisionError" not in result.stderr
     assert "Traceback" not in result.stderr
