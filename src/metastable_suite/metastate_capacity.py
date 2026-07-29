@@ -86,6 +86,70 @@ class MetastateCapacityScenario:
         _require_finite_positive("multiplexing_factor", self.multiplexing_factor)
         _require_finite_positive("temperature_k", self.temperature_k)
 
+        for field_name, value in (
+            (
+                "full_rewrite_energy_j_per_total_m3",
+                self.full_rewrite_energy_j_per_total_m3,
+            ),
+            (
+                "full_rewrite_energy_j_per_active_kg",
+                self.full_rewrite_energy_j_per_active_kg,
+            ),
+            (
+                "full_rewrite_energy_kwh_per_active_kg",
+                self.full_rewrite_energy_kwh_per_active_kg,
+            ),
+        ):
+            _require_optional_finite_positive(field_name, value)
+
+        for field_name, value in (
+            ("bits_per_cell", self.bits_per_cell),
+            ("cells_per_total_m3", self.cells_per_total_m3),
+            (
+                "active_material_mass_kg_per_total_m3",
+                self.active_material_mass_kg_per_total_m3,
+            ),
+            ("raw_bits_per_total_m3", self.raw_bits_per_total_m3),
+            ("usable_bits_per_total_m3", self.usable_bits_per_total_m3),
+            ("usable_bits_per_active_kg", self.usable_bits_per_active_kg),
+            (
+                "usable_decimal_tb_per_active_kg",
+                self.usable_decimal_tb_per_active_kg,
+            ),
+            (
+                "usable_decimal_pb_per_active_kg",
+                self.usable_decimal_pb_per_active_kg,
+            ),
+            ("landauer_j_per_erased_bit", self.landauer_j_per_erased_bit),
+            (
+                "landauer_full_erase_j_per_total_m3",
+                self.landauer_full_erase_j_per_total_m3,
+            ),
+            (
+                "landauer_full_erase_j_per_active_kg",
+                self.landauer_full_erase_j_per_active_kg,
+            ),
+            ("operations_per_cell_event_total", self.operations_per_cell_event_total),
+            ("operations_per_joule", self.operations_per_joule),
+            (
+                "geometry_limited_operations_s_per_total_m3",
+                self.geometry_limited_operations_s_per_total_m3,
+            ),
+            (
+                "geometry_limited_operations_s_per_active_kg",
+                self.geometry_limited_operations_s_per_active_kg,
+            ),
+            (
+                "geometry_limited_dynamic_power_w_per_total_m3",
+                self.geometry_limited_dynamic_power_w_per_total_m3,
+            ),
+            (
+                "geometry_limited_dynamic_power_w_per_active_kg",
+                self.geometry_limited_dynamic_power_w_per_active_kg,
+            ),
+        ):
+            _require_optional_finite_positive(field_name, value)
+
     @property
     def cell_pitch_m(self) -> float:
         return self.cell_pitch_nm * 1e-9
@@ -229,7 +293,11 @@ class MetastateCapacityScenario:
         )
         if self.operations_per_joule is None:
             return None
-        return power_budget_w_per_active_kg * self.operations_per_joule
+        result = power_budget_w_per_active_kg * self.operations_per_joule
+        _require_finite_positive(
+            "thermal_limited_operations_s_per_active_kg", result, allow_zero=True
+        )
+        return result
 
     def as_dict(
         self, power_budget_w_per_active_kg: float | None = None
