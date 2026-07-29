@@ -61,6 +61,10 @@ class MetastateCapacityScenario:
             raise ValueError(
                 "cell volume and active material density produce a non-finite or zero active cell mass"
             )
+        if not math.isfinite(self.cells_per_modelled_m3):
+            raise ValueError("cell volume produces a non-finite volumetric cell density")
+        if not math.isfinite(self.cells_per_active_kg):
+            raise ValueError("active cell mass produces a non-finite mass-specific cell density")
         if not isinstance(self.distinguishable_states, int):
             raise TypeError("distinguishable_states must be an integer")
         if self.distinguishable_states < 2:
@@ -95,12 +99,16 @@ class MetastateCapacityScenario:
         return self.cell_volume_m3 * self.active_material_density_kg_m3
 
     @property
+    def cells_per_modelled_m3(self) -> float:
+        return 1.0 / self.cell_volume_m3
+
+    @property
     def bits_per_cell(self) -> float:
         return math.log2(self.distinguishable_states)
 
     @property
     def cells_per_total_m3(self) -> float:
-        return self.active_volume_fraction / self.cell_volume_m3
+        return self.active_volume_fraction * self.cells_per_modelled_m3
 
     @property
     def active_material_mass_kg_per_total_m3(self) -> float:
