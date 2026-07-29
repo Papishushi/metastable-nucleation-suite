@@ -295,7 +295,9 @@ class MetastateCapacityScenario:
             return None
         result = power_budget_w_per_active_kg * self.operations_per_joule
         _require_finite_positive(
-            "thermal_limited_operations_s_per_active_kg", result, allow_zero=True
+            "thermal_limited_operations_s_per_active_kg",
+            result,
+            allow_zero=power_budget_w_per_active_kg == 0,
         )
         return result
 
