@@ -55,6 +55,8 @@ class MetastateCapacityScenario:
             "active_material_density_kg_m3", self.active_material_density_kg_m3
         )
         _require_finite_positive("cell_pitch_nm", self.cell_pitch_nm)
+        if not math.isfinite(self.cell_volume_m3) or self.cell_volume_m3 <= 0:
+            raise ValueError("cell_pitch_nm produces a non-finite or zero cell volume")
         if not isinstance(self.distinguishable_states, int):
             raise TypeError("distinguishable_states must be an integer")
         if self.distinguishable_states < 2:
@@ -81,12 +83,16 @@ class MetastateCapacityScenario:
         return self.cell_pitch_nm * 1e-9
 
     @property
+    def cell_volume_m3(self) -> float:
+        return self.cell_pitch_m * self.cell_pitch_m * self.cell_pitch_m
+
+    @property
     def bits_per_cell(self) -> float:
         return math.log2(self.distinguishable_states)
 
     @property
     def cells_per_total_m3(self) -> float:
-        return self.active_volume_fraction / self.cell_pitch_m**3
+        return self.active_volume_fraction / self.cell_volume_m3
 
     @property
     def active_material_mass_kg_per_total_m3(self) -> float:
@@ -94,7 +100,7 @@ class MetastateCapacityScenario:
 
     @property
     def cells_per_active_kg(self) -> float:
-        return 1.0 / (self.cell_pitch_m**3 * self.active_material_density_kg_m3)
+        return 1.0 / (self.cell_volume_m3 * self.active_material_density_kg_m3)
 
     @property
     def raw_bits_per_total_m3(self) -> float:
