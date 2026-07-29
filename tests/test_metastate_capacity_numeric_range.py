@@ -34,6 +34,28 @@ def test_active_cell_mass_must_remain_finite_and_positive() -> None:
         )
 
 
+def test_volumetric_cell_density_must_remain_finite() -> None:
+    with pytest.raises(ValueError, match="non-finite volumetric cell density"):
+        MetastateCapacityScenario(
+            name="invalid-volumetric-density",
+            evidence_level="engineering_scenario",
+            active_material_density_kg_m3=2000.0,
+            cell_pitch_nm=1e-94,
+            distinguishable_states=2,
+        )
+
+
+def test_mass_specific_cell_density_must_remain_finite() -> None:
+    with pytest.raises(ValueError, match="non-finite mass-specific cell density"):
+        MetastateCapacityScenario(
+            name="invalid-mass-specific-density",
+            evidence_level="engineering_scenario",
+            active_material_density_kg_m3=1e-20,
+            cell_pitch_nm=1e-90,
+            distinguishable_states=2,
+        )
+
+
 def test_cli_rejects_underflowing_cell_pitch_without_traceback() -> None:
     script = Path(__file__).resolve().parents[1] / "scripts" / "metastate_capacity.py"
     result = subprocess.run(
@@ -81,4 +103,30 @@ def test_cli_rejects_underflowing_active_cell_mass_without_traceback() -> None:
     assert result.returncode == 1
     assert "non-finite or zero active cell mass" in result.stderr
     assert "ZeroDivisionError" not in result.stderr
+    assert "Traceback" not in result.stderr
+
+
+def test_cli_rejects_reciprocal_cell_density_overflow_without_json_failure() -> None:
+    script = Path(__file__).resolve().parents[1] / "scripts" / "metastate_capacity.py"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(script),
+            "--custom",
+            "--active-material-density-kg-m3",
+            "2000",
+            "--cell-pitch-nm",
+            "1e-94",
+            "--states",
+            "2",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 1
+    assert "non-finite volumetric cell density" in result.stderr
+    assert "JSON encoding failed" not in result.stderr
+    assert "Infinity" not in result.stdout
     assert "Traceback" not in result.stderr
