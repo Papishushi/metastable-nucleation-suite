@@ -43,6 +43,7 @@ def test_volume_and_active_mass_bases_are_separated() -> None:
     assert scenario.active_material_mass_kg_per_total_m3 == pytest.approx(1000.0)
     assert scenario.cells_per_active_kg == pytest.approx(5e17)
     assert scenario.raw_bits_per_total_m3 == pytest.approx(2e21)
+    assert scenario.raw_bits_per_active_kg == pytest.approx(2e18)
     assert scenario.usable_bits_per_total_m3 == pytest.approx(1.5e21)
     assert scenario.usable_bits_per_active_kg == pytest.approx(1.5e18)
     assert scenario.usable_decimal_tb_per_active_kg == pytest.approx(187_500.0)
@@ -56,6 +57,7 @@ def test_active_volume_fraction_changes_volume_not_active_mass_metrics() -> None
         dense.usable_bits_per_total_m3 * 0.2
     )
     assert sparse.cells_per_active_kg == pytest.approx(dense.cells_per_active_kg)
+    assert sparse.raw_bits_per_active_kg == pytest.approx(dense.raw_bits_per_active_kg)
     assert sparse.usable_bits_per_active_kg == pytest.approx(
         dense.usable_bits_per_active_kg
     )
@@ -134,6 +136,12 @@ def test_cli_emits_strict_json_with_null_unknowns() -> None:
             sys.executable,
             str(SCRIPT),
             "--custom",
+            "--name",
+            "documented-custom",
+            "--evidence-level",
+            "speculative_bound",
+            "--notes",
+            "Inputs are a sensitivity case, not jointly demonstrated.",
             "--active-material-density-kg-m3",
             "2200",
             "--cell-pitch-nm",
@@ -149,6 +157,14 @@ def test_cli_emits_strict_json_with_null_unknowns() -> None:
     )
     assert result.returncode == 0, result.stderr
     payload = json.loads(result.stdout)
+    assert payload["name"] == "documented-custom"
+    assert payload["evidence_level"] == "speculative_bound"
+    assert payload["notes"] == "Inputs are a sensitivity case, not jointly demonstrated."
+    assert payload["volume_basis"] == "total_modelled_medium"
+    assert payload["mass_basis"] == "active_material_only"
+    assert payload["raw_bits_per_active_kg"] == pytest.approx(
+        payload["usable_bits_per_active_kg"]
+    )
     assert payload["operations_per_joule"] is None
     assert payload["thermal_limited_operations_s_per_active_kg"] is None
     assert "Infinity" not in result.stdout
