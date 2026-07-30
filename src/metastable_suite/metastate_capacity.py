@@ -3,10 +3,44 @@ from __future__ import annotations
 import math
 from collections.abc import Iterable
 from dataclasses import asdict, dataclass
+from typing import SupportsFloat
 
 BOLTZMANN_CONSTANT_J_PER_K = 1.380649e-23
 EVIDENCE_LEVELS = {"measured", "engineering_scenario", "speculative_bound"}
 JSON_SAFE_INTEGER_MAX = (1 << 53) - 1
+
+_REAL_INPUT_FIELDS = (
+    "active_material_density_kg_m3",
+    "cell_pitch_nm",
+    "active_volume_fraction",
+    "coding_efficiency",
+    "active_utilization",
+    "operations_per_cell_event",
+    "multiplexing_factor",
+    "temperature_k",
+)
+_OPTIONAL_REAL_INPUT_FIELDS = (
+    "write_energy_j_per_cell",
+    "operation_energy_j_per_cell_event",
+    "cell_event_rate_hz",
+)
+
+
+def _normalize_real(name: str, value: object) -> float:
+    """Convert an accepted scalar to a finite JSON-native float."""
+    if isinstance(value, bool) or not isinstance(value, SupportsFloat):
+        raise TypeError(f"{name} must be a real number")
+    try:
+        normalized = float(value)
+    except (OverflowError, ValueError) as exc:
+        raise ValueError(f"{name} must be representable as a float") from exc
+    if not math.isfinite(normalized):
+        raise ValueError(f"{name} must be finite")
+    return normalized
+
+
+def _normalize_optional_real(name: str, value: object | None) -> float | None:
+    return None if value is None else _normalize_real(name, value)
 
 
 def _require_finite_positive(name: str, value: float, *, allow_zero: bool = False) -> None:
@@ -65,6 +99,24 @@ class MetastateCapacityScenario:
             raise ValueError("unsupported evidence_level")
         if not isinstance(self.notes, str):
             raise TypeError("notes must be a string")
+        if not isinstance(self.distinguishable_states, int):
+            raise TypeError("distinguishable_states must be an integer")
+        if self.distinguishable_states < 2:
+            raise ValueError("distinguishable_states must be at least two")
+
+        for field_name in _REAL_INPUT_FIELDS:
+            object.__setattr__(
+                self,
+                field_name,
+                _normalize_real(field_name, getattr(self, field_name)),
+            )
+        for field_name in _OPTIONAL_REAL_INPUT_FIELDS:
+            object.__setattr__(
+                self,
+                field_name,
+                _normalize_optional_real(field_name, getattr(self, field_name)),
+            )
+
         _require_finite_positive(
             "active_material_density_kg_m3", self.active_material_density_kg_m3
         )
@@ -79,10 +131,6 @@ class MetastateCapacityScenario:
             raise ValueError("cell volume produces a non-finite volumetric cell density")
         if not math.isfinite(self.cells_per_active_kg):
             raise ValueError("active cell mass produces a non-finite mass-specific cell density")
-        if not isinstance(self.distinguishable_states, int):
-            raise TypeError("distinguishable_states must be an integer")
-        if self.distinguishable_states < 2:
-            raise ValueError("distinguishable_states must be at least two")
         for field_name, value in (
             ("active_volume_fraction", self.active_volume_fraction),
             ("coding_efficiency", self.coding_efficiency),
@@ -307,26 +355,36 @@ class MetastateCapacityScenario:
     def thermal_limited_operations_s_per_active_kg(
         self, power_budget_w_per_active_kg: float
     ) -> float | None:
+        normalized_power_budget = _normalize_real(
+            "power_budget_w_per_active_kg", power_budget_w_per_active_kg
+        )
         _require_finite_positive(
-            "power_budget_w_per_active_kg", power_budget_w_per_active_kg, allow_zero=True
+            "power_budget_w_per_active_kg", normalized_power_budget, allow_zero=True
         )
         if self.operations_per_joule is None:
             return None
-        result = power_budget_w_per_active_kg * self.operations_per_joule
+        result = normalized_power_budget * self.operations_per_joule
         _require_finite_positive(
             "thermal_limited_operations_s_per_active_kg",
             result,
-            allow_zero=power_budget_w_per_active_kg == 0,
+            allow_zero=normalized_power_budget == 0,
         )
         return result
 
     def as_dict(
         self, power_budget_w_per_active_kg: float | None = None
     ) -> dict[str, object]:
-        if power_budget_w_per_active_kg is not None:
+        normalized_power_budget = (
+            None
+            if power_budget_w_per_active_kg is None
+            else _normalize_real(
+                "power_budget_w_per_active_kg", power_budget_w_per_active_kg
+            )
+        )
+        if normalized_power_budget is not None:
             _require_finite_positive(
                 "power_budget_w_per_active_kg",
-                power_budget_w_per_active_kg,
+                normalized_power_budget,
                 allow_zero=True,
             )
         payload = asdict(self)
@@ -364,12 +422,12 @@ class MetastateCapacityScenario:
                 "geometry_limited_dynamic_power_w_per_active_kg": (
                     self.geometry_limited_dynamic_power_w_per_active_kg
                 ),
-                "power_budget_w_per_active_kg": power_budget_w_per_active_kg,
+                "power_budget_w_per_active_kg": normalized_power_budget,
                 "thermal_limited_operations_s_per_active_kg": (
                     None
-                    if power_budget_w_per_active_kg is None
+                    if normalized_power_budget is None
                     else self.thermal_limited_operations_s_per_active_kg(
-                        power_budget_w_per_active_kg
+                        normalized_power_budget
                     )
                 ),
             }
