@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -109,6 +110,37 @@ def test_zero_thermal_budget_may_produce_exact_zero() -> None:
     scenario = _minimal_thermal_scenario()
 
     assert scenario.thermal_limited_operations_s_per_active_kg(0.0) == 0.0
+
+
+def test_ordinary_state_count_remains_a_json_integer() -> None:
+    scenario = MetastateCapacityScenario(
+        name="ordinary-state-count",
+        evidence_level="engineering_scenario",
+        active_material_density_kg_m3=2000.0,
+        cell_pitch_nm=100.0,
+        distinguishable_states=16,
+    )
+
+    assert scenario.as_dict()["distinguishable_states"] == 16
+
+
+def test_oversized_state_count_uses_exact_base16_json_encoding() -> None:
+    states = 10**4300
+    scenario = MetastateCapacityScenario(
+        name="oversized-state-count",
+        evidence_level="speculative_bound",
+        active_material_density_kg_m3=2000.0,
+        cell_pitch_nm=100.0,
+        distinguishable_states=states,
+    )
+
+    encoded_payload = json.dumps(scenario.as_dict(), allow_nan=False)
+    encoded_states = json.loads(encoded_payload)["distinguishable_states"]
+
+    assert isinstance(encoded_states, dict)
+    assert encoded_states["encoding"] == "base16"
+    assert encoded_states["value"].startswith("0x")
+    assert int(encoded_states["value"], 16) == states
 
 
 def test_cli_rejects_underflowing_cell_pitch_without_traceback() -> None:
