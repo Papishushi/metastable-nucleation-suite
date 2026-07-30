@@ -7,7 +7,10 @@ from pathlib import Path
 
 import pytest
 
-from metastable_suite.metastate_capacity import MetastateCapacityScenario
+from metastable_suite.metastate_capacity import (
+    JSON_SAFE_INTEGER_MAX,
+    MetastateCapacityScenario,
+)
 
 
 @pytest.mark.parametrize("cell_pitch_nm", [1e-200, 1e200])
@@ -112,29 +115,32 @@ def test_zero_thermal_budget_may_produce_exact_zero() -> None:
     assert scenario.thermal_limited_operations_s_per_active_kg(0.0) == 0.0
 
 
-def test_ordinary_state_count_remains_a_json_integer() -> None:
-    scenario = MetastateCapacityScenario(
-        name="ordinary-state-count",
-        evidence_level="engineering_scenario",
-        active_material_density_kg_m3=2000.0,
-        cell_pitch_nm=100.0,
-        distinguishable_states=16,
-    )
-
-    assert scenario.as_dict()["distinguishable_states"] == 16
-
-
-def test_oversized_state_count_uses_exact_base16_json_encoding() -> None:
-    states = 10**4300
-    scenario = MetastateCapacityScenario(
-        name="oversized-state-count",
+def _state_count_scenario(states: int) -> MetastateCapacityScenario:
+    return MetastateCapacityScenario(
+        name="state-count-encoding",
         evidence_level="speculative_bound",
         active_material_density_kg_m3=2000.0,
         cell_pitch_nm=100.0,
         distinguishable_states=states,
     )
 
-    encoded_payload = json.dumps(scenario.as_dict(), allow_nan=False)
+
+def test_json_safe_state_count_remains_an_integer() -> None:
+    payload = _state_count_scenario(JSON_SAFE_INTEGER_MAX).as_dict()
+
+    assert payload["distinguishable_states"] == JSON_SAFE_INTEGER_MAX
+
+
+def test_first_non_interoperable_state_count_uses_base16_encoding() -> None:
+    states = JSON_SAFE_INTEGER_MAX + 1
+    encoded_states = _state_count_scenario(states).as_dict()["distinguishable_states"]
+
+    assert encoded_states == {"encoding": "base16", "value": hex(states)}
+
+
+def test_oversized_state_count_uses_exact_base16_json_encoding() -> None:
+    states = 10**4300
+    encoded_payload = json.dumps(_state_count_scenario(states).as_dict(), allow_nan=False)
     encoded_states = json.loads(encoded_payload)["distinguishable_states"]
 
     assert isinstance(encoded_states, dict)
