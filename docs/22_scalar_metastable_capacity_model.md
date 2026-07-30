@@ -47,7 +47,7 @@ Una magnitud física no medida se representa mediante JSON `null`, nunca mediant
 - un techo térmico no se calcula si falta la energía por evento;
 - la salida se serializa como JSON estricto, sin `NaN` ni `Infinity`.
 
-`distinguishable_states` permanece como entero JSON para los recuentos ordinarios. Si un entero exacto supera el límite de conversión decimal del runtime, se conserva sin truncamiento mediante `{"encoding": "base16", "value": "0x..."}`. La representación es reversible con `int(value, 16)` y no modifica el valor de \(K\) empleado por el modelo.
+`distinguishable_states` permanece como entero JSON mientras su valor sea exactamente interoperable en consumidores basados en IEEE 754, hasta \(2^{53}-1\). Los recuentos mayores se conservan sin pérdida mediante `{"encoding": "base16", "value": "0x..."}`. La representación es determinista y reversible con `int(value, 16)` y no modifica el valor de \(K\) empleado por el modelo.
 
 ## 22.4 Implementación reproducible
 
