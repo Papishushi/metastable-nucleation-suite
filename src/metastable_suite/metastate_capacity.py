@@ -21,6 +21,15 @@ def _require_optional_finite_positive(name: str, value: float | None) -> None:
         _require_finite_positive(name, value)
 
 
+def _encode_exact_json_integer(value: int) -> int | dict[str, str]:
+    """Return an exact JSON-safe representation without relaxing Python's digit limit."""
+    try:
+        str(value)
+    except ValueError:
+        return {"encoding": "base16", "value": hex(value)}
+    return value
+
+
 @dataclass(frozen=True)
 class MetastateCapacityScenario:
     """Sensitivity model for independently addressable scalar metastable cells.
@@ -316,6 +325,9 @@ class MetastateCapacityScenario:
                 allow_zero=True,
             )
         payload = asdict(self)
+        payload["distinguishable_states"] = _encode_exact_json_integer(
+            self.distinguishable_states
+        )
         payload.update(
             {
                 "volume_basis": "total_modelled_medium",
