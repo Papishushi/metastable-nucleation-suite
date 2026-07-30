@@ -1,0 +1,535 @@
+from __future__ import annotations
+
+import math
+from collections.abc import Iterable
+from dataclasses import asdict, dataclass
+from typing import SupportsFloat
+
+BOLTZMANN_CONSTANT_J_PER_K = 1.380649e-23
+EVIDENCE_LEVELS = {"measured", "engineering_scenario", "speculative_bound"}
+JSON_SAFE_INTEGER_MAX = (1 << 53) - 1
+
+_REAL_INPUT_FIELDS = (
+    "active_material_density_kg_m3",
+    "cell_pitch_nm",
+    "active_volume_fraction",
+    "coding_efficiency",
+    "active_utilization",
+    "operations_per_cell_event",
+    "multiplexing_factor",
+    "temperature_k",
+)
+_OPTIONAL_REAL_INPUT_FIELDS = (
+    "write_energy_j_per_cell",
+    "operation_energy_j_per_cell_event",
+    "cell_event_rate_hz",
+)
+
+
+def _normalize_real(name: str, value: object) -> float:
+    """Convert an accepted scalar to a finite JSON-native float."""
+    if isinstance(value, bool) or not isinstance(value, SupportsFloat):
+        raise TypeError(f"{name} must be a real number")
+    try:
+        normalized = float(value)
+    except (OverflowError, ValueError) as exc:
+        raise ValueError(f"{name} must be representable as a float") from exc
+    if not math.isfinite(normalized):
+        raise ValueError(f"{name} must be finite")
+    return normalized
+
+
+def _normalize_optional_real(name: str, value: object | None) -> float | None:
+    return None if value is None else _normalize_real(name, value)
+
+
+def _require_finite_positive(name: str, value: float, *, allow_zero: bool = False) -> None:
+    if not math.isfinite(value):
+        raise ValueError(f"{name} must be finite")
+    if value < 0 or (value == 0 and not allow_zero):
+        qualifier = "non-negative" if allow_zero else "positive"
+        raise ValueError(f"{name} must be {qualifier}")
+
+
+def _require_optional_finite_positive(name: str, value: float | None) -> None:
+    if value is not None:
+        _require_finite_positive(name, value)
+
+
+def _encode_exact_json_integer(value: int) -> int | dict[str, str]:
+    """Preserve exact integers across JSON consumers using base 16 when needed."""
+    if value <= JSON_SAFE_INTEGER_MAX:
+        return value
+    return {"encoding": "base16", "value": hex(value)}
+
+
+@dataclass(frozen=True)
+class MetastateCapacityScenario:
+    """Sensitivity model for independently addressable scalar metastable cells.
+
+    Volumetric outputs use total modelled medium volume. Mass-specific outputs use
+    active-material mass only. Packaged-system metrics are deliberately absent
+    because no support, addressing, readout, control or cooling mass is modelled.
+    """
+
+    name: str
+    evidence_level: str
+    active_material_density_kg_m3: float
+    cell_pitch_nm: float
+    distinguishable_states: int
+    active_volume_fraction: float = 1.0
+    coding_efficiency: float = 1.0
+    write_energy_j_per_cell: float | None = None
+    operation_energy_j_per_cell_event: float | None = None
+    cell_event_rate_hz: float | None = None
+    active_utilization: float = 1.0
+    operations_per_cell_event: float = 1.0
+    multiplexing_factor: float = 1.0
+    temperature_k: float = 300.0
+    notes: str = ""
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.name, str):
+            raise TypeError("name must be a string")
+        if not self.name:
+            raise ValueError("name must not be empty")
+        if not isinstance(self.evidence_level, str):
+            raise TypeError("evidence_level must be a string")
+        if self.evidence_level not in EVIDENCE_LEVELS:
+            raise ValueError("unsupported evidence_level")
+        if not isinstance(self.notes, str):
+            raise TypeError("notes must be a string")
+        if not isinstance(self.distinguishable_states, int):
+            raise TypeError("distinguishable_states must be an integer")
+        if self.distinguishable_states < 2:
+            raise ValueError("distinguishable_states must be at least two")
+
+        for field_name in _REAL_INPUT_FIELDS:
+            object.__setattr__(
+                self,
+                field_name,
+                _normalize_real(field_name, getattr(self, field_name)),
+            )
+        for field_name in _OPTIONAL_REAL_INPUT_FIELDS:
+            object.__setattr__(
+                self,
+                field_name,
+                _normalize_optional_real(field_name, getattr(self, field_name)),
+            )
+
+        _require_finite_positive(
+            "active_material_density_kg_m3", self.active_material_density_kg_m3
+        )
+        _require_finite_positive("cell_pitch_nm", self.cell_pitch_nm)
+        if not math.isfinite(self.cell_volume_m3) or self.cell_volume_m3 <= 0:
+            raise ValueError("cell_pitch_nm produces a non-finite or zero cell volume")
+        if not math.isfinite(self.active_cell_mass_kg) or self.active_cell_mass_kg <= 0:
+            raise ValueError(
+                "cell volume and active material density produce a non-finite or zero active cell mass"
+            )
+        if not math.isfinite(self.cells_per_modelled_m3):
+            raise ValueError("cell volume produces a non-finite volumetric cell density")
+        if not math.isfinite(self.cells_per_active_kg):
+            raise ValueError("active cell mass produces a non-finite mass-specific cell density")
+        for field_name, value in (
+            ("active_volume_fraction", self.active_volume_fraction),
+            ("coding_efficiency", self.coding_efficiency),
+            ("active_utilization", self.active_utilization),
+        ):
+            if not math.isfinite(value) or not 0 < value <= 1:
+                raise ValueError(f"{field_name} must lie in (0, 1]")
+        for field_name, value in (
+            ("write_energy_j_per_cell", self.write_energy_j_per_cell),
+            ("operation_energy_j_per_cell_event", self.operation_energy_j_per_cell_event),
+            ("cell_event_rate_hz", self.cell_event_rate_hz),
+        ):
+            _require_optional_finite_positive(field_name, value)
+        _require_finite_positive("operations_per_cell_event", self.operations_per_cell_event)
+        _require_finite_positive("multiplexing_factor", self.multiplexing_factor)
+        _require_finite_positive("temperature_k", self.temperature_k)
+
+        for field_name, value in (
+            (
+                "full_rewrite_energy_j_per_total_m3",
+                self.full_rewrite_energy_j_per_total_m3,
+            ),
+            (
+                "full_rewrite_energy_j_per_active_kg",
+                self.full_rewrite_energy_j_per_active_kg,
+            ),
+            (
+                "full_rewrite_energy_kwh_per_active_kg",
+                self.full_rewrite_energy_kwh_per_active_kg,
+            ),
+        ):
+            _require_optional_finite_positive(field_name, value)
+
+        for field_name, value in (
+            ("bits_per_cell", self.bits_per_cell),
+            ("cells_per_total_m3", self.cells_per_total_m3),
+            (
+                "active_material_mass_kg_per_total_m3",
+                self.active_material_mass_kg_per_total_m3,
+            ),
+            ("raw_bits_per_total_m3", self.raw_bits_per_total_m3),
+            ("raw_bits_per_active_kg", self.raw_bits_per_active_kg),
+            ("usable_bits_per_total_m3", self.usable_bits_per_total_m3),
+            ("usable_bits_per_active_kg", self.usable_bits_per_active_kg),
+            (
+                "usable_decimal_tb_per_active_kg",
+                self.usable_decimal_tb_per_active_kg,
+            ),
+            (
+                "usable_decimal_pb_per_active_kg",
+                self.usable_decimal_pb_per_active_kg,
+            ),
+            ("landauer_j_per_erased_bit", self.landauer_j_per_erased_bit),
+            (
+                "landauer_full_erase_j_per_total_m3",
+                self.landauer_full_erase_j_per_total_m3,
+            ),
+            (
+                "landauer_full_erase_j_per_active_kg",
+                self.landauer_full_erase_j_per_active_kg,
+            ),
+            ("operations_per_cell_event_total", self.operations_per_cell_event_total),
+            ("operations_per_joule", self.operations_per_joule),
+            (
+                "geometry_limited_operations_s_per_total_m3",
+                self.geometry_limited_operations_s_per_total_m3,
+            ),
+            (
+                "geometry_limited_operations_s_per_active_kg",
+                self.geometry_limited_operations_s_per_active_kg,
+            ),
+            (
+                "geometry_limited_dynamic_power_w_per_total_m3",
+                self.geometry_limited_dynamic_power_w_per_total_m3,
+            ),
+            (
+                "geometry_limited_dynamic_power_w_per_active_kg",
+                self.geometry_limited_dynamic_power_w_per_active_kg,
+            ),
+        ):
+            _require_optional_finite_positive(field_name, value)
+
+    @property
+    def cell_pitch_m(self) -> float:
+        return self.cell_pitch_nm * 1e-9
+
+    @property
+    def cell_volume_m3(self) -> float:
+        return self.cell_pitch_m * self.cell_pitch_m * self.cell_pitch_m
+
+    @property
+    def active_cell_mass_kg(self) -> float:
+        return self.cell_volume_m3 * self.active_material_density_kg_m3
+
+    @property
+    def cells_per_modelled_m3(self) -> float:
+        return 1.0 / self.cell_volume_m3
+
+    @property
+    def bits_per_cell(self) -> float:
+        return math.log2(self.distinguishable_states)
+
+    @property
+    def cells_per_total_m3(self) -> float:
+        return self.active_volume_fraction * self.cells_per_modelled_m3
+
+    @property
+    def active_material_mass_kg_per_total_m3(self) -> float:
+        return self.active_volume_fraction * self.active_material_density_kg_m3
+
+    @property
+    def cells_per_active_kg(self) -> float:
+        return 1.0 / self.active_cell_mass_kg
+
+    @property
+    def raw_bits_per_total_m3(self) -> float:
+        return self.cells_per_total_m3 * self.bits_per_cell
+
+    @property
+    def raw_bits_per_active_kg(self) -> float:
+        return self.cells_per_active_kg * self.bits_per_cell
+
+    @property
+    def usable_bits_per_total_m3(self) -> float:
+        return self.raw_bits_per_total_m3 * self.coding_efficiency
+
+    @property
+    def usable_bits_per_active_kg(self) -> float:
+        return self.raw_bits_per_active_kg * self.coding_efficiency
+
+    @property
+    def usable_decimal_tb_per_active_kg(self) -> float:
+        return self.usable_bits_per_active_kg / 8e12
+
+    @property
+    def usable_decimal_pb_per_active_kg(self) -> float:
+        return self.usable_bits_per_active_kg / 8e15
+
+    @property
+    def full_rewrite_energy_j_per_total_m3(self) -> float | None:
+        if self.write_energy_j_per_cell is None:
+            return None
+        return self.cells_per_total_m3 * self.write_energy_j_per_cell
+
+    @property
+    def full_rewrite_energy_j_per_active_kg(self) -> float | None:
+        if self.write_energy_j_per_cell is None:
+            return None
+        return self.cells_per_active_kg * self.write_energy_j_per_cell
+
+    @property
+    def full_rewrite_energy_kwh_per_active_kg(self) -> float | None:
+        energy = self.full_rewrite_energy_j_per_active_kg
+        return None if energy is None else energy / 3.6e6
+
+    @property
+    def landauer_j_per_erased_bit(self) -> float:
+        return BOLTZMANN_CONSTANT_J_PER_K * self.temperature_k * math.log(2.0)
+
+    @property
+    def landauer_full_erase_j_per_total_m3(self) -> float:
+        return self.usable_bits_per_total_m3 * self.landauer_j_per_erased_bit
+
+    @property
+    def landauer_full_erase_j_per_active_kg(self) -> float:
+        return self.usable_bits_per_active_kg * self.landauer_j_per_erased_bit
+
+    @property
+    def operations_per_cell_event_total(self) -> float:
+        return self.operations_per_cell_event * self.multiplexing_factor
+
+    @property
+    def geometry_limited_operations_s_per_total_m3(self) -> float | None:
+        if self.cell_event_rate_hz is None:
+            return None
+        return (
+            self.cells_per_total_m3
+            * self.cell_event_rate_hz
+            * self.active_utilization
+            * self.operations_per_cell_event_total
+        )
+
+    @property
+    def geometry_limited_operations_s_per_active_kg(self) -> float | None:
+        if self.cell_event_rate_hz is None:
+            return None
+        return (
+            self.cells_per_active_kg
+            * self.cell_event_rate_hz
+            * self.active_utilization
+            * self.operations_per_cell_event_total
+        )
+
+    @property
+    def geometry_limited_dynamic_power_w_per_total_m3(self) -> float | None:
+        if self.cell_event_rate_hz is None or self.operation_energy_j_per_cell_event is None:
+            return None
+        return (
+            self.cells_per_total_m3
+            * self.cell_event_rate_hz
+            * self.active_utilization
+            * self.operation_energy_j_per_cell_event
+        )
+
+    @property
+    def geometry_limited_dynamic_power_w_per_active_kg(self) -> float | None:
+        if self.cell_event_rate_hz is None or self.operation_energy_j_per_cell_event is None:
+            return None
+        return (
+            self.cells_per_active_kg
+            * self.cell_event_rate_hz
+            * self.active_utilization
+            * self.operation_energy_j_per_cell_event
+        )
+
+    @property
+    def operations_per_joule(self) -> float | None:
+        if self.operation_energy_j_per_cell_event is None:
+            return None
+        return self.operations_per_cell_event_total / self.operation_energy_j_per_cell_event
+
+    def thermal_limited_operations_s_per_active_kg(
+        self, power_budget_w_per_active_kg: float
+    ) -> float | None:
+        normalized_power_budget = _normalize_real(
+            "power_budget_w_per_active_kg", power_budget_w_per_active_kg
+        )
+        _require_finite_positive(
+            "power_budget_w_per_active_kg", normalized_power_budget, allow_zero=True
+        )
+        if self.operations_per_joule is None:
+            return None
+        result = normalized_power_budget * self.operations_per_joule
+        _require_finite_positive(
+            "thermal_limited_operations_s_per_active_kg",
+            result,
+            allow_zero=normalized_power_budget == 0,
+        )
+        return result
+
+    def as_dict(
+        self, power_budget_w_per_active_kg: float | None = None
+    ) -> dict[str, object]:
+        normalized_power_budget = (
+            None
+            if power_budget_w_per_active_kg is None
+            else _normalize_real(
+                "power_budget_w_per_active_kg", power_budget_w_per_active_kg
+            )
+        )
+        if normalized_power_budget is not None:
+            _require_finite_positive(
+                "power_budget_w_per_active_kg",
+                normalized_power_budget,
+                allow_zero=True,
+            )
+        payload = asdict(self)
+        payload["distinguishable_states"] = _encode_exact_json_integer(
+            self.distinguishable_states
+        )
+        payload.update(
+            {
+                "volume_basis": "total_modelled_medium",
+                "mass_basis": "active_material_only",
+                "bits_per_cell": self.bits_per_cell,
+                "cells_per_total_m3": self.cells_per_total_m3,
+                "active_material_mass_kg_per_total_m3": self.active_material_mass_kg_per_total_m3,
+                "cells_per_active_kg": self.cells_per_active_kg,
+                "raw_bits_per_total_m3": self.raw_bits_per_total_m3,
+                "raw_bits_per_active_kg": self.raw_bits_per_active_kg,
+                "usable_bits_per_total_m3": self.usable_bits_per_total_m3,
+                "usable_bits_per_active_kg": self.usable_bits_per_active_kg,
+                "usable_decimal_tb_per_active_kg": self.usable_decimal_tb_per_active_kg,
+                "usable_decimal_pb_per_active_kg": self.usable_decimal_pb_per_active_kg,
+                "full_rewrite_energy_j_per_total_m3": self.full_rewrite_energy_j_per_total_m3,
+                "full_rewrite_energy_j_per_active_kg": self.full_rewrite_energy_j_per_active_kg,
+                "full_rewrite_energy_kwh_per_active_kg": self.full_rewrite_energy_kwh_per_active_kg,
+                "landauer_j_per_erased_bit": self.landauer_j_per_erased_bit,
+                "landauer_full_erase_j_per_total_m3": self.landauer_full_erase_j_per_total_m3,
+                "landauer_full_erase_j_per_active_kg": self.landauer_full_erase_j_per_active_kg,
+                "operations_per_joule": self.operations_per_joule,
+                "geometry_limited_operations_s_per_total_m3": self.geometry_limited_operations_s_per_total_m3,
+                "geometry_limited_operations_s_per_active_kg": (
+                    self.geometry_limited_operations_s_per_active_kg
+                ),
+                "geometry_limited_dynamic_power_w_per_total_m3": (
+                    self.geometry_limited_dynamic_power_w_per_total_m3
+                ),
+                "geometry_limited_dynamic_power_w_per_active_kg": (
+                    self.geometry_limited_dynamic_power_w_per_active_kg
+                ),
+                "power_budget_w_per_active_kg": normalized_power_budget,
+                "thermal_limited_operations_s_per_active_kg": (
+                    None
+                    if normalized_power_budget is None
+                    else self.thermal_limited_operations_s_per_active_kg(
+                        normalized_power_budget
+                    )
+                ),
+            }
+        )
+        return payload
+
+
+def reference_scenarios() -> tuple[MetastateCapacityScenario, ...]:
+    """Return measured, engineering and speculative sensitivity cases."""
+
+    return (
+        MetastateCapacityScenario(
+            name="laser_written_fused_silica_equivalent",
+            evidence_level="measured",
+            active_material_density_kg_m3=2200.0,
+            cell_pitch_nm=395.75398596243724,
+            distinguishable_states=2,
+            active_volume_fraction=1.0,
+            coding_efficiency=1.0,
+            notes=(
+                "Equivalent cubic pitch derived from 4.84 TB in 12 cm^2 by 2 mm of fused silica; "
+                "it describes achieved archival density, not independently addressable nanocells."
+            ),
+        ),
+        MetastateCapacityScenario(
+            name="pcm_3d_conservative",
+            evidence_level="engineering_scenario",
+            active_material_density_kg_m3=6100.0,
+            cell_pitch_nm=100.0,
+            distinguishable_states=16,
+            active_volume_fraction=0.25,
+            coding_efficiency=0.70,
+            write_energy_j_per_cell=100e-12,
+            operation_energy_j_per_cell_event=10e-15,
+            cell_event_rate_hz=1e9,
+            active_utilization=1e-3,
+            operations_per_cell_event=2.0,
+            notes="Coarse 3D multilevel phase-change array with substantial routing and coding overhead.",
+        ),
+        MetastateCapacityScenario(
+            name="pcm_3d_aggressive",
+            evidence_level="engineering_scenario",
+            active_material_density_kg_m3=6100.0,
+            cell_pitch_nm=20.0,
+            distinguishable_states=16,
+            active_volume_fraction=0.25,
+            coding_efficiency=0.50,
+            write_energy_j_per_cell=1e-12,
+            operation_energy_j_per_cell_event=1e-15,
+            cell_event_rate_hz=10e9,
+            active_utilization=1e-3,
+            operations_per_cell_event=2.0,
+            multiplexing_factor=8.0,
+            notes="Aggressive nanocell and optical-multiplexing sensitivity case.",
+        ),
+        MetastateCapacityScenario(
+            name="pcm_sub_10_nm_speculative_bound",
+            evidence_level="speculative_bound",
+            active_material_density_kg_m3=6100.0,
+            cell_pitch_nm=5.0,
+            distinguishable_states=64,
+            active_volume_fraction=0.10,
+            coding_efficiency=0.25,
+            write_energy_j_per_cell=30e-15,
+            operation_energy_j_per_cell_event=0.1e-15,
+            cell_event_rate_hz=100e9,
+            active_utilization=1e-4,
+            operations_per_cell_event=2.0,
+            multiplexing_factor=16.0,
+            notes=(
+                "Speculative packing bound. Independent, stable, addressable 5 nm cells with 64 reliable "
+                "states have not been demonstrated as a three-dimensional system."
+            ),
+        ),
+        MetastateCapacityScenario(
+            name="addressable_amorphous_glass_ensemble",
+            evidence_level="speculative_bound",
+            active_material_density_kg_m3=2500.0,
+            cell_pitch_nm=10.0,
+            distinguishable_states=8,
+            active_volume_fraction=0.20,
+            coding_efficiency=0.30,
+            write_energy_j_per_cell=10e-12,
+            operation_energy_j_per_cell_event=1e-15,
+            cell_event_rate_hz=1e9,
+            active_utilization=1e-4,
+            operations_per_cell_event=2.0,
+            notes=(
+                "A sensitivity case for independently addressable local configurations in an amorphous "
+                "landscape. The existence of many microscopic minima does not imply that "
+                "they are readable cells."
+            ),
+        ),
+    )
+
+
+def scenarios_as_dicts(
+    scenarios: Iterable[MetastateCapacityScenario] | None = None,
+    power_budget_w_per_active_kg: float | None = None,
+) -> list[dict[str, object]]:
+    selected = tuple(scenarios) if scenarios is not None else reference_scenarios()
+    return [
+        scenario.as_dict(power_budget_w_per_active_kg)
+        for scenario in selected
+    ]
