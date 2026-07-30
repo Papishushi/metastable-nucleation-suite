@@ -55,10 +55,16 @@ class MetastateCapacityScenario:
     notes: str = ""
 
     def __post_init__(self) -> None:
+        if not isinstance(self.name, str):
+            raise TypeError("name must be a string")
         if not self.name:
             raise ValueError("name must not be empty")
+        if not isinstance(self.evidence_level, str):
+            raise TypeError("evidence_level must be a string")
         if self.evidence_level not in EVIDENCE_LEVELS:
             raise ValueError("unsupported evidence_level")
+        if not isinstance(self.notes, str):
+            raise TypeError("notes must be a string")
         _require_finite_positive(
             "active_material_density_kg_m3", self.active_material_density_kg_m3
         )
