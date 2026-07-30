@@ -6,6 +6,7 @@ from dataclasses import asdict, dataclass
 
 BOLTZMANN_CONSTANT_J_PER_K = 1.380649e-23
 EVIDENCE_LEVELS = {"measured", "engineering_scenario", "speculative_bound"}
+JSON_SAFE_INTEGER_MAX = (1 << 53) - 1
 
 
 def _require_finite_positive(name: str, value: float, *, allow_zero: bool = False) -> None:
@@ -22,12 +23,10 @@ def _require_optional_finite_positive(name: str, value: float | None) -> None:
 
 
 def _encode_exact_json_integer(value: int) -> int | dict[str, str]:
-    """Return an exact JSON-safe representation without relaxing Python's digit limit."""
-    try:
-        str(value)
-    except ValueError:
-        return {"encoding": "base16", "value": hex(value)}
-    return value
+    """Preserve exact integers across JSON consumers using base 16 when needed."""
+    if value <= JSON_SAFE_INTEGER_MAX:
+        return value
+    return {"encoding": "base16", "value": hex(value)}
 
 
 @dataclass(frozen=True)
