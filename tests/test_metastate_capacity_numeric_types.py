@@ -23,7 +23,7 @@ def _scenario(**overrides: object) -> MetastateCapacityScenario:
 
 def test_supported_numeric_scalars_are_normalized_before_strict_json() -> None:
     scenario = _scenario(
-        active_material_density_kg_m3=Decimal("2000"),
+        active_material_density_kg_m3=Decimal(2000),
         cell_pitch_nm=Fraction(100, 1),
         active_volume_fraction=Fraction(1, 2),
         coding_efficiency=Decimal("0.75"),
@@ -31,9 +31,9 @@ def test_supported_numeric_scalars_are_normalized_before_strict_json() -> None:
         operation_energy_j_per_cell_event=Decimal("4e-15"),
         cell_event_rate_hz=Fraction(1_000_000, 1),
         active_utilization=Fraction(1, 10),
-        operations_per_cell_event=Decimal("2"),
+        operations_per_cell_event=Decimal(2),
         multiplexing_factor=Fraction(4, 1),
-        temperature_k=Decimal("300"),
+        temperature_k=Decimal(300),
     )
 
     payload = scenario.as_dict(Fraction(1000, 1))  # type: ignore[arg-type]
@@ -63,7 +63,9 @@ def test_supported_numeric_scalars_are_normalized_before_strict_json() -> None:
 def test_fractional_thermal_budget_returns_a_native_float() -> None:
     scenario = _scenario(operation_energy_j_per_cell_event=Fraction(1, 4))
 
-    result = scenario.thermal_limited_operations_s_per_active_kg(Fraction(1, 2))  # type: ignore[arg-type]
+    result = scenario.thermal_limited_operations_s_per_active_kg(
+        Fraction(1, 2)  # type: ignore[arg-type]
+    )
 
     assert isinstance(result, float)
     assert result == pytest.approx(2.0)
