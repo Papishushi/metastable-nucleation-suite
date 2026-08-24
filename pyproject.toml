@@ -22,7 +22,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "pytest>=8",
-  "ruff==0.16.0",
+  "ruff==0.16.4",
   "pyarrow>=16",
   "build>=1.2",
   "packaging>=24",
