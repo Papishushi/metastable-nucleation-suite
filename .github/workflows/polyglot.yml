@@ -24,7 +24,7 @@ jobs:
   rust-wasm-visualizer:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
       - name: Show pinned Rust toolchain
         run: |
           rustc --version
@@ -75,7 +75,7 @@ jobs:
             smoke: true
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
       - uses: actions/setup-dotnet@v6.0.0
         with:
           dotnet-version: "10.0.x"
@@ -130,7 +130,7 @@ jobs:
   contracts:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
       - uses: actions/setup-python@v7.0.0
         with:
           python-version: "3.12"
@@ -242,7 +242,7 @@ jobs:
   containers:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
       - name: Build images
         run: docker compose --profile distributed build --quiet
       - name: Start distributed control plane
